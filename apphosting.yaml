@@ -10,5 +10,7 @@ runConfig:
 secrets:
   - variable: LINKEDIN_CLIENT_ID
     secret: linkedin_client_id
+    version: latest
   - variable: LINKEDIN_CLIENT_SECRET
     secret: linkedin_client_secret
+    version: latest
