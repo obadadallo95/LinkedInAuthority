@@ -7,17 +7,14 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
-# Environment variables that should be injected
+# Environment variables configuration for App Hosting.
+# In App Hosting, secrets must reference Cloud Secret Manager resource names in the 'secret' field,
+# or we can define them as non-secret environment variables using the 'value' field.
+# Since these are credentials/API keys, we bind them to Secret Manager.
 env:
   - variable: GEMINI_API_KEY
-    availability:
-      - RUN
-      - BUILD
+    secret: lgc_gemini_api_key
   - variable: GITHUB_CLIENT_ID
-    availability:
-      - RUN
-      - BUILD
+    secret: lgc_github_client_id
   - variable: GITHUB_CLIENT_SECRET
-    availability:
-      - RUN
-      - BUILD
+    secret: lgc_github_client_secret
