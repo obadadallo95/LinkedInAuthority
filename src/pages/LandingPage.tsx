@@ -135,7 +135,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     <Code2 size={14} />
                     <span>git log -n 1 --stat</span>
                   </div>
-                  <p className="text-emerald-400">commit 89271df (HEAD -> main)</p>
+                  <p className="text-emerald-400">commit 89271df (HEAD -&gt; main)</p>
                   <p className="text-slate-400">Author: Obada Dallo</p>
                   <p className="text-slate-400">Date:   Thu Jul 16 21:05:32 2026</p>
                   <br />
