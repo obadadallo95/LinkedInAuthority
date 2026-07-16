@@ -136,6 +136,15 @@ export const LoginScreen = ({
             <span>{googleBtnLabel}</span>
           </button>
         </div>
+
+        {/* Legal Consent Text */}
+        <div className="text-center text-[10px] text-slate-400 mt-6 leading-relaxed max-w-xs mx-auto relative z-10">
+          بالاستمرار في تسجيل الدخول، فإنك توافق على{" "}
+          <a href="#" className="text-indigo-400 hover:underline">شروط الخدمة</a>
+          {" "}و{" "}
+          <a href="#" className="text-indigo-400 hover:underline">سياسة الخصوصية</a>
+          {" "}الخاصة بنا.
+        </div>
       </div>
     </div>
   );
