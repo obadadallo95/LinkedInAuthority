@@ -13,6 +13,7 @@ export interface UserSettings {
   linkedinPublish?: boolean;
   linkedinComment?: boolean;
   linkedinFollow?: boolean;
+  onboardingSkipped?: boolean;
 }
 
 export interface SettingsContextType {
@@ -136,7 +137,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isOnboardingComplete = !!(settings.githubUsername || settings.githubProfile) && !!(settings.linkedinToken || settings.linkedinProfile);
+  const isOnboardingComplete = settings.onboardingSkipped === true
+    || (!!(settings.githubUsername || settings.githubProfile) && !!(settings.linkedinToken || settings.linkedinProfile));
 
   return (
     <SettingsContext.Provider value={{ settings, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>

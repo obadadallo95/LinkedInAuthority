@@ -46,6 +46,12 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
     const end = Date.now() + 2 * 1000;
     const colors = ['#818cf8', '#34d399', '#60a5fa'];
 
+  const skipOnboarding = async () => {
+    if (!auth.currentUser) return;
+    const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
+    await setDoc(settingsRef, { onboardingSkipped: true }, { merge: true });
+    window.location.reload();
+  };
     (function frame() {
       confetti({
         particleCount: 5,
@@ -244,7 +250,7 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
                   {loading ? (isRtl ? 'جاري الربط...' : 'Connecting...') : (isRtl ? 'ربط الحساب' : 'Connect Account')}
                 </button>
                 {/* Skip option just in case */}
-                <button onClick={() => {setStep(4); triggerConfetti();}} className="mt-4 text-sm text-slate-500 hover:text-white transition-colors">
+                <button onClick={skipOnboarding} className="mt-4 text-sm text-slate-500 hover:text-white transition-colors">
                     {isRtl ? 'التخطي مؤقتاً' : 'Skip for now'}
                 </button>
               </motion.div>
