@@ -142,10 +142,10 @@ router.post("/publish-post", async (req: any, res: any) => {
             shareMediaCategory: "NONE",
           },
         },
+        visibility: {
+          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+        },
       }),
-      visibility: {
-        "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-      },
     });
 
     if (!publishRes.ok) {
