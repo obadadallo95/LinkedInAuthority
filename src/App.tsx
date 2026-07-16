@@ -501,14 +501,12 @@ function App() {
             <div className="fade-in-element flex-1">
               <SettingsPanel 
                 lang={lang}
-                user={user}
                 settings={settings}
-                inputs={inputs}
-                setInputs={setInputs}
-                handleSaveSettings={handleSaveSettings}
                 handleDisconnect={handleDisconnect}
-                handleDeleteAccount={handleDeleteAccount}
-                loading={loadingSettings}
+                handleOpenLegal={(tab: 'privacy' | 'terms' | 'developer') => {
+                  setLegalModalTab(tab);
+                  setIsLegalModalOpen(true);
+                }}
               />
             </div>
           )}

@@ -1,57 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, GitBranch, Share2, RefreshCw, Check, LogIn, ShieldCheck, Terminal, Activity } from 'lucide-react';
+import { Settings, GitBranch, Share2, RefreshCw, Check, LogIn, Shield, Terminal, Activity } from 'lucide-react';
 import { t } from '../constants';
 import { HelpGuides } from './HelpGuides';
 import { auth, githubProvider, linkedinProvider, db } from '../infrastructure/firebase/config';
-import { linkWithPopup, signInWithPopup, GithubAuthProvider, OAuthProvider } from 'firebase/auth';
+import { linkWithPopup, GithubAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { checkTokenScopes, getConnectionLogs, subscribeToLogs, LogEntry } from '../services/githubService';
+import { getConnectionLogs, subscribeToLogs, LogEntry } from '../services/githubService';
 
 export const SettingsPanel = ({ 
-  lang, settings, setSettingsInput, inputs, handleSaveSettings, handleDisconnect, handleOpenLegal 
+  lang, settings, handleDisconnect, handleOpenLegal 
 }: any) => {
   const isAr = lang === 'ar';
   
   const [testingGh, setTestingGh] = useState(false);
   const [testingLi, setTestingLi] = useState(false);
-  const [testGhStatus, setTestGhStatus] = useState<'success' | 'err' | null>(null);
   const [testLiStatus, setTestLiStatus] = useState<'success' | 'err' | null>(null);
 
-  // New troubleshooting & validation states
+  // Connection logs states
   const [showLogs, setShowLogs] = useState(false);
-  const [checkingPermissions, setCheckingPermissions] = useState(false);
-  const [validationResult, setValidationResult] = useState<{ valid: boolean; scopes: string[]; hasRepoScope: boolean; error: string | null } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>(getConnectionLogs());
 
   useEffect(() => {
-    const unsubscribe = subscribeToLogs(() => {
-      setLogs(getConnectionLogs());
+    const unsubscribe = subscribeToLogs((newLogs) => {
+      setLogs([...newLogs]);
     });
     return () => unsubscribe();
   }, []);
 
-  const checkTokenPermissions = async () => {
-    setCheckingPermissions(true);
-    setValidationResult(null);
-    const tokenToCheck = inputs.ghTokenInput || settings?.githubToken;
+  const updatePermission = async (field: string, value: any) => {
+    if (!auth.currentUser) return;
+    const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
     try {
-      const result = await checkTokenScopes(tokenToCheck);
-      setValidationResult(result);
-    } catch (err: any) {
-      setValidationResult({
-        valid: false,
-        scopes: [],
-        hasRepoScope: false,
-        error: err.message || err
-      });
-    } finally {
-      setCheckingPermissions(false);
+      await setDoc(settingsRef, {
+        [field]: value
+      }, { merge: true });
+    } catch (e) {
+      console.error(`Failed to update setting ${field}:`, e);
     }
   };
 
   const connectGithub = async () => {
-    if (!auth.currentUser) return;
     setTestingGh(true);
+    if (!auth.currentUser) return;
     
     try {
       const result = await linkWithPopup(auth.currentUser, githubProvider);
@@ -63,9 +53,6 @@ export const SettingsPanel = ({
           headers: { Authorization: `token ${token}` }
         });
         const userData = await userRes.json();
-        
-        setSettingsInput('ghUsername', userData.login);
-        setSettingsInput('ghToken', token);
         
         const settingsRef = doc(db, "users", result.user.uid, "settings", "current");
         await setDoc(settingsRef, {
@@ -88,31 +75,6 @@ export const SettingsPanel = ({
       } else {
         alert(err.message);
       }
-    } finally {
-      setTestingGh(false);
-    }
-  };
-
-  const testGithubConnection = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setTestingGh(true);
-    setTestGhStatus(null);
-    try {
-      await handleSaveSettings(e as any);
-      
-      // Perform a test API call to verify the token/username
-      if (inputs.ghUsernameInput) {
-        const res = await fetch(`https://api.github.com/users/${inputs.ghUsernameInput}`);
-        if (res.ok) {
-           setTestGhStatus('success');
-        } else {
-           setTestGhStatus('err');
-        }
-      } else {
-        setTestGhStatus('err');
-      }
-    } catch {
-      setTestGhStatus('err');
     } finally {
       setTestingGh(false);
     }
@@ -146,8 +108,6 @@ export const SettingsPanel = ({
           const { token, profile } = event.data;
 
           if (token && auth.currentUser) {
-            setSettingsInput('liToken', token);
-
             const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
             await setDoc(settingsRef, {
               linkedinToken: token,
@@ -174,7 +134,13 @@ export const SettingsPanel = ({
   };
 
   const ghConnected = !!settings?.githubProfile || !!settings?.githubUsername;
-  const liConnected = !!settings?.linkedinProfile || !!settings?.linkedinToken || !!inputs?.liTokenInput;
+  const liConnected = !!settings?.linkedinProfile || !!settings?.linkedinToken;
+
+  // Set default values for permissions if not explicitly stored
+  const ghPermission = settings?.githubPermissions || 'public';
+  const liPublish = settings?.linkedinPublish !== false;
+  const liComment = settings?.linkedinComment === true;
+  const liFollow = settings?.linkedinFollow === true;
 
   return (
     <section className={`flex flex-col gap-6 max-w-4xl mx-auto w-full pb-32 ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? 'rtl' : 'ltr'}>
@@ -184,8 +150,8 @@ export const SettingsPanel = ({
           <Settings className="w-5 h-5 text-indigo-400" />
         </div>
         <div>
-          <h2 className="text-sm font-black text-white">{isAr ? 'إعدادات الحساب والربط' : 'Account & Integrations'}</h2>
-          <p className="text-[11px] text-slate-400">{isAr ? 'قم بإدارة حساباتك المرتبطة للوصول إلى كافة الميزات' : 'Manage your connected accounts to unlock all features'}</p>
+          <h2 className="text-sm font-black text-white">{isAr ? 'إعدادات الحساب والربط والأمان' : 'Account, Integration & Security'}</h2>
+          <p className="text-[11px] text-slate-400">{isAr ? 'قم بإدارة حساباتك المرتبطة وتخصيص صلاحيات الأمان لمنصتك' : 'Manage connected accounts and customize permissions for complete safety'}</p>
         </div>
       </div>
 
@@ -201,7 +167,7 @@ export const SettingsPanel = ({
               <div>
                 <h3 className="font-bold text-white text-sm">GitHub</h3>
                 <span className={`text-[10px] font-bold ${ghConnected ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  {ghConnected ? (isAr ? 'متصل' : 'Connected') : (isAr ? 'غير متصل' : 'Not Connected')}
+                  {ghConnected ? (isAr ? 'متصل بنجاح ✓' : 'Connected ✓') : (isAr ? 'غير متصل' : 'Not Connected')}
                 </span>
               </div>
             </div>
@@ -211,182 +177,94 @@ export const SettingsPanel = ({
                 onClick={() => handleDisconnect("github")}
                 className="text-[10px] px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-bold transition-colors cursor-pointer"
               >
-                {t[lang].disconnectGh || 'Disconnect'}
+                {isAr ? 'فصل القناة' : 'Disconnect'}
               </button>
             )}
           </div>
           
-          <div className="space-y-4 flex-1 flex flex-col justify-center">
+          <div className="space-y-4 flex-1 flex flex-col justify-between">
             {!ghConnected ? (
-                <div className="flex flex-col gap-4 py-2">
-                    <div className="text-center">
-                        <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">
-                            {isAr ? 'اربط حساب GitHub الخاص بك بنقرة واحدة (يتطلب تفعيل GitHub OAuth في متغيرات البيئة)' : 'Connect your GitHub account with one click (Requires setting up GitHub OAuth in environment variables).'}
-                        </p>
-                        <button 
-                            type="button"
-                            onClick={connectGithub}
-                            disabled={testingGh}
-                            className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
-                        >
-                            {testingGh ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-                            {isAr ? 'ربط حساب GitHub' : 'Connect GitHub'}
-                        </button>
-                        
-                        <div className="mt-3 p-3 bg-slate-950/80 rounded-2xl border border-white/5 text-left text-[10px] text-slate-400 space-y-1.5 leading-normal">
-                          <div className="font-bold text-slate-300 flex items-center gap-1">
-                            💡 {isAr ? 'ملاحظة:' : 'Note:'}
-                          </div>
-                          <div>
-                            {isAr 
-                              ? 'عملية الربط هذه آمنة وتستخدم مصادقة Firebase لربط حساب GitHub بحسابك الحالي لاستخراج مستودعاتك.' 
-                              : 'This linking process is secure and uses Firebase Auth to connect your GitHub account to your current profile for fetching your repositories.'}
-                          </div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                        <div className="h-px bg-white/5 flex-1"></div>
-                        <span className="text-[10px] text-slate-500 font-bold">{isAr ? 'أو يدوياً ومباشرة' : 'OR MANUALLY & DIRECTLY'}</span>
-                        <div className="h-px bg-white/5 flex-1"></div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-[10px] text-amber-300/90 leading-relaxed">
-                          💡 {isAr 
-                            ? 'لتجنب قيود الطلبات (Rate Limits) وجلب مستودعاتك الحقيقية فوراً، يوصى بشدة بإنشاء Personal Access Token (classic) في GitHub مع تفعيل صلاحية repo وإدخاله بالأسفل.'
-                            : 'To avoid public rate limits and fetch your real repos instantly, we highly recommend generating a Personal Access Token (classic) on GitHub with "repo" scope and pasting it below.'}
-                        </div>
-                        <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">{t[lang].githubUsernameLabel}</label>
-                        <input 
-                            type="text" 
-                            placeholder={t[lang].githubUsernamePlaceholder}
-                            value={inputs.ghUsernameInput}
-                            onChange={e => setSettingsInput('ghUsername', e.target.value)}
-                            className="w-full text-[11px] rounded-xl bg-slate-950 border border-white/5 py-2 px-3 focus:outline-none focus:border-indigo-500 text-white font-medium transition-colors"
-                        />
-                        </div>
-                        <div>
-                        <label className="text-[10px] font-bold text-slate-400 block mb-1">{t[lang].githubTokenLabel} (PAT)</label>
-                        <input 
-                            type="password" 
-                            placeholder={t[lang].githubTokenPlaceholder}
-                            value={inputs.ghTokenInput}
-                            onChange={e => setSettingsInput('ghToken', e.target.value)}
-                            className="w-full text-[11px] rounded-xl bg-slate-950 border border-white/5 py-2 px-3 focus:outline-none focus:border-indigo-500 text-white transition-colors"
-                        />
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button 
-                              type="button" 
-                              onClick={testGithubConnection}
-                              disabled={testingGh || (!inputs.ghUsernameInput && !inputs.ghTokenInput)}
-                              className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                              {testingGh ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                              <span>{isAr ? 'حفظ واختبار' : 'Save & Test'}</span>
-                          </button>
-
-                          <button 
-                              type="button" 
-                              onClick={checkTokenPermissions}
-                              disabled={checkingPermissions || (!inputs.ghTokenInput && !settings?.githubToken)}
-                              className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
-                          >
-                              {checkingPermissions ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
-                              <span>{isAr ? 'فحص الصلاحيات' : 'Check Permissions'}</span>
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 mt-1">
-                          {testGhStatus === 'success' && <span className="text-[10px] text-emerald-400 flex items-center font-bold gap-1"><Check className="w-3 h-3" /> {isAr ? 'تم الحفظ والاتصال' : 'Saved & Connected'}</span>}
-                          {testGhStatus === 'err' && <span className="text-[10px] text-rose-400 flex items-center font-bold">✕ {isAr ? 'خطأ في الاتصال' : 'Connection Error'}</span>}
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-white/5 shadow-inner">
-                      {settings?.githubProfile?.avatar_url ? (
-                          <img src={settings.githubProfile.avatar_url} className="w-12 h-12 rounded-full border border-white/10" alt="GitHub Profile" />
-                      ) : (
-                          <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
-                               <GitBranch className="w-5 h-5 text-slate-400" />
-                          </div>
-                      )}
-                      <div className="flex-1">
-                          <div className="text-[13px] font-bold text-white mb-1">{settings?.githubProfile?.name || settings?.githubProfile?.login || settings?.ghUsername || inputs.ghUsernameInput}</div>
-                          <div className="text-[11px] text-slate-400 font-medium">{settings?.githubProfile?.login ? `@${settings.githubProfile.login}` : ''}</div>
-                      </div>
-                  </div>
-
+              <div className="flex flex-col gap-4 py-2">
+                <div className="text-center">
+                  <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                    {isAr ? 'اربط حساب GitHub الخاص بك بنقرة واحدة لتحليل المستودعات وإنشاء منشورات ممتازة.' : 'Connect your GitHub account with one click to analyze code repositories.'}
+                  </p>
                   <button 
-                      type="button" 
-                      onClick={checkTokenPermissions}
-                      disabled={checkingPermissions || !settings?.githubToken}
-                      className="w-full py-2.5 rounded-xl text-[10px] font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-350 border border-indigo-500/10 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                    type="button"
+                    onClick={connectGithub}
+                    disabled={testingGh}
+                    className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
                   >
-                      {checkingPermissions ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
-                      <span>{isAr ? 'فحص الصلاحيات للرمز المتصل' : 'Check Permissions for Connected Token'}</span>
+                    {testingGh ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                    {isAr ? 'ربط حساب GitHub آمن' : 'Connect GitHub Securely'}
                   </button>
                 </div>
-            )}
-
-            {/* Validation Result Area */}
-            {validationResult && (
-              <div className={`p-3.5 rounded-2xl border text-[10.5px] leading-relaxed space-y-1.5 transition-all ${
-                validationResult.valid && validationResult.hasRepoScope
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  : validationResult.valid
-                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
-                  : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-              }`}>
-                <div className="font-bold flex items-center gap-1.5 text-[11px]">
-                  {validationResult.valid && validationResult.hasRepoScope ? '✅' : '⚠️'}
-                  <span>
-                    {validationResult.valid 
-                      ? (isAr ? 'تم التحقق من الرمز بنجاح!' : 'Token Verified Successfully!')
-                      : (isAr ? 'فشل التحقق من الرمز!' : 'Token Verification Failed!')}
-                  </span>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-white/5 shadow-inner">
+                  {settings?.githubProfile?.avatar_url ? (
+                    <img src={settings.githubProfile.avatar_url} className="w-12 h-12 rounded-full border border-white/10" alt="GitHub Profile" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
+                      <GitBranch className="w-5 h-5 text-slate-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-[13px] font-bold text-white mb-1">{settings?.githubProfile?.name || settings?.githubProfile?.login || settings?.githubUsername}</div>
+                    <div className="text-[11px] text-slate-400 font-medium">@{settings?.githubProfile?.login || settings?.githubUsername}</div>
+                  </div>
                 </div>
-                {validationResult.valid ? (
-                  <div className="space-y-1">
-                    <div>
-                      <strong>{isAr ? 'الصلاحيات المكتشفة:' : 'Detected Scopes:'}</strong>{' '}
-                      <code className="bg-slate-950/60 px-1.5 py-0.5 rounded font-mono text-[9.5px] text-white">
-                        {validationResult.scopes.length > 0 ? validationResult.scopes.join(', ') : 'none'}
-                      </code>
-                    </div>
-                    <div className="text-[10px] pt-1">
-                      {validationResult.hasRepoScope ? (
-                        <span className="text-emerald-400 font-medium">
-                          ✓ {isAr ? 'تأكيد: صلاحية الوصول للمستودعات "repo" مفعلة بشكل كامل ومكتملة.' : 'Success: Full repository access ("repo" scope) is granted.'}
-                        </span>
-                      ) : (
-                        <span className="text-amber-400 font-bold">
-                          ✕ {isAr ? 'تنبيه: صلاحية الوصول للمستودعات "repo" غير مفعلة! هذا سيسبب أخطاء 403 Forbidden.' : 'Warning: "repo" scope is missing! This will cause 403 Forbidden errors when analyzing private repos.'}
-                        </span>
-                      )}
-                    </div>
+
+                {/* GitHub Permissions Panel */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-200 uppercase tracking-wider">
+                    <Shield className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{isAr ? 'صلاحيات نطاق المستودعات' : 'Repository Sync Scope'}</span>
                   </div>
-                ) : (
-                  <div className="text-rose-400 font-medium">
-                    {validationResult.error}
+                  
+                  <p className="text-[10px] text-slate-400 leading-normal">
+                    {isAr ? 'حدد ما ترغب في جلب بياناته ومزامنته لتطبيقك للحفاظ على خصوصيتك:' : 'Define what repositories the engine is allowed to access and analyze:'}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => updatePermission('githubPermissions', 'public')}
+                      className={`py-2 px-3 rounded-xl text-[10px] font-black transition-all border ${
+                        ghPermission === 'public'
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          : 'bg-slate-900 border-white/5 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {isAr ? 'المستودعات العامة فقط' : 'Public Repos Only'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updatePermission('githubPermissions', 'all')}
+                      className={`py-2 px-3 rounded-xl text-[10px] font-black transition-all border ${
+                        ghPermission === 'all'
+                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          : 'bg-slate-900 border-white/5 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {isAr ? 'كافة المستودعات (عامة + خاصة)' : 'All Repos (Public & Private)'}
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
             {/* Connection Logs Toggle */}
-            <div className="pt-2 border-t border-white/5 space-y-3">
+            <div className="pt-4 border-t border-white/5 space-y-3">
               <button
                 type="button"
                 onClick={() => setShowLogs(!showLogs)}
-                className="w-full py-2.5 px-3.5 rounded-xl bg-slate-950/40 hover:bg-slate-950/70 border border-white/5 hover:border-white/10 text-[10.5px] font-bold text-slate-300 flex items-center justify-between transition-all cursor-pointer"
+                className="w-full py-2 px-3 rounded-xl bg-slate-950/40 hover:bg-slate-950/70 border border-white/5 hover:border-white/10 text-[10px] font-bold text-slate-350 flex items-center justify-between transition-all cursor-pointer"
               >
                 <span className="flex items-center gap-1.5">
                   <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-                  {isAr ? 'عرض سجل الاتصالات والشبكة' : 'Show Connection Logs'}
+                  {isAr ? 'سجل الاتصالات السحابي' : 'Show Sync Logs'}
                 </span>
                 <span className="px-1.5 py-0.5 bg-slate-900 rounded text-[9px] text-indigo-300 border border-indigo-500/20 font-mono">
                   {showLogs ? (isAr ? 'إخفاء' : 'HIDE') : (isAr ? 'عرض' : 'SHOW')}
@@ -394,42 +272,26 @@ export const SettingsPanel = ({
               </button>
               
               {showLogs && (
-                <div className="bg-slate-950 border border-white/5 rounded-2xl p-3.5 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+                <div className="bg-slate-950 border border-white/5 rounded-2xl p-3 max-h-40 overflow-y-auto custom-scrollbar space-y-2 text-left">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1.5 mb-1.5">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <Activity className="w-3 h-3 text-emerald-400" /> {isAr ? 'سجل أحداث API الأخير' : 'Recent API Events'}
-                    </span>
-                    <span className="text-[8px] text-slate-500 font-medium">
-                      {isAr ? 'محدث في الوقت الحقيقي' : 'Real-time feed'}
+                      <Activity className="w-3 h-3 text-emerald-400" /> {isAr ? 'سجل المزامنة الأخير' : 'Sync Feed'}
                     </span>
                   </div>
                   
                   {logs.length === 0 ? (
-                    <div className="text-center py-6 text-slate-600 text-[10px]">
-                      {isAr ? 'لا توجد سجلات بعد. قم بأي عملية اتصال للبدء.' : 'No connection logs yet. Trigger a repository load or token test to populate.'}
+                    <div className="text-center py-4 text-slate-600 text-[10px]">
+                      {isAr ? 'لا توجد سجلات حالياً.' : 'No connection logs yet.'}
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {logs.map((log, idx) => (
-                        <div key={idx} className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5 flex flex-col gap-1.5 text-[9px] leading-relaxed">
-                          <div className="flex items-center justify-between">
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                              log.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' :
-                              log.status === 'warning' ? 'bg-amber-500/10 text-amber-400' :
-                              log.status === 'error' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-800 text-slate-300'
-                            }`}>
-                              {log.status}
-                            </span>
-                            <span className="text-slate-500 font-mono text-[8px]">{log.timestamp}</span>
+                    <div className="space-y-1.5">
+                      {logs.slice(0, 5).map((log, idx) => (
+                        <div key={idx} className="p-2 rounded-lg bg-slate-900/50 border border-white/5 text-[9px] leading-relaxed">
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span>{log.action}</span>
+                            <span className="font-mono text-[8px]">{log.timestamp.split('T')[1]?.slice(0, 5)}</span>
                           </div>
-                          <div className="font-bold text-slate-200">
-                            [{log.action}] {log.message}
-                          </div>
-                          {log.details && (
-                            <div className="font-mono text-[8px] text-slate-400 bg-slate-950 p-2 rounded border border-white/5 select-all break-all leading-normal whitespace-pre-wrap">
-                              {log.details}
-                            </div>
-                          )}
+                          <div className="font-bold text-slate-300 mt-0.5">{log.message}</div>
                         </div>
                       ))}
                     </div>
@@ -450,7 +312,7 @@ export const SettingsPanel = ({
               <div>
                 <h3 className="font-bold text-white text-sm">LinkedIn</h3>
                 <span className={`text-[10px] font-bold ${liConnected ? 'text-blue-400' : 'text-slate-500'}`}>
-                  {liConnected ? (isAr ? 'متصل' : 'Connected') : (isAr ? 'غير متصل' : 'Not Connected')}
+                  {liConnected ? (isAr ? 'متصل بنجاح ✓' : 'Connected ✓') : (isAr ? 'غير متصل' : 'Not Connected')}
                 </span>
               </div>
             </div>
@@ -460,51 +322,121 @@ export const SettingsPanel = ({
                 onClick={() => handleDisconnect("linkedin")}
                 className="text-[10px] px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-bold transition-colors cursor-pointer"
               >
-                {t[lang].disconnectLi || 'Disconnect'}
+                {isAr ? 'فصل الحساب' : 'Disconnect'}
               </button>
             )}
           </div>
           
-          <div className="space-y-4 flex-1">
-            <div>
-              <p className="text-[12px] font-bold text-slate-300 mb-2">
-                {isAr ? 'ربط حساب لينكدإن الخاص بك' : 'Connect your LinkedIn account'}
-              </p>
-              <p className="text-[10px] text-slate-500 mb-4 leading-relaxed">
-                {isAr 
-                  ? 'سيتم توجيهك إلى لينكدإن لتسجيل الدخول بأمان وتخويل التطبيق للنشر نيابة عنك.' 
-                  : 'You will be redirected to LinkedIn to securely log in and authorize the app to post on your behalf.'}
-              </p>
-              {!liConnected && (
+          <div className="space-y-4 flex-1 flex flex-col justify-between">
+            {!liConnected ? (
+              <div className="py-2 text-center">
+                <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                  {isAr ? 'اربط حسابك المهني لبدء نشر منشوراتك المكتوبة من الذكاء الاصطناعي مباشرة.' : 'Connect your professional account to publish generated posts directly.'}
+                </p>
                 <button 
                   type="button" 
                   onClick={linkLinkedinAccount}
                   disabled={testingLi}
-                  className="px-6 py-3 rounded-xl text-[11px] font-black bg-[#0077b5] hover:bg-[#006396] text-white flex items-center gap-2 transition-all cursor-pointer w-full justify-center"
+                  className="px-6 py-3 rounded-xl text-[11px] font-black bg-[#0077b5] hover:bg-[#006396] text-white flex items-center gap-2 transition-all cursor-pointer w-full justify-center shadow-lg shadow-blue-600/10"
                 >
                   {testingLi ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-                  {isAr ? 'تسجيل الدخول باستخدام LinkedIn' : 'Log in with LinkedIn'}
+                  {isAr ? 'تسجيل الدخول وربط LinkedIn' : 'Log in & Link LinkedIn'}
                 </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-             <div className="flex items-center gap-2">
-              {testLiStatus === 'success' && <span className="text-[10px] text-emerald-400 flex items-center font-bold gap-1"><Check className="w-3 h-3" /> OK</span>}
-              {testLiStatus === 'err' && <span className="text-[10px] text-rose-400 flex items-center font-bold">✕ Error</span>}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-white/5 shadow-inner">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/25">
+                    <Share2 className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[13px] font-bold text-white mb-1">{settings?.linkedinProfile?.name || 'LinkedIn Member'}</div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">
+                      {isAr ? 'مخول للنشر' : 'Authorized'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* LinkedIn Permissions switches */}
+                <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-4">
+                  <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-200 uppercase tracking-wider">
+                    <Shield className="w-3.5 h-3.5 text-blue-400" />
+                    <span>{isAr ? 'صلاحيات النشر والتفاعل المهني' : 'B2B Interaction Permissions'}</span>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-normal">
+                    {isAr ? 'قم بالتحكم في العمليات المسموح للتطبيق إجراؤها لضمان كامل الأمان والخصوصية لقناتك المهنية:' : 'Explicitly grant permissions for what the automation engine can perform:'}
+                  </p>
+
+                  <div className="space-y-3.5 pt-1">
+                    {/* Publish toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'نشر المنشورات على الخط الزمني' : 'Publish Posts on Timeline'}</span>
+                        <span className="text-[9px] text-slate-500">{isAr ? 'نشر التحليلات والملخصات المقررة' : 'Publish synthesized updates'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePermission('linkedinPublish', !liPublish)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          liPublish ? 'bg-indigo-600' : 'bg-slate-800'
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          liPublish ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {/* Comment toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'كتابة الردود والتعليقات التلقائية' : 'Write AI Comments'}</span>
+                        <span className="text-[9px] text-slate-500">{isAr ? 'التعليق على المنشورات ذات الصلة لزيادة الانتشار' : 'Comment on relevant content to boost reach'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePermission('linkedinComment', !liComment)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          liComment ? 'bg-indigo-600' : 'bg-slate-800'
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          liComment ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {/* Follow toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'متابعة الشركات والصفحات المهنية' : 'Auto Follow Pages'}</span>
+                        <span className="text-[9px] text-slate-500">{isAr ? 'بناء شبكة علاقات مع صناع القرار تلقائياً' : 'Automated B2B network building'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePermission('linkedinFollow', !liFollow)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          liFollow ? 'bg-indigo-600' : 'bg-slate-800'
+                        }`}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          liFollow ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {liConnected && (
+              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[9px] text-slate-500">
+                <span>{isAr ? 'تم التحقق من الرمز والاتصال المهني نشط.' : 'Connection verified and active.'}</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-end mt-2">
-        <button 
-          onClick={handleSaveSettings}
-          className="w-full md:w-auto px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-[11px] font-black shadow-xl shadow-indigo-600/20 text-white transition-all transform hover:scale-[1.02] cursor-pointer"
-        >
-          {t[lang].saveSettingsBtn}
-        </button>
       </div>
 
       <div className="mt-8">
@@ -543,11 +475,10 @@ export const SettingsPanel = ({
               rel="noopener noreferrer"
               className="hover:text-indigo-400 transition-colors underline font-semibold decoration-indigo-500/30"
             >
-              Portfolio
+              obadadallo.web.app
             </a>
           </div>
       </div>
-
     </section>
   );
 };

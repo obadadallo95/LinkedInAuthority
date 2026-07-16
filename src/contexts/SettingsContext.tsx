@@ -9,6 +9,10 @@ export interface UserSettings {
   linkedinToken: string;
   githubProfile: any | null;
   linkedinProfile: any | null;
+  githubPermissions?: 'all' | 'public';
+  linkedinPublish?: boolean;
+  linkedinComment?: boolean;
+  linkedinFollow?: boolean;
 }
 
 export interface SettingsContextType {
@@ -29,6 +33,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     linkedinToken: "",
     githubProfile: null,
     linkedinProfile: null,
+    githubPermissions: 'public',
+    linkedinPublish: true,
+    linkedinComment: false,
+    linkedinFollow: false,
   });
   const [loadingSettings, setLoadingSettings] = useState(true);
 
@@ -40,6 +48,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         linkedinToken: "",
         githubProfile: null,
         linkedinProfile: null,
+        githubPermissions: 'public',
+        linkedinPublish: true,
+        linkedinComment: false,
+        linkedinFollow: false,
       });
       setLoadingSettings(false);
       return;
@@ -58,6 +70,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           linkedinToken: "",
           githubProfile: null,
           linkedinProfile: null,
+          githubPermissions: 'public',
+          linkedinPublish: true,
+          linkedinComment: false,
+          linkedinFollow: false,
         });
       }
       setLoadingSettings(false);
