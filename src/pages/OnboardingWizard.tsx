@@ -16,7 +16,7 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
   </svg>
 );
 import confetti from 'canvas-confetti';
-import { t } from '../constants';
+import { t } from '../locales';
 import { useSettings } from '../contexts/SettingsContext';
 import { auth, githubProvider, linkedinProvider, db } from '../infrastructure/firebase/config';
 import { linkWithPopup, GithubAuthProvider, OAuthProvider } from 'firebase/auth';
@@ -28,7 +28,7 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
   const [loading, setLoading] = useState(false);
 
   const isRtl = lang === 'ar';
-  const T = t[lang];
+  const T = t[lang] || t['ar'];
   
   // Calculate connected states
   const ghConnected = !!(settings.githubUsername || settings.githubProfile);

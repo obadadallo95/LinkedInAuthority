@@ -28,7 +28,7 @@ import { PwaPrompt } from './components/shared/PwaPrompt';
 import { LandingPage } from './pages/LandingPage';
 import { OnboardingWizard } from './pages/OnboardingWizard';
 import { fetchRepos, fetchOrgs } from './services/githubService';
-import { t } from './constants';
+import { t } from './locales';
 import { updatePageMetadata, injectJSONLD, SchemaTemplates } from './utils/MetadataUtils';
 
 import { 
@@ -41,7 +41,8 @@ function App() {
   const { user, loading, signOut } = useAuth();
   const [lang, setLang] = useState<'ar' | 'en' | 'de'>(() => {
     try {
-      return (localStorage.getItem('linkedin_auth_lang') as 'ar' | 'en' | 'de') || 'ar';
+      const saved = localStorage.getItem('linkedin_auth_lang');
+      return (saved === 'ar' || saved === 'en' || saved === 'de') ? saved : 'ar';
     } catch (e) {
       return 'ar';
     }

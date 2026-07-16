@@ -8,7 +8,7 @@ const GithubIcon = ({ className, size = 24 }: { className?: string, size?: numbe
   </svg>
 );
 import { useAuth } from '../application/AuthContext';
-import { t } from '../constants';
+import { t } from '../locales';
 
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en'|'ar'|'de', onToggleLang: () => void }) => {
   const { signInWithGoogle } = useAuth();
@@ -22,7 +22,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en'|'ar'|'de', onTo
   };
 
   const isRtl = lang === 'ar';
-  const T = t[lang];
+  const T = t[lang] || t['ar'];
 
   return (
     <div className={`min-h-screen bg-slate-950 text-slate-200 overflow-hidden ${isRtl ? 'font-arabic' : 'font-sans'}`} dir={isRtl ? 'rtl' : 'ltr'}>
