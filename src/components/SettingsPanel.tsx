@@ -21,8 +21,8 @@ export const SettingsPanel = ({
   const [logs, setLogs] = useState<LogEntry[]>(getConnectionLogs());
 
   useEffect(() => {
-    const unsubscribe = subscribeToLogs((newLogs) => {
-      setLogs([...newLogs]);
+    const unsubscribe = subscribeToLogs(() => {
+      setLogs(getConnectionLogs());
     });
     return () => unsubscribe();
   }, []);
