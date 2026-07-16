@@ -42,16 +42,17 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
     }
   }, [ghConnected, liConnected]);
 
-  const triggerConfetti = () => {
-    const end = Date.now() + 2 * 1000;
-    const colors = ['#818cf8', '#34d399', '#60a5fa'];
-
   const skipOnboarding = async () => {
     if (!auth.currentUser) return;
     const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
     await setDoc(settingsRef, { onboardingSkipped: true }, { merge: true });
     window.location.reload();
   };
+
+  const triggerConfetti = () => {
+    const end = Date.now() + 2 * 1000;
+    const colors = ['#818cf8', '#34d399', '#60a5fa'];
+
     (function frame() {
       confetti({
         particleCount: 5,
