@@ -31,7 +31,7 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
 );
 
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
-  const { signInWithGoogle, signInWithGithub, signInWithLinkedin } = useAuth();
+  const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
@@ -305,19 +305,6 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                   <span>{lang === 'ar' ? 'متابعة باستخدام GitHub' : 'Continue with GitHub'}</span>
                 </button>
 
-                <button
-                  onClick={async () => {
-                    try {
-                      await signInWithLinkedin();
-                    } catch (e) {
-                      console.error("Linkedin login failed", e);
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-3 px-5 py-4 bg-[#0a66c2] text-white font-bold rounded-xl hover:bg-[#004182] transition-colors cursor-pointer"
-                >
-                  <LinkedinIcon size={20} />
-                  <span>{lang === 'ar' ? 'متابعة باستخدام LinkedIn' : 'Continue with LinkedIn'}</span>
-                </button>
               </div>
 
               {/* Security Badge */}
