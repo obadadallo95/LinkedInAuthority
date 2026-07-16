@@ -146,5 +146,25 @@ export const en = {
     onboardingStep2Desc: "We need publishing access to post on your behalf.",
     onboardingCompleteTitle: "You're All Set! 🎉",
     onboardingCompleteDesc: "Your automation engine is now fully fueled and ready to go.",
-    onboardingGoToDashboard: "Go to Dashboard 🚀"
+    onboardingGoToDashboard: "Go to Dashboard 🚀",
+    // Premium Landing Page additions
+    landingLoginBtn: "Sign In",
+    landingFeatures: "Features",
+    landingHowItWorks: "How It Works",
+    landingFaq: "FAQ",
+    landingBackToHome: "← Back to Home",
+    landingFeature1Title: "Live Codebase Sync",
+    landingFeature1Desc: "Instantly fetch and index your repository structure, READMEs, and git history.",
+    landingFeature2Title: "Dual-Engine AI",
+    landingFeature2Desc: "Gemini 1.5 Pro extracts architectural highlights and technical milestones.",
+    landingFeature3Title: "Engagement Graphics",
+    landingFeature3Desc: "Automatically generate visually appealing social sharing graphic cards.",
+    landingFeature4Title: "Smart Scheduling",
+    landingFeature4Desc: "Publish instantly or queue posts for optimal high-traffic times.",
+    landingFaq1Q: "Is my source code secure?",
+    landingFaq1A: "Absolutely. We only read your public repositories or codebases you explicitly authorize. Your code is processed in-memory and is never stored on our servers.",
+    landingFaq2Q: "Do I need a LinkedIn Developer account?",
+    landingFaq2A: "No. We handle the OAuth integration securely, allowing you to connect and post directly with a personal or company profile.",
+    landingFaq3Q: "What models power the system?",
+    landingFaq3A: "We use Google's state-of-the-art Gemini 1.5 Pro for deep codebase reasoning and Gemini 1.5 Flash for high-speed metadata processing."
   };

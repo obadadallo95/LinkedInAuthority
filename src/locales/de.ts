@@ -146,5 +146,25 @@ export const de = {
     onboardingStep2Desc: "Wir benötigen Veröffentlichungsrechte, um in Ihrem Namen Beiträge zu posten.",
     onboardingCompleteTitle: "Alles bereit! 🎉",
     onboardingCompleteDesc: "Ihre Automatisierungs-Engine ist vollständig konfiguriert und einsatzbereit.",
-    onboardingGoToDashboard: "Zum Dashboard 🚀"
+    onboardingGoToDashboard: "Zum Dashboard 🚀",
+    // Premium Landing Page additions
+    landingLoginBtn: "Anmelden",
+    landingFeatures: "Funktionen",
+    landingHowItWorks: "Funktionsweise",
+    landingFaq: "FAQ",
+    landingBackToHome: "← Zurück zur Startseite",
+    landingFeature1Title: "Echtzeit-Synchronisierung",
+    landingFeature1Desc: "Rufen Sie Ihre Repositories, READMEs und Commit-Historien sofort ab.",
+    landingFeature2Title: "Dual-Engine-KI",
+    landingFeature2Desc: "Gemini 1.5 Pro extrahiert Architektur-Highlights und technische Meilensteine.",
+    landingFeature3Title: "Visualisierungskarten",
+    landingFeature3Desc: "Automatisch ansprechende Grafiken für das Teilen in sozialen Netzwerken erstellen.",
+    landingFeature4Title: "Intelligente Planung",
+    landingFeature4Desc: "Beiträge sofort veröffentlichen oder für verkehrsreiche Zeiten einplanen.",
+    landingFaq1Q: "Ist mein Quellcode sicher?",
+    landingFaq1A: "Absolut. Wir lesen nur öffentliche Repositories oder Codebases, die Sie explizit freigeben. Ihr Code wird flüchtig im Arbeitsspeicher verarbeitet und niemals auf unseren Servern gespeichert.",
+    landingFaq2Q: "Benötige ich ein LinkedIn-Entwicklerkonto?",
+    landingFaq2A: "Nein. Wir verwalten die OAuth-Verbindung sicher, sodass Sie direkt von Ihrem Profil posten können.",
+    landingFaq3Q: "Welche KI-Modelle werden verwendet?",
+    landingFaq3A: "Wir verwenden Gemini 1.5 Pro für tiefe Code-Analysen und Gemini 1.5 Flash für schnelle Metadaten-Generierung."
   };

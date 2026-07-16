@@ -145,6 +145,26 @@ export const ar = {
     onboardingStep1Desc: "نحتاج صلاحية القراءة فقط لتحليل مستودعاتك البرمجية.",
     onboardingStep2Desc: "نحتاج صلاحية النشر لنشر المحتوى بالنيابة عنك.",
     onboardingCompleteTitle: "أنت جاهز تماماً! 🎉",
-    onboardingCompleteDesc: "تم تزويد محرك الأتمتة الخاص بك بالوقود وهو جاهز للانطلاق.",
-    onboardingGoToDashboard: "الانتقال إلى لوحة التحكم 🚀"
+    onboardingCompleteDesc: "تم إعداد محرك الأتمتة الخاص بك وهو جاهز للعمل الآن.",
+    onboardingGoToDashboard: "الانتقال إلى لوحة التحكم 🚀",
+    // Premium Landing Page additions
+    landingLoginBtn: "تسجيل الدخول",
+    landingFeatures: "المميزات",
+    landingHowItWorks: "كيف يعمل؟",
+    landingFaq: "الأسئلة الشائعة",
+    landingBackToHome: "← العودة للرئيسية",
+    landingFeature1Title: "مزامنة مباشرة للمستودع",
+    landingFeature1Desc: "احصل فوراً على هيكلية المستودع، ملفات README، وتاريخ الـ commits وقم بفهرستها.",
+    landingFeature2Title: "ذكاء اصطناعي ثنائي المحرك",
+    landingFeature2Desc: "محرك Gemini 1.5 Pro يستخرج أبرز الهياكل البرمجية والإنجازات التقنية لبرمجياتك.",
+    landingFeature3Title: "بطاقات مرئية تفاعلية",
+    landingFeature3Desc: "توليد تلقائي لبطاقات صور جذابة للمشاركة الاجتماعية تدعم حضورك الرقمي.",
+    landingFeature4Title: "جدولة ذكية",
+    landingFeature4Desc: "انشر منشوراتك فوراً أو ضعها في طابور الجدولة التلقائية للأوقات الأكثر تفاعلاً.",
+    landingFaq1Q: "هل الأكواد البرمجية الخاصة بي آمنة؟",
+    landingFaq1A: "بالتأكيد. نحن نقرأ فقط المستودعات العامة أو التي تمنحنا صلاحية الوصول إليها. تتم معالجة الكود مؤقتاً في الذاكرة ولا يتم تخزينه أبداً في خوادمنا.",
+    landingFaq2Q: "هل أحتاج إلى حساب مطور LinkedIn؟",
+    landingFaq2A: "لا. نحن نقرأ بالربط الآمن والمصادقة (OAuth) بالنيابة عنك، مما يتيح لك النشر مباشرة على حسابك الشخصي أو صفحة شركتك.",
+    landingFaq3Q: "ما هي نماذج الذكاء الاصطناعي المستخدمة؟",
+    landingFaq3A: "نستخدم نموذج Gemini 1.5 Pro للتحليل العميق للكود ونموذج Gemini 1.5 Flash السريع لمعالجة البيانات الوصفية والهاشتاغات."
   };
