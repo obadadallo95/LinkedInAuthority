@@ -30,10 +30,21 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
   </svg>
 );
 
+import { LegalModal } from '../components/Layout/LegalModal';
+
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  
+  // Legal Modal states
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer'>('privacy');
+
+  const openLegalTab = (tab: 'privacy' | 'terms' | 'developer') => {
+    setLegalTab(tab);
+    setIsLegalOpen(true);
+  };
 
   const isRtl = lang === 'ar';
   const T = t[lang] || t['ar'];
@@ -291,6 +302,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                   <span>{lang === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}</span>
                 </button>
 
+
                 <button
                   onClick={async () => {
                     try {
@@ -305,6 +317,34 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                   <span>{lang === 'ar' ? 'متابعة باستخدام GitHub' : 'Continue with GitHub'}</span>
                 </button>
 
+                {/* Legal Consent Text */}
+                <div className="text-center text-[10px] text-slate-400 mt-4 leading-relaxed max-w-xs mx-auto">
+                  {lang === 'ar' ? (
+                    <>
+                      بتسجيل الدخول، فإنك توافق على{" "}
+                      <button onClick={() => openLegalTab('terms')} className="text-indigo-400 hover:underline">شروط الخدمة</button>
+                      {" "}و{" "}
+                      <button onClick={() => openLegalTab('privacy')} className="text-indigo-400 hover:underline">سياسة الخصوصية</button>
+                      {" "}الخاصة بنا.
+                    </>
+                  ) : lang === 'de' ? (
+                    <>
+                      Mit der Anmeldung stimmen Sie unseren{" "}
+                      <button onClick={() => openLegalTab('terms')} className="text-indigo-400 hover:underline">Nutzungsbedingungen</button>
+                      {" "}und{" "}
+                      <button onClick={() => openLegalTab('privacy')} className="text-indigo-400 hover:underline">Datenschutzrichtlinien</button>
+                      {" "}zu.
+                    </>
+                  ) : (
+                    <>
+                      By signing in, you agree to our{" "}
+                      <button onClick={() => openLegalTab('terms')} className="text-indigo-400 hover:underline">Terms of Service</button>
+                      {" "}and{" "}
+                      <button onClick={() => openLegalTab('privacy')} className="text-indigo-400 hover:underline">Privacy Policy</button>
+                      .
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Security Badge */}
@@ -316,6 +356,14 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
           </motion.div>
         )}
       </AnimatePresence>
+
+      <LegalModal 
+        lang={lang}
+        isOpen={isLegalOpen}
+        onClose={() => setIsLegalOpen(false)}
+        initialTab={legalTab}
+      />
     </div>
   );
 };
+
