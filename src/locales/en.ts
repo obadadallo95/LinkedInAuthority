@@ -126,5 +126,25 @@ export const en = {
     templateLabel: "Template:",
     templateEngineering: "Engineering Focus",
     templateArchitectural: "Architectural Details",
-    templateSummary: "Short Summary"
+    templateSummary: "Short Summary",
+    // Landing Page
+    landingHeroTitle: "From Codebase to LinkedIn Influence in Seconds",
+    landingHeroDesc: "The premier AI-driven tool for developer advocates, CTOs, and technical founders. Automatically mine your GitHub repositories and generate high-impact LinkedIn content with Gemini Pro.",
+    landingCta: "Start Automating for Free",
+    landingBento1Title: "Live GitHub Sync",
+    landingBento1Desc: "Instantly fetch and index your public repositories with real-time metadata tracking.",
+    landingBento2Title: "Dual-Engine AI",
+    landingBento2Desc: "Powered by Gemini 1.5 Pro and Flash to craft executive-level technical summaries.",
+    landingBento3Title: "Direct Broadcasting",
+    landingBento3Desc: "Seamlessly push approved drafts directly to your LinkedIn feed without leaving the app.",
+    // Onboarding
+    onboardingWelcome: "Welcome to LinkedIn Authority",
+    onboardingWelcomeDesc: "Let's set up your integration in just 30 seconds to unlock your automated content engine.",
+    onboardingStep1: "1. Connect GitHub",
+    onboardingStep2: "2. Connect LinkedIn",
+    onboardingStep1Desc: "We need read-only access to analyze your repositories.",
+    onboardingStep2Desc: "We need publishing access to post on your behalf.",
+    onboardingCompleteTitle: "You're All Set! 🎉",
+    onboardingCompleteDesc: "Your automation engine is now fully fueled and ready to go.",
+    onboardingGoToDashboard: "Go to Dashboard 🚀"
   };

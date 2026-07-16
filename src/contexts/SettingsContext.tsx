@@ -14,6 +14,7 @@ export interface UserSettings {
 export interface SettingsContextType {
   settings: UserSettings;
   loadingSettings: boolean;
+  isOnboardingComplete: boolean;
   saveSettings: (ghUsernameInput: string, ghTokenInput: string, liTokenInput: string) => Promise<void>;
   disconnectChannel: (platform: 'github' | 'linkedin') => Promise<void>;
 }
@@ -119,8 +120,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isOnboardingComplete = !!(settings.githubUsername || settings.githubProfile) && !!(settings.linkedinToken || settings.linkedinProfile);
+
   return (
-    <SettingsContext.Provider value={{ settings, loadingSettings, saveSettings, disconnectChannel }}>
+    <SettingsContext.Provider value={{ settings, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>
       {children}
     </SettingsContext.Provider>
   );

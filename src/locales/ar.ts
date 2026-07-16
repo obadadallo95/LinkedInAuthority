@@ -126,5 +126,25 @@ export const ar = {
     templateLabel: "نوع القالب:",
     templateEngineering: "تركيز هندسي برميجي",
     templateArchitectural: "معمارية تفصيلية عميقة",
-    templateSummary: "ملخص تنفيذي مدروس"
+    templateSummary: "ملخص تنفيذي مدروس",
+    // Landing Page
+    landingHeroTitle: "من مستودع الأكواد إلى التأثير على LinkedIn في ثوانٍ",
+    landingHeroDesc: "الأداة الأولى المدعومة بالذكاء الاصطناعي للمطورين والمدراء التقنيين والمؤسسين. قم بتنقيب مستودعات GitHub الخاصة بك تلقائياً واستخرج محتوى عالي التأثير لـ LinkedIn باستخدام Gemini Pro.",
+    landingCta: "ابدأ الأتمتة مجاناً",
+    landingBento1Title: "مزامنة حية مع GitHub",
+    landingBento1Desc: "جلب وفهرسة مستودعاتك العامة فورياً مع تتبع البيانات الوصفية في الوقت الفعلي.",
+    landingBento2Title: "ذكاء اصطناعي ثنائي المحرك",
+    landingBento2Desc: "مدعوم بنماذج Gemini 1.5 Pro و Flash لصياغة ملخصات تقنية بمستوى تنفيذي.",
+    landingBento3Title: "بث ونشر مباشر",
+    landingBento3Desc: "ادفع مسوداتك المعتمدة بسلاسة مباشرة إلى حساب LinkedIn الخاص بك دون مغادرة التطبيق.",
+    // Onboarding
+    onboardingWelcome: "مرحباً بك في LinkedIn Authority",
+    onboardingWelcomeDesc: "دعنا نعد بيئة العمل والربط الخاص بك في 30 ثانية فقط لإطلاق محرك المحتوى المؤتمت الخاص بك.",
+    onboardingStep1: "1. اربط حساب GitHub",
+    onboardingStep2: "2. اربط حساب LinkedIn",
+    onboardingStep1Desc: "نحتاج صلاحية القراءة فقط لتحليل مستودعاتك البرمجية.",
+    onboardingStep2Desc: "نحتاج صلاحية النشر لنشر المحتوى بالنيابة عنك.",
+    onboardingCompleteTitle: "أنت جاهز تماماً! 🎉",
+    onboardingCompleteDesc: "تم تزويد محرك الأتمتة الخاص بك بالوقود وهو جاهز للانطلاق.",
+    onboardingGoToDashboard: "الانتقال إلى لوحة التحكم 🚀"
   };

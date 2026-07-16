@@ -24,8 +24,9 @@ import { LegalModal } from './components/Layout/LegalModal';
 import { SettingsPanel } from './components/SettingsPanel';
 import { FloatingHelpWidget } from './components/FloatingHelpWidget';
 import { TemplatesPanel } from './components/TemplatesPanel';
-import { LoginScreen } from './components/LoginScreen';
 import { PwaPrompt } from './components/shared/PwaPrompt';
+import { LandingPage } from './pages/LandingPage';
+import { OnboardingWizard } from './pages/OnboardingWizard';
 import { fetchRepos, fetchOrgs } from './services/githubService';
 import { t } from './constants';
 import { updatePageMetadata, injectJSONLD, SchemaTemplates } from './utils/MetadataUtils';
@@ -56,7 +57,7 @@ function App() {
   const [activePostId, setActivePostId] = useState<string | null>(null);
 
 
-  const { settings, loadingSettings, saveSettings, disconnectChannel } = useSettings();
+  const { settings, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
 
   // Form inputs for Settings Panel
   const [inputs, setInputs] = useState({
@@ -461,10 +462,16 @@ function App() {
 
   if (!user) {
     return (
-      <LoginScreen 
+      <LandingPage 
         lang={lang} 
         onToggleLang={handleToggleLang} 
       />
+    );
+  }
+
+  if (!loadingSettings && !isOnboardingComplete) {
+    return (
+      <OnboardingWizard lang={lang} />
     );
   }
 
