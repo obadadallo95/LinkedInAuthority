@@ -126,5 +126,25 @@ export const de = {
     templateLabel: "Vorlage Typ:",
     templateEngineering: "Ingenieurwesen Fokus",
     templateArchitectural: "Tiefgehende Architektur",
-    templateSummary: "Zusammenfassung"
+    templateSummary: "Zusammenfassung",
+    // Landing Page
+    landingHeroTitle: "Von der Codebasis zur LinkedIn-Präsenz in Sekunden",
+    landingHeroDesc: "Das führende KI-gestützte Tool für Developer Advocates, CTOs und technische Gründer. Analysieren Sie Ihre GitHub-Repositories automatisch und erstellen Sie reichweitenstarke LinkedIn-Inhalte mit Gemini Pro.",
+    landingCta: "Kostenlos starten",
+    landingBento1Title: "Live-GitHub-Synchronisierung",
+    landingBento1Desc: "Importieren und indizieren Sie Ihre öffentlichen Repositories sofort mit Echtzeit-Metadaten-Tracking.",
+    landingBento2Title: "Dual-Engine-KI",
+    landingBento2Desc: "Nutzt Gemini 1.5 Pro und Flash, um präzise und professionelle technische Zusammenfassungen zu erstellen.",
+    landingBento3Title: "Direktes Veröffentlichen",
+    landingBento3Desc: "Veröffentlichen Sie freigegebene Entwürfe direkt auf Ihrem LinkedIn-Feed, ohne die App zu verlassen.",
+    // Onboarding
+    onboardingWelcome: "Willkommen bei LinkedIn Authority",
+    onboardingWelcomeDesc: "Richten Sie Ihre Integration in nur 30 Sekunden ein, um Ihre automatisierte Content-Engine freizuschalten.",
+    onboardingStep1: "1. GitHub verbinden",
+    onboardingStep2: "2. LinkedIn verbinden",
+    onboardingStep1Desc: "Wir benötigen Lesezugriff, um Ihre Repositories zu analysieren.",
+    onboardingStep2Desc: "Wir benötigen Veröffentlichungsrechte, um in Ihrem Namen Beiträge zu posten.",
+    onboardingCompleteTitle: "Alles bereit! 🎉",
+    onboardingCompleteDesc: "Ihre Automatisierungs-Engine ist vollständig konfiguriert und einsatzbereit.",
+    onboardingGoToDashboard: "Zum Dashboard 🚀"
   };
