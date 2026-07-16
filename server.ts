@@ -4,7 +4,6 @@ import { createServer as createViteServer } from "vite";
 
 import aiRoutes from "./server/routes/ai";
 import linkedinRoutes from "./server/routes/linkedin";
-import githubRoutes from "./server/routes/github";
 
 async function startServer() {
   const app = express();
@@ -34,7 +33,6 @@ async function startServer() {
   // Mount API Routers
   app.use("/api", aiRoutes);
   app.use("/api", linkedinRoutes);
-  app.use("/api/oauth/github", githubRoutes);
 
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
