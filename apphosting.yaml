@@ -1,7 +1,5 @@
-# apphosting.yaml
 # Firebase App Hosting configuration
-kind: apphosting.yaml
-apiversion: v1beta
+# See reference: https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
   concurrency: 80
