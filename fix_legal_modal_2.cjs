@@ -1,0 +1,102 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/components/Layout/LegalModal.tsx', 'utf8');
+
+// replace the content object completely
+const startIdx = code.indexOf('const content = {');
+const endIdx = code.indexOf('  };', startIdx) + 4;
+
+const newContent = `const content = {
+    ar: {
+      title: "مركز الخصوصية والاتفاقات القانونية",
+      close: "إغلاق",
+      tabPrivacy: "سياسة الخصوصية",
+      tabTerms: "شروط الخدمة",
+      tabDeveloper: "بطاقة التعريف",
+      tabFaq: "الأسئلة الشائعة",
+      faq1Q: "هل تقومون بتخزين الكود الخاص بي؟",
+      faq1A: "لا، نحن لا نقوم بتخزين أي شفرة مصدرية. نقوم فقط بقراءة الملفات للتحليل اللحظي وتوليد المحتوى.",
+      faq2Q: "هل يمكنني حذف بياناتي؟",
+      faq2A: "نعم، يمكنك حذف حسابك وكافة بياناتك نهائياً من خلال زر 'حذف الحساب' في صفحة الإعدادات، استجابة لقوانين حماية البيانات (GDPR).",
+      faq3Q: "هل هناك اشتراك مدفوع؟",
+      faq3A: "حاليا المنصة مجانية كجزء من النسخة التجريبية.",
+      developedBy: "تطوير وبرمجة بواسطة:",
+      devTitle: "Obada Dallo",
+      devSubtitle: "Full-Stack Developer & AI Architect",
+      portfolio: "البورتفوليو الشخصي",
+      github: "الملف البرمجي GitHub",
+      linkedin: "الشبكة المهنية LinkedIn",
+      rightsReserved: "جميع الحقوق محفوظة لـ Obada Dallo © 2026",
+      intellectualPropertyTitle: "حقوق الملكية الفكرية",
+      intellectualPropertyText: "إن البنية المعمارية، وتصاميم واجهة المستخدم، والخوارزميات المستخدمة في LinkedIn Authority هي حقوق ملكية فكرية حصرية لـ Obada Dallo. لا يُسمح بالهندسة العكسية، أو الاستنساخ، أو إعادة التوزيع التجاري لأي جزء من الشفرة المصدرية دون إذن كتابي مسبق.",
+      privacyTitle: "سياسة الخصوصية وأمن البيانات",
+      privacyText1: "نحن نضع خصوصية وأمن بياناتك في مقدمة أولوياتنا. يتم التعامل مع رموز الوصول (Access Tokens) لحسابات GitHub و LinkedIn الخاصة بك بأعلى درجات التشفير وتخزن محلياً وبشكل آمن، ولا يتم مشاركتها أو نقلها إطلاقاً إلى أطراف ثالثة.",
+      privacyText2: "نلتزم التزاماً كاملاً بعدم تخزين أو جمع أي نصوص أو شفرات مصدرية من مستودعاتك. تنحصر معالجة البيانات في التحليل اللحظي والآمن بغرض توليد محتوى مهني، ولا يتم الاحتفاظ بأي نسخ على خوادمنا.",
+      termsTitle: "شروط الخدمة والاستخدام المهني",
+      termsText1: "باستخدامك لمنصة LinkedIn Authority، فإنك توافق على الالتزام بالمعايير المهنية لشبكة LinkedIn. يُحظر بشدة استخدام المنصة لنشر محتوى مضلل أو رسائل غير مرغوب فيها (Spam) أو أي مواد تنتهك حقوق الملكية للآخرين.",
+      termsText2: "تهدف أدوات الذكاء الاصطناعي المدمجة إلى تسهيل عملية إنشاء المحتوى، إلا أن المسؤولية النهائية المتعلقة بدقة المنشورات، وملاءمتها المهنية، وقانونيتها تظل كاملةً على عاتق المستخدم.",
+      visitPortfolio: "زيارة الموقع الشخصي"
+    },
+    en: {
+      title: "Privacy & Legal Center",
+      close: "Close",
+      tabPrivacy: "Privacy Policy",
+      tabTerms: "Terms of Service",
+      tabDeveloper: "Identity Card",
+      tabFaq: "FAQ",
+      faq1Q: "Do you store my code?",
+      faq1A: "No, we do not store any source code. We only read files for real-time analysis and content generation.",
+      faq2Q: "Can I delete my data?",
+      faq2A: "Yes, you can permanently delete your account and all data via the 'Delete Account' button in Settings, fully compliant with GDPR.",
+      faq3Q: "Is there a paid subscription?",
+      faq3A: "The platform is currently free as part of our beta release.",
+      developedBy: "Developed & Crafted by:",
+      devTitle: "Obada Dallo",
+      devSubtitle: "Full-Stack Developer & AI Architect",
+      portfolio: "Personal Portfolio",
+      github: "GitHub Profile",
+      linkedin: "LinkedIn Profile",
+      rightsReserved: "All Copyrights reserved for Obada Dallo © 2026",
+      intellectualPropertyTitle: "Intellectual Property Rights",
+      intellectualPropertyText: "The architectural framework, UI/UX designs, and core algorithmic implementations of LinkedIn Authority are the exclusive intellectual property of Obada Dallo. Reverse engineering, redistribution, or unauthorized commercial use of the codebase is strictly prohibited without explicit written consent.",
+      privacyTitle: "Privacy & Data Security",
+      privacyText1: "Your privacy and data security are our top priorities. Your GitHub and LinkedIn Access Tokens are handled with enterprise-grade encryption, stored locally and securely, and are never shared or transmitted to any third parties.",
+      privacyText2: "We are strictly committed to never storing or collecting any source code or textual data from your repositories. Data processing is exclusively limited to real-time analysis for professional content generation, and no residual copies are retained on our servers.",
+      termsTitle: "Terms of Service & Professional Use",
+      termsText1: "By utilizing the LinkedIn Authority platform, you agree to adhere strictly to LinkedIn's professional networking standards. The use of this platform for disseminating misleading content, spam, or copyright-infringing materials is strictly prohibited.",
+      termsText2: "While our integrated AI tools are designed to streamline content creation, the ultimate responsibility for the accuracy, professional appropriateness, and legality of the published posts remains entirely with the user.",
+      visitPortfolio: "Visit Portfolio"
+    },
+    de: {
+      title: "Datenschutz & Rechtliches Zentrum",
+      close: "Schließen",
+      tabPrivacy: "Datenschutzrichtlinie",
+      tabTerms: "Nutzungsbedingungen",
+      tabDeveloper: "Identitätskarte",
+      tabFaq: "FAQ",
+      faq1Q: "Speichern Sie meinen Code?",
+      faq1A: "Nein, wir speichern keinen Quellcode. Wir lesen Dateien nur zur Echtzeitanalyse und Inhaltserstellung.",
+      faq2Q: "Kann ich meine Daten löschen?",
+      faq2A: "Ja, Sie können Ihr Konto und alle Daten über die Schaltfläche 'Konto löschen' in den Einstellungen dauerhaft löschen (DSGVO-konform).",
+      faq3Q: "Gibt es ein kostenpflichtiges Abonnement?",
+      faq3A: "Die Plattform ist derzeit als Teil unserer Beta-Version kostenlos.",
+      developedBy: "Entwickelt & Gestaltet von:",
+      devTitle: "Obada Dallo",
+      devSubtitle: "Full-Stack Entwickler & KI-Architekt",
+      portfolio: "Persönliches Portfolio",
+      github: "GitHub Profil",
+      linkedin: "LinkedIn Profil",
+      rightsReserved: "Alle Urheberrechte vorbehalten für Obada Dallo © 2026",
+      intellectualPropertyTitle: "Geistige Eigentumsrechte",
+      intellectualPropertyText: "Das architektonische Framework, die UI/UX-Designs und die algorithmischen Kernimplementierungen von LinkedIn Authority sind das ausschließliche geistige Eigentum von Obada Dallo. Reverse Engineering, Weiterverbreitung oder unbefugte kommerzielle Nutzung der Codebasis ist ohne ausdrückliche schriftliche Zustimmung strengstens untersagt.",
+      privacyTitle: "Datenschutz & Datensicherheit",
+      privacyText1: "Ihre Privatsphäre und Datensicherheit stehen bei uns an erster Stelle. Ihre GitHub- und LinkedIn-Zugriffstoken werden mit Verschlüsselung auf Unternehmensniveau verarbeitet, lokal und sicher gespeichert und niemals an Dritte weitergegeben oder übertragen.",
+      privacyText2: "Wir verpflichten uns strikt, niemals Quellcode oder Textdaten aus Ihren Repositories zu speichern oder zu sammeln. Die Datenverarbeitung beschränkt sich ausschließlich auf die Echtzeitanalyse zur Generierung professioneller Inhalte, und es werden keine Restkopien auf unseren Servern aufbewahrt.",
+      termsTitle: "Nutzungsbedingungen & Professionelle Nutzung",
+      termsText1: "Durch die Nutzung der LinkedIn Authority-Plattform stimmen Sie zu, sich strikt an die professionellen Netzwerkstandards von LinkedIn zu halten. Die Nutzung dieser Plattform zur Verbreitung irreführender Inhalte, Spam oder urheberrechtsverletzender Materialien ist strengstens untersagt.",
+      termsText2: "Während unsere integrierten KI-Tools darauf ausgelegt sind, die Inhaltserstellung zu optimieren, liegt die letztendliche Verantwortung für die Genauigkeit, die professionelle Angemessenheit und die Legalität der veröffentlichten Beiträge vollständig beim Benutzer.",
+      visitPortfolio: "Portfolio Besuchen"
+    }
+  };`;
+
+code = code.substring(0, startIdx) + newContent + code.substring(endIdx);
+fs.writeFileSync('src/components/Layout/LegalModal.tsx', code);

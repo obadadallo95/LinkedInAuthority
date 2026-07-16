@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>LinkedIn Authority Engine | Professional B2B Content Automation</title>
+    <meta name="description" content="Enterprise-grade AI-powered content automation platform for engineering leaders and developers. Seamlessly turn GitHub repositories, source files, and developer milestones into authoritative, high-impact LinkedIn content.">
+    <meta name="keywords" content="LinkedIn Automation, B2B Content Creation, Developer Advocacy, GitHub Content Engine, Professional Brand Automation, AI Code Summarizer, Technical Writing Automation">
+    <meta name="author" content="Obada Dallo">
+    
+    <!-- OpenGraph Metadata (Professional B2B Focus) -->
+    <meta property="og:title" content="LinkedIn Authority Engine — Scalable AI Content Automation for Technical Teams">
+    <meta property="og:description" content="Empower technical leaders and software engineers to scale their professional brand. Automatically extract core value from GitHub codebases and convert it into high-impact LinkedIn authority-building posts.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe-west2.run.app">
+    <meta property="og:image" content="/assets/logo.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:site_name" content="LinkedIn Authority Engine">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ar_AR">
+    <meta property="og:locale:alternate" content="de_DE">
+
+    <!-- Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LinkedIn Authority Engine | AI Content Automation">
+    <meta name="twitter:description" content="Automate professional branding for developers and organizations. Synthesize GitHub repos into LinkedIn carousels, articles, and engaging status updates.">
+    <meta name="twitter:image" content="/assets/logo.png">
+
+    <!-- Structured Data (JSON-LD) for Search and AI Bots -->
+    <script id="jsonld-structured-data" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "LinkedIn Authority Engine",
+        "operatingSystem": "All",
+        "applicationCategory": "BusinessApplication",
+        "screenshot": "https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe-west2.run.app/assets/logo.png",
+        "softwareVersion": "1.0.0",
+        "aggregateRating": null,
+        "description": "An enterprise B2B content automation system designed to help engineering organizations and developers transform their GitHub repositories into professional, authoritative LinkedIn posts, slides, and articles.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD",
+          "category": "Beta / Free Tier"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Obada Dallo",
+          "jobTitle": "Full-Stack Developer & AI Architect"
+        }
+      }
+    </script>
+
+    <link rel="canonical" href="https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe-west2.run.app">
+    <link rel="author" href="/about-linkedin-authority.md">
+
+    
+    <!-- Theme & Mobile Status Bar Styling -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Agent Control" />
+    <link rel="apple-touch-icon" href="/assets/logo.png" />
+  </head>
+  <body class="bg-slate-950 font-sans text-slate-100 antialiased selection:bg-indigo-500/30">
+    <div id="root"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        document.body.innerHTML += '<div style="color:red; z-index:9999; position:absolute; top:0; left:0; background:black; padding:20px;">' + e.message + '<br>' + e.filename + ':' + e.lineno + '<br>' + (e.error ? e.error.stack : '') + '</div>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.body.innerHTML += '<div style="color:red; z-index:9999; position:absolute; top:0; left:0; background:black; padding:20px;">Unhandled Rejection: ' + e.reason + '</div>';
+      });
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Clean up any previously registered service workers to prevent cache/CORS script errors -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker unregistered successfully');
+          }
+        }).catch(function(err) {
+          console.warn('Error fetching service worker registrations:', err);
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+          }
+        }).catch(function(err) {
+          console.warn('Error clearing caches:', err);
+        });
+      }
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "Agent": {
+      "title": "Agent",
+      "description": "Represents an autonomous AI workforce agent governed by the tower.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "roleEn": { "type": "string" },
+        "roleAr": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "paused", "requires_attention"] },
+        "riskScore": { "type": "integer" },
+        "systemTargets": { "type": "array" },
+        "descriptionEn": { "type": "string" },
+        "descriptionAr": { "type": "string" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nameEn", "nameAr", "roleEn", "roleAr", "status", "riskScore", "systemTargets"]
+    },
+    "AgentAction": {
+      "title": "AgentAction",
+      "description": "An action proposed by an agent that requires review or execution audit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "agentId": { "type": "string" },
+        "agentNameEn": { "type": "string" },
+        "agentNameAr": { "type": "string" },
+        "systemTarget": { "type": "string" },
+        "riskLevel": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "actionTypeEn": { "type": "string" },
+        "actionTypeAr": { "type": "string" },
+        "detailsEn": { "type": "string" },
+        "detailsAr": { "type": "string" },
+        "status": { "type": "string", "enum": ["proposed", "pending_review", "approved", "blocked", "executed", "escalated", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "reviewedBy": { "type": "string" },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "escalationNotesEn": { "type": "string" },
+        "escalationNotesAr": { "type": "string" },
+        "complianceScore": { "type": "integer" },
+        "aiMitigationEn": { "type": "string" },
+        "aiMitigationAr": { "type": "string" }
+      },
+      "required": ["id", "agentId", "agentNameEn", "agentNameAr", "systemTarget", "riskLevel", "actionTypeEn", "actionTypeAr", "status", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Chronological governance event ledger.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "actor": { "type": "string" },
+        "actionId": { "type": "string" },
+        "eventEn": { "type": "string" },
+        "eventAr": { "type": "string" },
+        "detailsEn": { "type": "string" },
+        "detailsAr": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "warning", "error", "approval", "escalation", "block"] }
+      },
+      "required": ["id", "timestamp", "actor", "eventEn", "eventAr", "type"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/agents/{agentId}": {
+      "schema": "Agent",
+      "description": "Governed AI workforce agents list for a user."
+    },
+    "users/{userId}/actions/{actionId}": {
+      "schema": "AgentAction",
+      "description": "Actions queue containing proposed, pending, approved, and executed actions."
+    },
+    "users/{userId}/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable governance audit log ledger."
+    }
+  }
+}

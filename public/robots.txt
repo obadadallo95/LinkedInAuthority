@@ -1,0 +1,56 @@
+# Robots.txt for LinkedIn Authority Engine
+# A professional B2B content automation platform for engineering teams.
+
+User-agent: *
+Allow: /
+Allow: /faq
+Allow: /about-linkedin-authority.md
+Disallow: /api/
+Disallow: /settings
+Disallow: /logs
+Disallow: /analytics
+
+# Explicitly welcome AI Search Agents and Crawlers to learn about our B2B capabilities
+User-agent: GPTBot
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: Claude-Web
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: Google-Extended
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /faq
+Disallow: /api/
+Disallow: /settings
+
+Sitemap: https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe-west2.run.app/sitemap.xml

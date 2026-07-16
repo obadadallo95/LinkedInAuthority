@@ -1,0 +1,25 @@
+# apphosting.yaml
+# Firebase App Hosting configuration
+kind: apphosting.yaml
+apiversion: v1beta
+
+runConfig:
+  concurrency: 80
+  minInstances: 0
+  cpu: 1
+  memoryMiB: 512
+
+# Environment variables that should be injected
+env:
+  - variable: GEMINI_API_KEY
+    availability:
+      - RUN
+      - BUILD
+  - variable: GITHUB_CLIENT_ID
+    availability:
+      - RUN
+      - BUILD
+  - variable: GITHUB_CLIENT_SECRET
+    availability:
+      - RUN
+      - BUILD

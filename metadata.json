@@ -1,0 +1,6 @@
+{
+  "name": "LinkedIn Authority",
+  "description": "AI-powered LinkedIn professional presence and content automation tool from GitHub repos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
