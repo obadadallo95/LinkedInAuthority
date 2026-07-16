@@ -107,28 +107,43 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
     if (!auth.currentUser) return;
     setLoading(true);
     try {
-      const result = await linkWithPopup(auth.currentUser, linkedinProvider);
-      const credential = OAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
+      const width = 600;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
       
-      if (token && result.user) {
-        const profileRes = await fetch('https://api.linkedin.com/v2/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const profileData = profileRes.ok ? await profileRes.json() : {};
-        
-        const settingsRef = doc(db, "users", result.user.uid, "settings", "current");
-        await setDoc(settingsRef, {
-            linkedinToken: token,
-            linkedinProfile: {
-                id: profileData.id,
-                name: profileData.localizedFirstName ? `${profileData.localizedFirstName} ${profileData.localizedLastName}` : 'LinkedIn User'
-            }
-        }, { merge: true });
-        
-        setStep(4);
-        triggerConfetti();
+      const popup = window.open(
+        "/api/auth/linkedin",
+        "linkedin-auth",
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      if (!popup) {
+        throw new Error("Popup blocked. Please allow popups for this site.");
       }
+
+      const handleAuthMessage = async (event: MessageEvent) => {
+        if (event.data && event.data.type === "LINKEDIN_AUTH_SUCCESS") {
+          window.removeEventListener("message", handleAuthMessage);
+          const { token, profile } = event.data;
+          
+          if (token && auth.currentUser) {
+            const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
+            await setDoc(settingsRef, {
+              linkedinToken: token,
+              linkedinProfile: {
+                id: profile.id,
+                name: profile.name
+              }
+            }, { merge: true });
+
+            setStep(4);
+            triggerConfetti();
+          }
+        }
+      };
+
+      window.addEventListener("message", handleAuthMessage);
     } catch (err: any) {
       console.error(err);
       alert(err.message);

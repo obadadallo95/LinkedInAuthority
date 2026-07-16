@@ -6,3 +6,9 @@ runConfig:
   minInstances: 0
   cpu: 1
   memoryMiB: 512
+
+secrets:
+  - variable: LINKEDIN_CLIENT_ID
+    secret: linkedin_client_id
+  - variable: LINKEDIN_CLIENT_SECRET
+    secret: linkedin_client_secret

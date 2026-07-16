@@ -3,6 +3,101 @@ import fetch from "node-fetch";
 
 const router = Router();
 
+// Custom LinkedIn OAuth Flow to bypass Firebase OIDC bugs
+router.get("/auth/linkedin", (req: any, res: any) => {
+  const clientId = process.env.LINKEDIN_CLIENT_ID;
+  const redirectUri = `${req.protocol}://${req.get("host")}/api/auth/linkedin/callback`;
+  
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20email%20w_member_social&state=auth_link`;
+  res.redirect(authUrl);
+});
+
+router.get("/auth/linkedin/callback", async (req: any, res: any) => {
+  const { code } = req.query;
+  const clientId = process.env.LINKEDIN_CLIENT_ID;
+  const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+  const redirectUri = `${req.protocol}://${req.get("host")}/api/auth/linkedin/callback`;
+
+  if (!code) {
+    return res.status(400).send("Authorization code is missing");
+  }
+
+  try {
+    // Exchange authorization code for access token using client_secret_post
+    const tokenRes = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        client_id: clientId || "",
+        client_secret: clientSecret || "",
+      }).toString(),
+    });
+
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      throw new Error(`LinkedIn token exchange failed: ${errText}`);
+    }
+
+    const tokenData = (await tokenRes.json()) as any;
+    const token = tokenData.access_token;
+
+    // Fetch user profile info
+    const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    let profileData = { id: "", name: "" };
+    if (profileRes.ok) {
+      const data = (await profileRes.json()) as any;
+      profileData = {
+        id: data.sub || "",
+        name: data.name || "LinkedIn User",
+      };
+    } else {
+      // Fallback to legacy profile endpoint if userinfo is not available
+      const legacyRes = await fetch("https://api.linkedin.com/v2/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (legacyRes.ok) {
+        const legacyData = (await legacyRes.json()) as any;
+        profileData = {
+          id: legacyData.id || "",
+          name: legacyData.localizedFirstName ? `${legacyData.localizedFirstName} ${legacyData.localizedLastName}` : "LinkedIn User",
+        };
+      }
+    }
+
+    // Send the credentials back to the parent React app via postMessage and close the window
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>Authentication Successful</title></head>
+        <body>
+          <p>Link connection successful. Closing window...</p>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: "LINKEDIN_AUTH_SUCCESS",
+                token: "${token}",
+                profile: ${JSON.stringify(profileData)}
+              }, "*");
+            }
+            window.close();
+          </script>
+        </body>
+      </html>
+    `);
+  } catch (error: any) {
+    console.error("LinkedIn OAuth Exchange Error:", error);
+    res.status(500).send(`Authentication failed: ${error.message}`);
+  }
+});
+
 // LinkedIn Publishing Broadcast Simulator
 router.post("/publish-post", async (req: any, res: any) => {
   const { token, text } = req.body;
@@ -47,10 +142,10 @@ router.post("/publish-post", async (req: any, res: any) => {
             shareMediaCategory: "NONE",
           },
         },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-        },
       }),
+      visibility: {
+        "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+      },
     });
 
     if (!publishRes.ok) {

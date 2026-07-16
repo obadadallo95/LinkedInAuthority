@@ -125,38 +125,48 @@ export const SettingsPanel = ({
     if (!auth.currentUser) return;
     
     try {
-      const result = await linkWithPopup(auth.currentUser, linkedinProvider);
-      const credential = OAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
-      
-      if (token && result.user) {
-        // Fetch LinkedIn profile data
-        const profileRes = await fetch('https://api.linkedin.com/v2/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const profileData = profileRes.ok ? await profileRes.json() : {};
-        
-        setSettingsInput('liToken', token);
-        
-        const settingsRef = doc(db, "users", result.user.uid, "settings", "current");
-        await setDoc(settingsRef, {
-            linkedinToken: token,
-            linkedinProfile: {
-                id: profileData.id,
-                name: profileData.localizedFirstName ? `${profileData.localizedFirstName} ${profileData.localizedLastName}` : 'LinkedIn User'
-            }
-        }, { merge: true });
-        
-        alert(isAr ? 'تم ربط حساب LinkedIn بنجاح!' : 'LinkedIn account linked successfully!');
-        window.location.reload();
+      const width = 600;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+
+      const popup = window.open(
+        "/api/auth/linkedin",
+        "linkedin-auth",
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      if (!popup) {
+        throw new Error("Popup blocked. Please allow popups for this site.");
       }
+
+      const handleAuthMessage = async (event: MessageEvent) => {
+        if (event.data && event.data.type === "LINKEDIN_AUTH_SUCCESS") {
+          window.removeEventListener("message", handleAuthMessage);
+          const { token, profile } = event.data;
+
+          if (token && auth.currentUser) {
+            setSettingsInput('liToken', token);
+
+            const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
+            await setDoc(settingsRef, {
+              linkedinToken: token,
+              linkedinProfile: {
+                id: profile.id,
+                name: profile.name
+              }
+            }, { merge: true });
+
+            alert(isAr ? 'تم ربط حساب LinkedIn بنجاح!' : 'LinkedIn account linked successfully!');
+            window.location.reload();
+          }
+        }
+      };
+
+      window.addEventListener("message", handleAuthMessage);
     } catch (err: any) {
       console.error("LinkedIn OAuth Error:", err);
-      if (err.code === 'auth/credential-already-in-use') {
-        alert(isAr ? 'هذا الحساب مرتبط بالفعل بمستخدم آخر.' : 'This LinkedIn account is already linked to another user.');
-      } else {
-        alert(err.message);
-      }
+      alert(err.message);
       setTestLiStatus('err');
     } finally {
       setTestingLi(false);
