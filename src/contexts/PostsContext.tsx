@@ -7,6 +7,7 @@ export interface Post {
   id: string;
   repoName: string;
   text: string;
+  originalText?: string;
   status: 'draft' | 'scheduled' | 'published' | 'template' | 'failed';
   createdAt: string;
   publishTime?: string;

@@ -53,6 +53,7 @@ export const PostsHub = ({
 }: PostsHubProps) => {
   const [editorMode, setEditorMode] = useState<"edit" | "preview">("edit");
   const [filter, setFilter] = useState<'draft' | 'scheduled' | 'published' | 'templates'>('draft');
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const isAr = lang === 'ar';
 
   useEffect(() => {
@@ -522,7 +523,7 @@ export const PostsHub = ({
                     </button>
 
                     <button
-                      onClick={handlePublishNow}
+                      onClick={() => setShowPublishConfirm(true)}
                       disabled={!settings.linkedinToken}
                       className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-xs font-black text-white shadow-xl shadow-indigo-600/15 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                       title={!settings.linkedinToken ? t[lang].toastPublishNoProfile : ''}
@@ -591,6 +592,58 @@ export const PostsHub = ({
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal for Publishing */}
+      <AnimatePresence>
+        {showPublishConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-white/10 p-6 rounded-2xl shadow-2xl max-w-sm w-full relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+              </div>
+              <h3 className="text-lg font-black text-white text-center mb-2">
+                {isAr ? 'نشر المحتوى الآن؟' : 'Publish Content Now?'}
+              </h3>
+              <p className="text-sm text-slate-400 text-center mb-6 leading-relaxed">
+                {isAr 
+                  ? 'سيتم نشر هذا المنشور فوراً على حساب لينكدإن الخاص بك. هل أنت متأكد من المتابعة؟' 
+                  : 'This post will be published immediately to your connected LinkedIn profile. Are you sure you want to proceed?'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPublishConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors"
+                >
+                  {isAr ? 'إلغاء' : 'Cancel'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPublishConfirm(false);
+                    handlePublishNow();
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-colors shadow-lg shadow-indigo-500/25"
+                >
+                  {t[lang].publishNowBtn}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

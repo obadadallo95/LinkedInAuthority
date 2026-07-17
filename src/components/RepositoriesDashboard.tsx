@@ -51,7 +51,8 @@ export const RepositoriesDashboard = ({
   setOrgFilter,
   orgs,
   demoMode,
-  setDemoMode
+  setDemoMode,
+  posts
 }: any) => {
   const isAr = lang === 'ar';
   
@@ -62,6 +63,7 @@ export const RepositoriesDashboard = ({
   
   const [loadingCommitsFor, setLoadingCommitsFor] = useState<string | null>(null);
   const [analysisStage, setAnalysisStage] = useState(0);
+  const [tone, setTone] = useState<string>('Technical');
   const [showTooltip, setShowTooltip] = useState(() => localStorage.getItem('hide_repo_tooltip') !== 'true');
   const [recentRepos, setRecentRepos] = useState<string[]>(() => {
     try {
@@ -91,40 +93,9 @@ export const RepositoriesDashboard = ({
   // Bulk selection
   const [checkedRepos, setCheckedRepos] = useState<Set<string>>(new Set());
   
-  // Long press selection states
-  const [isLongPressed, setIsLongPressed] = useState(false);
-  const [longPressTimeoutId, setLongPressTimeoutId] = useState<any>(null);
+  // Custom files to analyze
+  const [customFiles, setCustomFiles] = useState<Record<string, string>>({});
 
-  const startLongPress = (repoName: string) => {
-    setIsLongPressed(false);
-    const id = setTimeout(() => {
-      const newChecked = new Set(checkedRepos);
-      if (newChecked.has(repoName)) {
-        newChecked.delete(repoName);
-      } else {
-        newChecked.add(repoName);
-      }
-      setCheckedRepos(newChecked);
-      setIsLongPressed(true);
-      if (navigator.vibrate) {
-        try {
-          navigator.vibrate(40);
-        } catch (_) {}
-      }
-    }, 600);
-    setLongPressTimeoutId(id);
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimeoutId) {
-      clearTimeout(longPressTimeoutId);
-      setLongPressTimeoutId(null);
-    }
-    setTimeout(() => {
-      setIsLongPressed(false);
-    }, 150);
-  };
-  
   // Readme modal
   const [readmeModalOpen, setReadmeModalOpen] = useState(false);
   const [readmeContent, setReadmeContent] = useState('');
@@ -156,7 +127,7 @@ export const RepositoriesDashboard = ({
   const handleBatchAnalyze = () => {
     if (checkedRepos.size > 0) {
       // For batch, we just use the selected branch of each repo or main
-      handleAnalyzeRepo(Array.from(checkedRepos), 'main'); // simplify batch branch to main for now
+      handleAnalyzeRepo(Array.from(checkedRepos), 'main', tone, selectedTemplate, customFiles);
     }
   };
 
@@ -572,43 +543,18 @@ export const RepositoriesDashboard = ({
                             
                             {/* Card Header (Always visible) */}
                             <div 
-                              onClick={() => {
-                                if (isLongPressed) {
-                                  return;
-                                }
-                                toggleRepoExpand(repo.name);
-                              }}
-                              onMouseDown={() => startLongPress(repo.name)}
-                              onMouseUp={cancelLongPress}
-                              onMouseLeave={cancelLongPress}
-                              onTouchStart={() => startLongPress(repo.name)}
-                              onTouchEnd={cancelLongPress}
+                              onClick={() => toggleRepoExpand(repo.name)}
                               className={`p-2.5 md:p-3 flex items-center gap-3 cursor-pointer group select-none transition-colors duration-150 ${isChecked ? 'bg-indigo-950/20' : 'hover:bg-white/[0.02]'}`}
                             >
-                              {/* Github Icon as selection trigger */}
-                              <button 
-                                onClick={(e) => toggleRepoCheck(repo.name, e)}
-                                className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 relative ${
-                                  isChecked 
-                                    ? 'bg-indigo-600/20 border border-indigo-500/60 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)] scale-105' 
-                                    : 'bg-slate-950/80 border border-white/5 text-slate-400 hover:text-slate-200 hover:border-white/20'
-                                }`}
-                                title={isAr ? (isChecked ? 'إلغاء تحديد المستودع' : 'تحديد المستودع') : (isChecked ? 'Deselect repository' : 'Select repository')}
-                              >
-                                {isChecked ? (
-                                  <Check className="w-3.5 h-3.5 text-indigo-400 stroke-[3px] animate-in zoom-in-50 duration-150" />
-                                ) : (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 transition-transform group-hover:scale-110">
-                                    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
-                                    <path d="M9 18c-4.51 2-5-2-7-2" />
-                                  </svg>
-                                )}
-                                {isChecked && (
-                                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full border border-slate-900 flex items-center justify-center">
-                                    <div className="w-0.5 h-0.5 bg-white rounded-full" />
-                                  </div>
-                                )}
-                              </button>
+                              <div className="shrink-0 flex items-center justify-center pl-1" onClick={(e) => e.stopPropagation()}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={isChecked}
+                                  onChange={(e) => toggleRepoCheck(repo.name, e as any)}
+                                  className="w-4 h-4 rounded border-white/20 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                                  title={isAr ? 'تحديد المستودع' : 'Select repository'}
+                                />
+                              </div>
                               
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 mb-0.5">
@@ -697,6 +643,20 @@ export const RepositoriesDashboard = ({
                                           </p>
                                         )}
                                       </div>
+                                      
+                                      <div className="flex flex-col gap-1.5 mt-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                          <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
+                                          {isAr ? 'تخصيص مسارات ملفات معينة للتحليل (مفصولة بفاصلة)' : 'Specific Files/Folders to Analyze (comma separated)'}
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={customFiles[repo.name] || ''}
+                                          onChange={(e) => setCustomFiles({ ...customFiles, [repo.name]: e.target.value })}
+                                          placeholder={isAr ? 'مثال: src/App.tsx, docs/api.md' : 'e.g. src/App.tsx, docs/api.md'}
+                                          className="w-full bg-slate-950 border border-white/10 text-slate-300 text-xs rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500 transition-colors"
+                                        />
+                                      </div>
                                     </div>
                                     <div className="flex flex-col sm:flex-row gap-3">
                                       <div className="flex-1 relative">
@@ -723,23 +683,40 @@ export const RepositoriesDashboard = ({
                                     <div className="flex flex-col sm:flex-row gap-3">
                                       <div className="flex-1">
                                         <select
+                                          value={tone}
+                                          onChange={(e) => setTone(e.target.value)}
+                                          className="w-full bg-slate-900 border border-white/10 text-slate-300 text-xs rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+                                        >
+                                          <option value="Technical">{isAr ? 'تقني بحت (Technical)' : 'Highly Technical'}</option>
+                                          <option value="Marketing (PAS)">{isAr ? 'تسويقي تفاعلي (PAS Framework)' : 'Marketing (PAS)'}</option>
+                                          <option value="Storytelling">{isAr ? 'سرد قصصي (Storytelling)' : 'Storytelling'}</option>
+                                          <option value="Executive Summary">{isAr ? 'ملخص تنفيذي (Executive)' : 'Executive Summary'}</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="flex-1 relative">
+                                        <select
                                           value={selectedTemplate}
                                           onChange={(e) => setSelectedTemplate(e.target.value)}
                                           className="w-full bg-slate-900 border border-white/10 text-slate-300 text-xs rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
                                         >
-                                          <option value="general">{t[lang].templateEngineering}</option>
-                                          <option value="technical">{t[lang].templateArchitectural}</option>
-                                          <option value="executive">{t[lang].templateSummary}</option>
+                                          <option value="">{isAr ? 'بدون قالب (حر)' : 'No Template (Freeform)'}</option>
+                                          {posts?.filter((p: any) => p.status === 'template').map((t: any) => (
+                                            <option key={t.id} value={t.text}>{t.repoName || 'Custom Template'}</option>
+                                          ))}
+                                          <option value="I am thrilled to announce the launch of [Project Name] 🚀!\n\nAfter months of hard work, coffee, and late-night coding, we are finally live. This project solves [Problem] by [Solution].\n\nI want to thank everyone who supported this journey. Check it out here: [Link]\n\n#Launch #Tech #Innovation #BuildInPublic">{isAr ? 'إطلاق مشروع' : 'Project Launch'}</option>
+                                          <option value="🛠️ How we reduced our latency by 50% using [Technology].\n\nIn our latest engineering blog post, we dive deep into the architecture changes we made to scale [Project Name]. Here are the key takeaways:\n\n1. [Key Point 1]\n2. [Key Point 2]\n3. [Key Point 3]\n\nRead the full post here: [Link]\n\n#Engineering #SoftwareDevelopment #Tech">{isAr ? 'مقال تقني' : 'Technical Deep Dive'}</option>
                                         </select>
+                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
                                       </div>
                                       
                                       <button
-                                        onClick={() => handleAnalyzeRepo([repo.name], selectedBranches[repo.name] || 'main')}
+                                        onClick={() => handleAnalyzeRepo([repo.name], selectedBranches[repo.name] || 'main', tone, selectedTemplate, customFiles)}
                                         disabled={analyzingRepo}
                                         className="w-full sm:w-auto px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
                                       >
                                         {analyzingRepo ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                        {isAr ? 'تحليل وإنشاء' : 'Analyze'}
+                                        {isAr ? 'توليد ذكي' : 'Smart Generate'}
                                       </button>
                                     </div>
 

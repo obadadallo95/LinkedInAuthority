@@ -242,8 +242,8 @@ function App() {
     }
   };
 
-  // Deep Scan codebase to generate three premium drafts
-  const handleAnalyzeRepo = async (overrideRepos?: string[], branch?: string) => {
+  // Deep Scan codebase to generate premium draft
+  const handleAnalyzeRepo = async (overrideRepos?: string[], branch?: string, tone?: string, referenceTemplateText?: string, customFilesMap?: Record<string, string>) => {
     const targetRepos = overrideRepos && overrideRepos.length > 0 ? overrideRepos : [selectedRepo];
     if (targetRepos.length === 0 || !targetRepos[0]) return;
     setAnalyzingRepo(true);
@@ -258,7 +258,9 @@ function App() {
             token: settings.githubToken,
             repo: repoName,
             branch: branch || 'main',
-            template: selectedTemplate,
+            tone: tone || 'Technical',
+            referenceTemplateText: referenceTemplateText || '',
+            customFiles: customFilesMap ? customFilesMap[repoName] : undefined,
             lang,
           })
         });
@@ -270,6 +272,7 @@ function App() {
             const docRef = await addDoc(postsRef, {
               repoName: repoName,
               text: postItem.text,
+              originalText: postItem.text,
               status: 'draft',
               createdAt: new Date().toISOString(),
               cardConfig: postItem.cardConfig || {
@@ -542,6 +545,7 @@ function App() {
                 refreshRepos={refreshRepos}
                 githubProfile={settings.githubProfile}
                 settings={settings}
+                posts={posts}
               />
             </div>
           )}
@@ -557,7 +561,7 @@ function App() {
                 handlePublishNow={handlePublishNow}
                 handleSchedulePost={(date) => activePostId && schedulePost(activePostId, date)}
                 handleCancelSchedule={cancelSchedule}
-                handleDeletePost={deletePost}
+                handleDeletePost={() => activePostId && deletePost(activePostId)}
                 handleSaveAsTemplate={(post) => saveAsTemplate(post)}
                 showToast={showToast}
                 scheduleDate={scheduleDate}
@@ -571,7 +575,7 @@ function App() {
           )}
 
           {activeTab === 'analytics' && (
-            <AnalyticsPanel lang={lang} />
+            <AnalyticsPanel lang={lang} posts={posts} settings={settings} />
           )}
         </main>
       </div>

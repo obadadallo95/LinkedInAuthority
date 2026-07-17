@@ -166,4 +166,49 @@ router.post("/publish-post", async (req: any, res: any) => {
   }
 });
 
+// Fetch analytics for published posts
+router.post("/analytics", async (req: any, res: any) => {
+  const { token, postIds } = req.body;
+  if (!token) {
+    return res.status(401).json({ error: "LinkedIn token missing" });
+  }
+  if (!postIds || !Array.isArray(postIds)) {
+    return res.status(400).json({ error: "postIds array is required" });
+  }
+
+  try {
+    const results: Record<string, any> = {};
+    
+    await Promise.allSettled(postIds.map(async (postId) => {
+      try {
+        const encodedUrn = encodeURIComponent(postId);
+        const metricsRes = await fetch(`https://api.linkedin.com/v2/socialActions/${encodedUrn}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-Restli-Protocol-Version": "2.0.0",
+          }
+        });
+        
+        if (metricsRes.ok) {
+          const data = await metricsRes.json() as any;
+          results[postId] = {
+            likes: data?.likesSummary?.totalLikes || 0,
+            comments: data?.commentsSummary?.totalFirstLevelComments || 0,
+            success: true
+          };
+        } else {
+           results[postId] = { likes: 0, comments: 0, success: false, error: await metricsRes.text() };
+        }
+      } catch (err) {
+        results[postId] = { likes: 0, comments: 0, success: false };
+      }
+    }));
+
+    return res.json({ success: true, data: results });
+  } catch (error: any) {
+    console.error("Failed to fetch LinkedIn analytics:", error);
+    return res.status(500).json({ error: error.message || "Failed to fetch analytics" });
+  }
+});
+
 export default router;

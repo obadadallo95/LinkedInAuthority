@@ -232,6 +232,23 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
 
         {/* Status indicator on the right side */}
         <div className="flex items-center gap-2">
+          {currentPost.originalText && currentPost.originalText !== localText && (
+            <button 
+              type="button"
+              onClick={() => {
+                if (window.confirm(isAr ? "هل أنت متأكد من استعادة النص الأصلي ومسح تعديلاتك؟" : "Are you sure you want to restore the original text and discard your changes?")) {
+                  setLocalText(currentPost.originalText);
+                  handleUpdatePostText(currentPost.originalText);
+                  showToast(isAr ? "تمت الاستعادة بنجاح!" : "Original text restored!");
+                }
+              }}
+              className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10.5px] font-bold flex items-center gap-1.5 transition-all"
+              title={isAr ? 'استعادة النص الأصلي' : 'Restore Original AI Text'}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>{isAr ? 'استعادة' : 'Restore'}</span>
+            </button>
+          )}
           {getStatusBadge()}
           <button 
             type="button"
@@ -491,10 +508,11 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             <button
               onClick={handleSmartHashtags}
               disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-center py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35 w-full"
+              className="flex items-center gap-2 justify-center py-2 px-3 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-40 rounded-xl text-[11px] border border-indigo-500/30 text-indigo-300 transition-all font-bold cursor-pointer w-full shadow-[0_0_15px_rgba(99,102,241,0.15)] relative overflow-hidden group"
             >
-              <Sparkles className="w-3.5 h-3.5 text-teal-400" />
-              <span>{isAr ? 'توليد الهاشتاجات الذكية' : 'Smart Hashtag Generator'}</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+              <span>{isAr ? 'توليد الهاشتاجات الذكية (مُوصى به)' : 'Smart Hashtag Generator (Recommended)'}</span>
             </button>
           </div>
         </div>
