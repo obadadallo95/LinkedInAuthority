@@ -6,86 +6,7 @@ interface FloatingHelpWidgetProps {
   lang: 'ar' | 'en' | 'de';
 }
 
-const faqs = {
-  ar: [
-    {
-      category: "تحليل المستودعات",
-      icon: FileText,
-      questions: [
-        { q: "كيف يعمل تحليل الأكواد؟", a: "يقوم النظام بقراءة الملفات الأساسية في المستودع مثل README وملفات الإعدادات لفهم هيكل المشروع دون تخزين الشفرة المصدرية." },
-        { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "لا، نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط." }
-      ]
-    },
-    {
-      category: "النشر على LinkedIn",
-      icon: Send,
-      questions: [
-        { q: "كيف يتم النشر على حسابي؟", a: "نستخدم منصة LinkedIn API الرسمية. لا نحتفظ ببيانات تسجيل الدخول الخاصة بك، بل نستخدم رموز وصول آمنة (OAuth)." },
-        { q: "هل يمكنني جدولة المنشورات؟", a: "نعم، يمكنك اختيار وقت محدد في المستقبل وسيقوم النظام بنشره تلقائياً." }
-      ]
-    },
-    {
-      category: "الخصوصية والأمان",
-      icon: Shield,
-      questions: [
-        { q: "هل يمكنني حذف بياناتي؟", a: "نعم، يمكنك مسح كافة بياناتك ومنشوراتك وارتباطات حسابك بشكل نهائي من خلال خيار 'حذف الحساب' في صفحة الإعدادات." },
-        { q: "هل بياناتي مشفرة؟", a: "نعم، كافة بيانات الاتصال مع قاعدة البيانات مشفرة باستخدام معايير الصناعة." }
-      ]
-    }
-  ],
-  en: [
-    {
-      category: "Repository Analysis",
-      icon: FileText,
-      questions: [
-        { q: "How does code analysis work?", a: "The system reads core files like README and configs to understand project structure without storing your source code." },
-        { q: "Do you store my code?", a: "No, we do not store any source code on our servers. Processing is strictly real-time." }
-      ]
-    },
-    {
-      category: "LinkedIn Publishing",
-      icon: Send,
-      questions: [
-        { q: "How does posting to my account work?", a: "We use the official LinkedIn API. We don't keep your login credentials; we use secure OAuth access tokens." },
-        { q: "Can I schedule posts?", a: "Yes, you can choose a future time and the system will publish it automatically." }
-      ]
-    },
-    {
-      category: "Privacy & Security",
-      icon: Shield,
-      questions: [
-        { q: "Can I delete my data?", a: "Yes, you can permanently erase all your data, posts, and account links via the 'Delete Account' option in Settings." },
-        { q: "Is my data encrypted?", a: "Yes, all communication with the database is encrypted using industry standards." }
-      ]
-    }
-  ],
-  de: [
-    {
-      category: "Repository Analyse",
-      icon: FileText,
-      questions: [
-        { q: "Wie funktioniert die Code-Analyse?", a: "Das System liest Kerndateien wie README und Konfigurationen, um die Projektstruktur zu verstehen, ohne Ihren Quellcode zu speichern." },
-        { q: "Speichern Sie meinen Code?", a: "Nein, wir speichern keinen Quellcode auf unseren Servern. Die Verarbeitung erfolgt streng in Echtzeit." }
-      ]
-    },
-    {
-      category: "LinkedIn Veröffentlichung",
-      icon: Send,
-      questions: [
-        { q: "Wie funktioniert das Posten auf meinem Konto?", a: "Wir verwenden die offizielle LinkedIn-API. Wir behalten Ihre Anmeldedaten nicht; wir verwenden sichere OAuth-Zugangstoken." },
-        { q: "Kann ich Beiträge planen?", a: "Ja, Sie können eine zukünftige Zeit wählen und das System wird sie automatisch veröffentlichen." }
-      ]
-    },
-    {
-      category: "Datenschutz & Sicherheit",
-      icon: Shield,
-      questions: [
-        { q: "Kann ich meine Daten löschen?", a: "Ja, Sie können alle Ihre Daten, Beiträge und Kontoverknüpfungen dauerhaft über die Option 'Konto löschen' in den Einstellungen löschen." },
-        { q: "Sind meine Daten verschlüsselt?", a: "Ja, die gesamte Kommunikation mit der Datenbank ist nach Industriestandards verschlüsselt." }
-      ]
-    }
-  ]
-};
+import { faqsData as faqs } from '../data/faqs';
 
 export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) => {
   const isAr = lang === 'ar';
@@ -138,7 +59,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="absolute bottom-16 right-0 w-[350px] sm:w-[400px] max-h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl"
+            className={`absolute bottom-16 ${isAr ? 'left-0' : 'right-0'} w-[350px] sm:w-[400px] max-h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl`}
             style={{ transformOrigin: isAr ? 'bottom left' : 'bottom right' }}
           >
             {/* Header */}
@@ -254,8 +175,18 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
             </div>
 
             {/* Quick Footer inside FAQ */}
-            <div className="p-3 bg-slate-950 border-t border-white/5 text-center text-[10px] text-slate-400">
-              {isAr ? 'تحتاج إلى مساعدة إضافية؟ راسل مطور المنصة' : 'Need more help? Contact our support line'}
+            <div className="p-4 bg-slate-950 border-t border-white/5 flex flex-col items-center justify-center gap-2">
+              <span className="text-[10px] text-slate-400">
+                {isAr ? 'تحتاج إلى مساعدة إضافية؟' : 'Need more help?'}
+              </span>
+              <a 
+                href="https://obadadallo.web.app/contact/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full text-center py-2 px-4 rounded-xl text-xs font-bold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/40 transition-all"
+              >
+                {isAr ? 'تواصل مع المطور مباشرة' : 'Contact Developer Directly'}
+              </a>
             </div>
           </motion.div>
         )}

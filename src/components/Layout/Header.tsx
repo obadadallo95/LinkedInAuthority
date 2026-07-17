@@ -61,8 +61,8 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
           <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-inner group-hover/logo:border-indigo-500/30 transition-all duration-300 overflow-hidden">
             {/* Try loading the logo image from Assets */}
             <img 
-              src="/assets/logo.png" 
-              className="w-full h-full object-cover rounded-2xl"
+              src="/logo.png" 
+              className="w-full h-full object-contain p-1 rounded-2xl"
               alt="LinkedIn Authority Logo"
               onError={(e) => {
                 // If logo load fails, hide the image and show the fallback CSS block

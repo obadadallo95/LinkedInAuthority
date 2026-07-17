@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, Shield, Scale, User, Globe, GitBranch, Share2, ExternalLink, Copyright, Lock, ShieldCheck, Heart 
+  X, Shield, Scale, User, Globe, GitBranch, Share2, ExternalLink, Copyright, Lock, ShieldCheck, Heart, Mail, MapPin, Phone 
 } from 'lucide-react';
 import { TermsOfService } from '../TermsOfService';
 import { PrivacyPage } from '../PrivacyPage';
@@ -272,13 +272,10 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, lang, i
                         <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-indigo-600/10 rounded-full blur-2xl" />
 
                         <div className={`flex flex-col sm:flex-row items-center gap-5 relative z-10 ${isAr ? 'sm:flex-row-reverse text-center sm:text-right' : 'text-center sm:text-left'}`}>
-                          
-                          {/* Animated Creator Avatar */}
                           <div className="relative group shrink-0">
                             <div className="absolute -inset-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse" />
-                            <div className="w-16 h-16 rounded-xl bg-slate-950 border border-white/10 flex flex-col items-center justify-center text-2xl font-black text-white relative select-none">
-                              <span>👨‍💻</span>
-                              <span className="text-[9px] text-indigo-400 mt-0.5 tracking-wider font-extrabold uppercase font-mono">OBADA</span>
+                            <div className="w-16 h-16 rounded-xl border border-white/10 flex flex-col items-center justify-center relative select-none overflow-hidden shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                              <img src="/obada_portrait.webp" alt="Obada Dallo Portrait" className="w-full h-full object-cover" />
                             </div>
                           </div>
 
@@ -362,9 +359,41 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, lang, i
                           <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 transition-colors" />
                         </a>
 
-                      </div>
+                        </div>
 
-                    </div>
+                        {/* LEGAL CONTACT INFORMATION */}
+                        <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+                          <h4 className="text-sm font-bold text-white mb-2">{isAr ? 'معلومات الاتصال القانونية' : 'Legal Contact Information'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+                            <div className="flex items-start gap-2.5">
+                              <MapPin className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">{isAr ? 'العنوان' : 'Address'}</span>
+                                <span>Augsburger Str 7, 09126 Chemnitz</span>
+                                <span>Germany</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col gap-4">
+                              <div className="flex items-center gap-2.5">
+                                <Mail className="w-4 h-4 text-indigo-400 shrink-0" />
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">{isAr ? 'البريد الإلكتروني' : 'Email'}</span>
+                                  <a href="mailto:obada.dallo95@gmail.com" className="hover:text-indigo-400 transition-colors">obada.dallo95@gmail.com</a>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2.5">
+                                <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">{isAr ? 'الهاتف' : 'Phone'}</span>
+                                  <a href="tel:+4917685649057" className="hover:text-indigo-400 transition-colors" dir="ltr">+49 176 8564 9057</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
                   )}
 
                 </motion.div>

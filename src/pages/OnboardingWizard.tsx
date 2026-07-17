@@ -191,8 +191,8 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
                 exit={{ opacity: 0, x: -20 }}
                 className="absolute inset-0 flex flex-col items-center justify-center text-center bg-slate-900/50 backdrop-blur-md rounded-3xl border border-white/5 p-8"
               >
-                <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-6">
-                  <Bot size={32} className="text-indigo-400" />
+                <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-6 overflow-hidden">
+                  <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4">{T.onboardingWelcome || "Welcome"}</h2>
                 <p className="text-slate-400 mb-8 max-w-sm">{T.onboardingWelcomeDesc || "Let's set up your integrations."}</p>

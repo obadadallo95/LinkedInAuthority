@@ -3,8 +3,7 @@
 
 User-agent: *
 Allow: /
-Allow: /faq
-Allow: /about-linkedin-authority.md
+Allow: /ai-context/
 Disallow: /api/
 Disallow: /settings
 Disallow: /logs

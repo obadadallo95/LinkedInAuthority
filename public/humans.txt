@@ -1,0 +1,12 @@
+/* TEAM */
+Developer: Obada Dallo
+Contact: obada.dallo95@gmail.com
+Phone: +49 176 85649057
+Address: Augesburger Str 7, 09126 Chemnitz, Germany
+Portfolio: https://obadadallo.web.app/
+
+/* SITE */
+Last update: 2026/07/17
+Language: English, Arabic
+Doctype: HTML5
+IDE: Google Antigravity

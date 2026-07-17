@@ -19,10 +19,12 @@ import { MobileNav } from './components/Layout/MobileNav';
 import { Header } from './components/Layout/Header';
 import { PostsHub } from './components/PostsHub';
 import { RepositoriesDashboard } from './components/RepositoriesDashboard';
+import { AnalyticsPanel } from './components/AnalyticsPanel';
+import { SettingsPanel } from './components/SettingsPanel';
 import { GeneratorModal } from './components/GeneratorModal';
 import { LegalModal } from './components/Layout/LegalModal';
-import { SettingsPanel } from './components/SettingsPanel';
 import { FloatingHelpWidget } from './components/FloatingHelpWidget';
+import { AboutUsModal } from './components/Layout/AboutUsModal';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import { PwaPrompt } from './components/shared/PwaPrompt';
 import { LandingPage } from './pages/LandingPage';
@@ -80,6 +82,7 @@ function App() {
   // Generator Modal state
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<'privacy' | 'terms' | 'developer'>('privacy');
 
   // Suggested tags state
@@ -566,6 +569,10 @@ function App() {
               />
             </div>
           )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPanel lang={lang} />
+          )}
         </main>
       </div>
       <MobileNav 
@@ -603,15 +610,22 @@ function App() {
         onClose={() => setIsLegalModalOpen(false)}
         initialTab={legalModalTab}
       />
+      <AboutUsModal
+        lang={lang}
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
       <footer className="h-10 bg-slate-950 border-t border-white/5 text-[9px] px-4 md:px-6 flex items-center justify-between text-slate-500 shrink-0 z-10 select-none">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button onClick={() => setIsAboutModalOpen(true)} className="hover:text-indigo-400 font-bold text-indigo-500/80 transition-colors">{isAr ? 'عن المنصة' : 'About'}</button>
+          <span>•</span>
           <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('privacy'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'سياسة الخصوصية' : 'Privacy'}</button>
           <span>•</span>
           <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('terms'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'شروط الاستخدام' : 'Terms'}</button>
           <span>•</span>
           <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('developer'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'المطور' : 'Developer'}</button>
         </div>
-        <div>LinkedIn Authority Engine • v2.1</div>
+        <div className="hidden sm:block">LinkedIn Authority Engine • v2.1</div>
       </footer>
     </div>
   );

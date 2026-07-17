@@ -11,7 +11,8 @@ import {
   ChevronDown, 
   Sparkles, 
   Lock, 
-  ArrowLeft 
+  ArrowLeft,
+  User
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -31,14 +32,16 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
 );
 
 import { LegalModal } from '../components/Layout/LegalModal';
+import { AboutUsModal } from '../components/Layout/AboutUsModal';
 
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   
-  // Legal Modal states
+  // Legal & About Modals states
   const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer'>('privacy');
 
   const openLegalTab = (tab: 'privacy' | 'terms' | 'developer') => {
@@ -62,8 +65,8 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       {/* Header / Navigation */}
       <nav className="relative z-20 flex items-center justify-between p-6 max-w-7xl mx-auto border-b border-white/5 backdrop-blur-md bg-slate-950/20">
         <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-            <Bot size={24} className="text-white" />
+          <div className="bg-slate-900/50 p-1.5 rounded-xl border border-white/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+            <img src="/logo.png" alt="LinkedIn Authority Engine Logo" className="w-7 h-7 object-contain" />
           </div>
           <span className="text-xl font-extrabold text-white tracking-tight">{T.appTitle}</span>
         </div>
@@ -159,7 +162,9 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 {/* After: LinkedIn Post card */}
                 <div className="bg-slate-950 border border-white/10 rounded-2xl p-5 text-sm text-slate-300 shadow-lg relative">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400">OD</div>
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center overflow-hidden">
+                      <img src="/obada_portrait.webp" alt="Obada Dallo" className="w-full h-full object-cover" />
+                    </div>
                     <div>
                       <h4 className="text-xs font-bold text-white">Obada Dallo</h4>
                       <p className="text-[10px] text-slate-500">Software Architect • 1st</p>
@@ -252,8 +257,26 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             </div>
 
             {/* Footer */}
-            <footer className="w-full border-t border-white/5 pt-8 text-center text-xs text-slate-500">
+            <footer className="w-full border-t border-white/5 pt-8 flex flex-col items-center justify-center gap-4 text-center text-xs text-slate-500">
               <p>© 2026 {T.appTitle}. {lang === 'ar' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}</p>
+              
+              <div className="flex flex-wrap justify-center gap-4">
+                <button 
+                  onClick={() => setIsAboutOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-900/30 border border-indigo-500/30 hover:border-indigo-400 hover:bg-indigo-900/50 rounded-full transition-all text-indigo-300 hover:text-white"
+                >
+                  <Sparkles size={14} className="text-indigo-400" />
+                  {lang === 'ar' ? 'من نحن (القصة والرؤية)' : 'About Us (Vision & Story)'}
+                </button>
+
+                <button 
+                  onClick={() => openLegalTab('developer')} 
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 border border-white/10 hover:border-indigo-500/50 hover:bg-slate-800 rounded-full transition-all text-slate-300 hover:text-white"
+                >
+                  <User size={14} className="text-indigo-400" />
+                  {lang === 'ar' ? 'المطور والمعلومات القانونية (Impressum)' : 'Developer & Legal (Impressum)'}
+                </button>
+              </div>
             </footer>
           </motion.div>
         ) : (
@@ -362,6 +385,11 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         isOpen={isLegalOpen}
         onClose={() => setIsLegalOpen(false)}
         initialTab={legalTab}
+      />
+      <AboutUsModal
+        lang={lang}
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
     </div>
   );
