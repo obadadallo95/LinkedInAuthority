@@ -1,6 +1,8 @@
-# firebase.json
 {
   "apphosting": {
     "root": "./"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
