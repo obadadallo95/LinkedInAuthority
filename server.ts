@@ -3,7 +3,24 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 
 import aiRoutes from "./server/routes/ai";
-import linkedinRoutes from "./server/routes/linkedin";
+import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import fs from "fs";
+
+// Initialize Firebase Admin (using project config without service account for ID token verification only)
+try {
+  const configRaw = fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8");
+  const config = JSON.parse(configRaw);
+  initializeApp({
+    projectId: config.projectId,
+  });
+} catch (e) {
+  console.warn("Failed to load firebase-applet-config.json. Auth might fail if project ID is not set.", e);
+  // Fallback to default if there are env variables
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
+      initializeApp();
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -11,36 +28,28 @@ async function startServer() {
 
   app.use(express.json({ limit: "10mb" }));
 
-  // Basic Authentication Middleware
-  const BASIC_AUTH_PASSWORD = process.env.BASIC_AUTH_PASSWORD;
-  if (BASIC_AUTH_PASSWORD) {
-    app.use((req, res, next) => {
-      // Exclude health check from authentication
-      if (req.path === "/api/health") {
-        return next();
-      }
+  // Firebase Auth Middleware for API routes
+  app.use("/api", async (req, res, next) => {
+    // Exclude health check from authentication
+    if (req.path === "/health") {
+      return next();
+    }
 
-      const authHeader = req.headers.authorization;
-      if (!authHeader) {
-        res.setHeader("WWW-Authenticate", 'Basic realm="LinkedIn Authority Dev"');
-        return res.status(401).send("Authentication required.");
-      }
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Authentication required. Missing or invalid Bearer token." });
+    }
 
-      try {
-        const auth = Buffer.from(authHeader.split(" ")[1], "base64").toString().split(":");
-        const pass = auth[1];
-
-        if (pass === BASIC_AUTH_PASSWORD) {
-          return next();
-        }
-      } catch (e) {
-        // Fall through to 401
-      }
-
-      res.setHeader("WWW-Authenticate", 'Basic realm="LinkedIn Authority Dev"');
-      return res.status(401).send("Authentication required.");
-    });
-  }
+    const idToken = authHeader.split("Bearer ")[1];
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      (req as any).user = decodedToken;
+      return next();
+    } catch (error) {
+      console.error("Firebase Auth Error:", error);
+      return res.status(401).json({ error: "Authentication failed. Invalid or expired token." });
+    }
+  });
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
@@ -63,7 +72,6 @@ async function startServer() {
 
   // Mount API Routers
   app.use("/api", aiRoutes);
-  app.use("/api", linkedinRoutes);
 
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../../application/AuthContext';
 import { 
   Copy, RefreshCw, CheckCircle2, FileText, Share2, ClipboardCheck, Sparkles, 
   Bold, Flame, List, CornerDownLeft, MessageSquare, Send, Terminal, HelpCircle, Newspaper, 
@@ -31,6 +32,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
   // Auto-saved show/hide indicator state
   const [showAutoSaveTick, setShowAutoSaveTick] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { user } = useAuth();
   const [localText, setLocalText] = useState(currentPost?.text || "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -107,9 +109,13 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
     if (!localText) return;
     setOptimizing('hashtags');
     try {
+      const idToken = await user?.getIdToken();
       const res = await fetch("/api/generate-hashtags", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
         body: JSON.stringify({ text: localText, lang })
       });
       if (res.ok) {
@@ -134,9 +140,13 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
     if (!localText) return;
     setOptimizing(actionType);
     try {
+      const idToken = await user?.getIdToken();
       const res = await fetch("/api/optimize-post", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
         body: JSON.stringify({
           text: localText,
           actionType,

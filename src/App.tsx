@@ -233,12 +233,16 @@ function App() {
 
   // Generate hashtags for the current post text
   const handleGenerateHashtags = async (text: string, currentLang: string) => {
-    if (!text) return;
+    if (!text || !user) return;
     setIsGeneratingTags(true);
     try {
+      const idToken = await user.getIdToken();
       const res = await fetch("/api/generate-hashtags", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
+        },
         body: JSON.stringify({ text, lang: currentLang })
       });
       if (res.ok) {
@@ -285,40 +289,6 @@ function App() {
       showToast(lang === 'ar' ? "حدث خطأ" : "Error appending tags");
     }
   };
-
-  // Instant direct broadcast publishing to LinkedIn
-  const handlePublishNow = async () => {
-    if (!activePostId) return;
-    const currentPost = posts.find(p => p.id === activePostId);
-    if (!currentPost) return;
-    try {
-      const res = await fetch("/api/publish-post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: settings.linkedinToken,
-          text: currentPost.text,
-          repo: currentPost.repoName,
-        })
-      });
-      if (res.ok) {
-        const postRef = doc(db, "users", user.uid, "posts", activePostId);
-        await updateDoc(postRef, {
-          status: 'published',
-          publishTime: new Date().toISOString(),
-        });
-        showToast(lang === 'ar' ? "تم نشر منشورك الذكي على لينكد إن بنجاح! 🚀" : "Published successfully to LinkedIn! 🚀");
-      } else {
-        const err = await res.json();
-        throw new Error(err.error || "LinkedIn publishing parameters rejected");
-      }
-    } catch (e) {
-      console.error(e);
-      showToast(lang === 'ar' ? "فشل النشر" : "Failed to publish");
-    }
-  };
-
-
 
 
 
@@ -549,9 +519,7 @@ function App() {
 export default function AppWithAuth() {
   return (
     <Router>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <App />
     </Router>
   );
 }
