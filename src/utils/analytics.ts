@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 export type AnalyticsEvent = 
   | 'landing_view'
   | 'public_demo_started'
@@ -7,6 +9,7 @@ export type AnalyticsEvent =
   | 'human_context_skipped'
   | 'generation_started'
   | 'generation_succeeded'
+  | 'generation_needs_context'
   | 'generation_failed'
   | 'generated_post_edited'
   | 'generated_post_copied'
