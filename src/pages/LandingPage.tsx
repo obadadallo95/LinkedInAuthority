@@ -187,14 +187,15 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
               <div className="flex flex-col md:flex-row gap-4 mb-8">
                 <div className="relative flex-1 group/input">
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
-                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-2xl p-2 transition-all focus-within:border-indigo-500/50">
-                    <GithubIcon size={20} className="text-slate-500 mx-3" />
+                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-2xl p-2 transition-all focus-within:border-indigo-500/50" dir="ltr">
+                    <GithubIcon size={20} className="text-slate-500 mx-3 shrink-0" />
                     <input 
                       type="text" 
                       placeholder="https://github.com/facebook/react" 
                       value={demoUrl}
                       onChange={(e) => setDemoUrl(e.target.value)}
-                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm"
+                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm text-left"
+                      dir="ltr"
                       disabled={isDemoLoading}
                     />
                   </div>
