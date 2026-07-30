@@ -39,25 +39,28 @@ async function startServer() {
     legacyHeaders: false,
   });
 
-  // Rate Limiting for authenticated API routes (protect against Gemini cost abuse)
+  // Rate Limiting for authenticated API routes (keyed by Firebase Auth user UID or IP)
   const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50, // Limit each IP/user to 50 AI requests per hour
+    max: 50, // Limit each user to 50 AI requests per hour
+    keyGenerator: (req: express.Request) => {
+      return (req as any).user?.uid || req.ip || "unknown";
+    },
     message: { error: "لقد تجاوزت الحد المسموح به من الطلبات لهذه الساعة (50 طلب). يرجى الانتظار والتجربة لاحقاً." },
     standardHeaders: true,
     legacyHeaders: false,
   });
 
-  // Mount public unauthenticated routes
-  app.use("/api", demoLimiter, demoRoutes);
+  // Public unauthenticated demo route (rate-limited to 3/day per IP)
+  app.use("/api/demo-analyze", demoLimiter, demoRoutes);
 
-  // Firebase Auth Middleware for API routes
+  // Health check endpoint (unauthenticated)
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  // Firebase Auth Middleware for remaining protected /api routes
   app.use("/api", async (req, res, next) => {
-    // Exclude health check from authentication
-    if (req.path === "/health") {
-      return next();
-    }
-
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Authentication required. Missing or invalid Bearer token." });
@@ -74,13 +77,8 @@ async function startServer() {
     }
   });
 
-  // Apply rate limiter to authenticated AI routes
+  // Mount authenticated AI routes (protected by Auth Middleware and authLimiter)
   app.use("/api", authLimiter, aiRoutes);
-
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
 
   // Explicit route to handle/clear sw.js to resolve PWA caches from the old app
   app.get("/sw.js", (req, res) => {
@@ -95,9 +93,6 @@ async function startServer() {
       });
     `);
   });
-
-  // Mount API Routers
-  app.use("/api", aiRoutes);
 
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

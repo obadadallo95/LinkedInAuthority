@@ -10,7 +10,7 @@ if (geminiApiKey) {
   ai = new GoogleGenAI({ apiKey: geminiApiKey });
 }
 
-router.post("/demo-analyze", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { repoUrl, lang } = req.body;
     
