@@ -3,11 +3,15 @@ import { GoogleGenAI } from "@google/genai";
 
 const router = express.Router();
 
-// Initialize Gemini for the backend (requires GEMINI_API_KEY env var on the server)
-const geminiApiKey = process.env.GEMINI_API_KEY;
 let ai: GoogleGenAI | null = null;
-if (geminiApiKey) {
-  ai = new GoogleGenAI({ apiKey: geminiApiKey });
+function getGeminiClient(): GoogleGenAI | null {
+  if (!ai) {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (geminiApiKey) {
+      ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    }
+  }
+  return ai;
 }
 
 router.post("/", async (req, res) => {
@@ -18,7 +22,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Repository URL is required" });
     }
 
-    if (!ai) {
+    const client = getGeminiClient();
+    if (!client) {
       return res.status(503).json({ error: "Demo mode is currently unavailable. Server missing GEMINI_API_KEY." });
     }
 
@@ -75,7 +80,7 @@ router.post("/", async (req, res) => {
       Output ONLY the post text, nothing else. No markdown wrappers.
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
     });

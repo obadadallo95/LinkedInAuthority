@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import "dotenv/config";
 
 import aiRoutes from "./server/routes/ai";
 import demoRoutes from "./server/routes/demo";
