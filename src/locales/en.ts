@@ -182,5 +182,27 @@ export const en = {
     finalCtaTitle: "Your work deserves to be seen beyond a GitHub log.",
     finalCtaDesc: "Turn the projects, features, and problems you've solved into a professional presence that reflects your true expertise.",
     landingLoginBtn: "Sign In",
-    landingBackToHome: "← Back to Home"
+    landingBackToHome: "← Back to Home",
+    // Restored Onboarding
+    onboardingWelcome: "Welcome to LinkedIn Authority",
+    onboardingWelcomeDesc: "Let's set up your workspace to generate professional posts from your codebase.",
+    onboardingStep1: "1. Connect GitHub",
+    onboardingStep2: "2. Editable Drafts",
+    onboardingStep1Desc: "We need read-only access to analyze your public repositories.",
+    onboardingStep2Desc: "No auto-publishing. You can edit drafts and copy them to publish yourself.",
+    onboardingCompleteTitle: "You're all set! 🎉",
+    onboardingCompleteDesc: "Your workspace is configured and ready to go.",
+    onboardingGoToDashboard: "Go to Dashboard 🚀",
+    // New Demo UI Keys
+    demoNeedsContextTitle: "We need more context",
+    demoNeedsContextDesc: "We couldn't find a README or enough info in this repo. Please describe your project in one sentence so we can craft the post.",
+    demoContextInputPlaceholder: "e.g. This is an open-source library to simplify...",
+    demoRetryBtn: "Retry and generate post",
+    demoCopyBtn: "Copy Post",
+    demoCopiedBtn: "Copied!",
+    demoEvidenceTitle: "Extracted Evidence",
+    demoEvidenceSource: "Source",
+    demoErrorTitle: "Analysis Error",
+    demoAnalysisConfidence: "Confidence Level",
+    demoIntentLabel: "Post Intent",
   };

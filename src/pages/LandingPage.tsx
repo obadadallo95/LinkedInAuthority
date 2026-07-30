@@ -45,6 +45,27 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
+  const [needsContextMode, setNeedsContextMode] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+  const trackEditTimeout = useRef<any>(null);
+
+  const handlePostChange = (newText: string) => {
+    if (demoResult) {
+      setDemoResult({ ...demoResult, post: newText });
+      if (trackEditTimeout.current) clearTimeout(trackEditTimeout.current);
+      trackEditTimeout.current = setTimeout(() => {
+        trackEvent('generated_post_edited', { length: newText.length });
+      }, 2000);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!demoResult?.post) return;
+    navigator.clipboard.writeText(demoResult.post);
+    setHasCopied(true);
+    trackEvent('generated_post_copied', { length: demoResult.post.length });
+    setTimeout(() => setHasCopied(false), 2000);
+  };
   
   // Modals
   const [isLegalOpen, setIsLegalOpen] = useState(false);
@@ -116,6 +137,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         throw new Error(err.error || 'Failed to generate demo');
       }
       const data = await res.json();
+      if (data.needsUserContext) {
+        setNeedsContextMode(true);
+        trackEvent('generation_needs_context');
+        return;
+      }
+      setNeedsContextMode(false);
       setDemoResult(data);
       trackEvent('generation_succeeded', { 
         confidence: data.analysisConfidence, 
@@ -273,15 +300,24 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
                 {/* Human Context (Conditional) */}
                 <AnimatePresence>
-                  {selectedIntent !== 'auto' && (
+                  {(selectedIntent !== 'auto' || needsContextMode) && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <label className="block text-sm font-bold text-slate-300 mb-2 mt-4">
-                        {currentIntent?.placeholder || T.demoContextHelp}
+                      {needsContextMode && (
+                        <div className="mb-3 mt-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl flex items-start gap-2">
+                          <span className="shrink-0 mt-0.5">⚠️</span>
+                          <div>
+                            <p className="font-bold">{T.demoNeedsContextTitle}</p>
+                            <p className="text-amber-200/80 text-xs mt-1">{T.demoNeedsContextDesc}</p>
+                          </div>
+                        </div>
+                      )}
+                      <label className={`block text-sm font-bold text-slate-300 mb-2 ${needsContextMode ? 'mt-2' : 'mt-4'}`}>
+                        {needsContextMode ? T.demoContextInputPlaceholder : (currentIntent?.placeholder || T.demoContextHelp)}
                       </label>
                       <textarea 
                         value={humanContext}
@@ -316,7 +352,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     ) : (
                       <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
                     )}
-                    <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل واستخراج السياق...' : 'Analyzing & Extracting Context...') : T.demoSubmitBtn}</span>
+                    <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل واستخراج السياق...' : 'Analyzing & Extracting Context...') : needsContextMode ? T.demoRetryBtn : T.demoSubmitBtn}</span>
                   </button>
                 </div>
               </div>
@@ -365,10 +401,13 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                               <div>
                                 <span className="text-slate-500 block text-xs mb-1">Key Evidence Extracted</span>
                                 <ul className="text-emerald-400 space-y-1">
-                                  {demoResult.evidence.map((ev: string, idx: number) => (
+                                  {demoResult.evidence.map((ev: any, idx: number) => (
                                     <li key={idx} className="flex gap-1.5 items-start">
                                       <span className="opacity-50 mt-1">•</span>
-                                      <span className="leading-snug">{ev}</span>
+                                      <span className="leading-snug">
+                                        {typeof ev === 'string' ? ev : ev.fact}
+                                        {ev.source && <span className="ml-2 text-xs font-mono opacity-50">[{ev.source}]</span>}
+                                      </span>
                                     </li>
                                   ))}
                                 </ul>
@@ -407,28 +446,23 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                           </div>
                         </div>
                         
-                        <div className="text-sm leading-relaxed text-slate-200 mb-6 whitespace-pre-wrap font-sans">
-                          {demoResult.post || demoResult.generatedPost}
-                        </div>
+                        <textarea
+                          value={demoResult.post || demoResult.generatedPost || ''}
+                          onChange={(e) => handlePostChange(e.target.value)}
+                          className="w-full min-h-[250px] bg-transparent text-sm leading-relaxed text-slate-200 mb-6 whitespace-pre-wrap font-sans resize-y focus:outline-none border border-transparent focus:border-indigo-500/30 p-2 rounded-xl transition-colors"
+                        />
 
-                        {/* Fake engagement bar */}
-                        <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-slate-500 font-medium">
-                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">👍 Like</span>
-                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">💬 Comment</span>
-                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">🔁 Repost</span>
-                        </div>
-
-                        {/* CTA Overlay on Post hover */}
-                        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center rounded-2xl">
-                          <button 
-                            onClick={() => {
-                              trackEvent('authentication_started', { source: 'demo_overlay' });
-                              setView('login');
-                            }} 
-                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
+                        <div className="flex justify-end pt-4 border-t border-white/5">
+                          <button
+                            onClick={handleCopy}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                              hasCopied 
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                            }`}
                           >
-                            <Lock size={16} />
-                            {lang === 'ar' ? 'سجل للدخول للتعديل والنسخ' : 'Login to edit & copy'}
+                            {hasCopied ? <Check size={16} /> : null}
+                            {hasCopied ? T.demoCopiedBtn : T.demoCopyBtn}
                           </button>
                         </div>
                       </div>
@@ -531,10 +565,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6">{T.finalCtaTitle}</h2>
                 <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">{T.finalCtaDesc}</p>
                 <button
-                  onClick={() => {
-                    setView('login');
-                    trackEvent('authentication_started', { source: 'bottom_cta' });
-                  }}
+                  onClick={scrollToDemo}
                   className="px-10 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.6)] hover:scale-105 transition-all"
                 >
                   {T.landingCtaPrimary}

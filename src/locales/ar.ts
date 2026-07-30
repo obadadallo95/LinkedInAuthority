@@ -182,6 +182,28 @@ export const ar = {
     finalCtaTitle: "عملك يستحق أن يراه أكثر من سجل GitHub.",
     finalCtaDesc: "حوّل المشاريع والميزات والمشاكل التي حللتها إلى حضور مهني يعكس خبرتك الحقيقية.",
     landingLoginBtn: "تسجيل الدخول",
-    landingBackToHome: "← العودة للرئيسية"
+    landingBackToHome: "← العودة للرئيسية",
+    // Restored Onboarding
+    onboardingWelcome: "مرحباً بك في LinkedIn Authority",
+    onboardingWelcomeDesc: "دعنا نعد مساحة العمل الخاصة بك لإنشاء منشورات مهنية من أكوادك.",
+    onboardingStep1: "1. اربط حساب GitHub",
+    onboardingStep2: "2. مسودات قابلة للتعديل",
+    onboardingStep1Desc: "نحتاج صلاحية القراءة فقط لتحليل مستودعاتك العامة.",
+    onboardingStep2Desc: "لا يوجد نشر تلقائي. ستتمكن من تعديل المسودات ونسخها لنشرها بنفسك.",
+    onboardingCompleteTitle: "أنت جاهز تماماً! 🎉",
+    onboardingCompleteDesc: "تم إعداد مساحة العمل الخاصة بك وهي جاهزة الآن.",
+    onboardingGoToDashboard: "الانتقال إلى لوحة التحكم 🚀",
+    // New Demo UI Keys
+    demoNeedsContextTitle: "نحتاج لمزيد من السياق",
+    demoNeedsContextDesc: "لم نجد README أو معلومات كافية في هذا المستودع. الرجاء وصف مشروعك بجملة واحدة لنتمكن من صياغة المنشور بشكل صحيح.",
+    demoContextInputPlaceholder: "مثال: هذه مكتبة مفتوحة المصدر لتسهيل التعامل مع...",
+    demoRetryBtn: "إعادة المحاولة وإنشاء المنشور",
+    demoCopyBtn: "نسخ المنشور",
+    demoCopiedBtn: "تم النسخ!",
+    demoEvidenceTitle: "الأدلة المستخرجة",
+    demoEvidenceSource: "المصدر",
+    demoErrorTitle: "خطأ في التحليل",
+    demoAnalysisConfidence: "مستوى الثقة",
+    demoIntentLabel: "الهدف من المنشور",
   };
 

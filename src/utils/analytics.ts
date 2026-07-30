@@ -15,7 +15,7 @@ export type AnalyticsEvent =
 
 export const trackEvent = (eventName: AnalyticsEvent, properties?: Record<string, any>) => {
   // Simple abstraction for tracking events without external provider yet
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     console.log(`[Analytics Event]: ${eventName}`, properties || '');
   }
   // TODO: Integrate actual analytics provider (e.g. PostHog, Mixpanel, etc.) when approved

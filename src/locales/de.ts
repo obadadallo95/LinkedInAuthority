@@ -182,5 +182,27 @@ export const de = {
     finalCtaTitle: "Ihre Arbeit verdient es, über ein GitHub-Log hinaus gesehen zu werden.",
     finalCtaDesc: "Verwandeln Sie die Projekte, Funktionen und Probleme, die Sie gelöst haben, in eine professionelle Präsenz, die Ihre wahre Expertise widerspiegelt.",
     landingLoginBtn: "Anmelden",
-    landingBackToHome: "← Zurück zur Startseite"
+    landingBackToHome: "← Zurück zur Startseite",
+    // Restored Onboarding
+    onboardingWelcome: "Willkommen bei LinkedIn Authority",
+    onboardingWelcomeDesc: "Lassen Sie uns Ihren Arbeitsbereich einrichten, um professionelle Beiträge aus Ihrem Code zu generieren.",
+    onboardingStep1: "1. GitHub verbinden",
+    onboardingStep2: "2. Bearbeitbare Entwürfe",
+    onboardingStep1Desc: "Wir benötigen Lesezugriff, um Ihre öffentlichen Repositories zu analysieren.",
+    onboardingStep2Desc: "Kein Auto-Publishing. Sie können Entwürfe bearbeiten und selbst veröffentlichen.",
+    onboardingCompleteTitle: "Sie sind startklar! 🎉",
+    onboardingCompleteDesc: "Ihr Arbeitsbereich ist konfiguriert und einsatzbereit.",
+    onboardingGoToDashboard: "Zum Dashboard 🚀",
+    // New Demo UI Keys
+    demoNeedsContextTitle: "Wir benötigen mehr Kontext",
+    demoNeedsContextDesc: "Wir konnten keine README oder ausreichende Informationen in diesem Repo finden. Bitte beschreiben Sie Ihr Projekt in einem Satz, damit wir den Beitrag erstellen können.",
+    demoContextInputPlaceholder: "z.B. Dies ist eine Open-Source-Bibliothek, um...",
+    demoRetryBtn: "Erneut versuchen und Beitrag generieren",
+    demoCopyBtn: "Beitrag kopieren",
+    demoCopiedBtn: "Kopiert!",
+    demoEvidenceTitle: "Extrahierte Beweise",
+    demoEvidenceSource: "Quelle",
+    demoErrorTitle: "Analysefehler",
+    demoAnalysisConfidence: "Konfidenzniveau",
+    demoIntentLabel: "Beitragsziel",
   };
