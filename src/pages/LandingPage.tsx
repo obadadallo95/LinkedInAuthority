@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Zap, 
-  Share2, 
   ArrowRight, 
   Bot, 
-  Code2, 
   Globe, 
   Check, 
-  ChevronDown, 
   Sparkles, 
   Lock, 
   ArrowLeft,
   User,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  Target
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
+import { trackEvent } from '../utils/analytics';
+import { LegalModal } from '../components/Layout/LegalModal';
+import { AboutUsModal } from '../components/Layout/AboutUsModal';
 
 const GithubIcon = ({ className, size = 24 }: { className?: string, size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -32,21 +33,20 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
   </svg>
 );
 
-import { LegalModal } from '../components/Layout/LegalModal';
-import { AboutUsModal } from '../components/Layout/AboutUsModal';
-
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
   
   // Interactive Demo States
   const [demoUrl, setDemoUrl] = useState('');
+  const [selectedIntent, setSelectedIntent] = useState('auto');
+  const [humanContext, setHumanContext] = useState('');
+  
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
   
-  // Legal & About Modals states
+  // Modals
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'developer'>('privacy');
@@ -59,12 +59,44 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const isRtl = lang === 'ar';
   const T = t[lang] || t['ar'];
 
-  const toggleFaq = (index: number) => {
-    setActiveFaq(activeFaq === index ? null : index);
+  const demoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (view === 'landing') {
+      trackEvent('landing_view');
+    }
+  }, [view]);
+
+  const scrollToDemo = () => {
+    demoRef.current?.scrollIntoView({ behavior: 'smooth' });
+    trackEvent('public_demo_started');
   };
+
+  const intents = [
+    { id: 'auto', label: T.demoIntentAuto },
+    { id: 'announcement', label: T.demoIntentAnnouncement, placeholder: T.demoContextPlaceholderAnnouncement },
+    { id: 'feature', label: T.demoIntentFeature, placeholder: T.demoContextPlaceholderFeature },
+    { id: 'problem', label: T.demoIntentProblem, placeholder: T.demoContextPlaceholderProblem },
+    { id: 'lesson', label: T.demoIntentLesson, placeholder: T.demoContextPlaceholderLesson },
+    { id: 'decision', label: T.demoIntentDecision, placeholder: T.demoContextHelp },
+    { id: 'expertise', label: T.demoIntentExpertise, placeholder: T.demoContextHelp },
+    { id: 'feedback', label: T.demoIntentFeedback, placeholder: T.demoContextHelp },
+  ];
+
+  const currentIntent = intents.find(i => i.id === selectedIntent);
 
   const handleDemoGenerate = async () => {
     if (!demoUrl) return;
+    
+    if (demoUrl.length > 5) trackEvent('repository_url_entered', { url: demoUrl });
+    trackEvent('post_intent_selected', { intent: selectedIntent });
+    if (humanContext) {
+      trackEvent('human_context_answered', { length: humanContext.length });
+    } else if (selectedIntent !== 'auto') {
+      trackEvent('human_context_skipped');
+    }
+    trackEvent('generation_started');
+
     setIsDemoLoading(true);
     setDemoError('');
     setDemoResult(null);
@@ -72,7 +104,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       const res = await fetch("/api/demo-analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl: demoUrl, lang })
+        body: JSON.stringify({ 
+          repoUrl: demoUrl, 
+          lang, 
+          intent: selectedIntent,
+          humanContext: humanContext.slice(0, 200) // enforce 200 chars max
+        })
       });
       if (!res.ok) {
         const err = await res.json();
@@ -80,8 +117,13 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       }
       const data = await res.json();
       setDemoResult(data);
+      trackEvent('generation_succeeded', { 
+        confidence: data.analysisConfidence, 
+        hasEvidence: !!data.evidence?.length 
+      });
     } catch (e: any) {
       setDemoError(e.message);
+      trackEvent('generation_failed', { error: e.message });
     } finally {
       setIsDemoLoading(false);
     }
@@ -89,15 +131,15 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
   return (
     <div className={`min-h-screen bg-slate-950 text-slate-200 overflow-x-hidden ${isRtl ? 'font-arabic' : 'font-sans'}`} dir={isRtl ? 'rtl' : 'ltr'}>
-      {/* Background Visual Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
+      {/* Background Visuals */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Header / Navigation */}
-      <nav className="relative z-20 flex items-center justify-between p-6 max-w-7xl mx-auto border-b border-white/5 backdrop-blur-md bg-slate-950/20">
+      {/* Navigation */}
+      <nav className="relative z-20 flex items-center justify-between p-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="bg-slate-900/50 p-1.5 rounded-xl border border-white/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-            <img src="/logo.png" alt="LinkedIn Authority Engine Logo" className="w-7 h-7 object-contain" />
+          <div className="bg-slate-900/80 p-1.5 rounded-xl border border-white/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+            <img src="/logo.png" alt="Logo" className="w-7 h-7 object-contain" />
           </div>
           <span className="text-xl font-extrabold text-white tracking-tight">{T.appTitle}</span>
         </div>
@@ -113,7 +155,10 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
           {view === 'landing' ? (
             <button 
-              onClick={() => setView('login')}
+              onClick={() => {
+                setView('login');
+                trackEvent('authentication_started', { source: 'nav' });
+              }}
               className="text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-2 rounded-xl transition-all hover:scale-105"
             >
               {T.landingLoginBtn}
@@ -130,213 +175,370 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         </div>
       </nav>
 
-      {/* Main Container with Page View Transitions */}
+      {/* Main Content */}
       <AnimatePresence mode="wait">
         {view === 'landing' ? (
           <motion.div
             key="landing-page"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
             className="relative z-10 max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center"
           >
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-indigo-400 text-xs font-bold uppercase tracking-wider mb-6 animate-pulse">
-              <Sparkles size={12} />
-              <span>{lang === 'ar' ? 'أتمتة المحتوى المدعومة بـ Gemini' : 'AI-Powered Authority Engine'}</span>
+            {/* HERO */}
+            <div className="text-center max-w-4xl mx-auto mb-20">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-slate-400 mb-6 leading-[1.1]">
+                {T.landingHeroTitle}
+              </h1>
+              <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-3xl mx-auto">
+                {T.landingHeroDesc}
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                <button
+                  onClick={scrollToDemo}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold text-lg rounded-2xl transition-all shadow-[0_0_30px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] hover:-translate-y-1"
+                >
+                  {T.landingCtaPrimary}
+                </button>
+                <button
+                  onClick={() => {
+                    setView('login');
+                    trackEvent('authentication_started', { source: 'hero' });
+                  }}
+                  className="w-full sm:w-auto px-8 py-4 bg-slate-900 border border-white/10 hover:bg-slate-800 text-white font-bold text-lg rounded-2xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2"
+                >
+                  <GithubIcon size={20} />
+                  {T.landingCtaSecondary}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">{T.landingTrustMicrocopy}</p>
             </div>
 
-            {/* Hero Main Heading */}
-            <h1 className="text-4xl md:text-7xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-slate-400 mb-6 max-w-5xl leading-tight">
-              {T.landingHeroTitle}
-            </h1>
-
-            {/* Hero Description */}
-            <p className="text-lg md:text-xl text-slate-400 text-center max-w-3xl mb-10 leading-relaxed">
-              {T.landingHeroDesc}
-            </p>
-
-            {/* Main CTA */}
-            <button
-              onClick={() => setView('login')}
-              className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg rounded-2xl overflow-hidden transition-all shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.6)] hover:scale-105"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                {T.landingCta}
-                <ArrowRight size={20} className={`transition-transform group-hover:translate-x-1 ${isRtl ? 'rotate-180 group-hover:-translate-x-1' : ''}`} />
-              </span>
-            </button>
-
-            {/* Interactive PLG Demo Section */}
-            <div className="w-full max-w-4xl mt-20 mb-20 bg-slate-900/60 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md relative overflow-hidden shadow-2xl group transition-all hover:border-indigo-500/30 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-              <div className="absolute top-0 right-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-l border-white/5 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
+            {/* DEMO SECTION */}
+            <div ref={demoRef} className="w-full max-w-4xl mb-32 bg-slate-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-md relative shadow-2xl">
+              <div className="absolute top-0 right-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-l border-white/10 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
                 <Sparkles size={12} className="animate-pulse" />
-                {lang === 'ar' ? 'جرب الذكاء الاصطناعي مجاناً' : 'Interactive Demo Sandbox'}
+                Live Demo
               </div>
               
-              <div className="mt-4 mb-8 text-center">
-                <h3 className="text-2xl font-extrabold text-white mb-2">
-                  {lang === 'ar' ? 'هل أنت مستعد للسحر؟' : 'Ready to see the magic?'}
+              <div className="text-center mb-10">
+                <h3 className="text-2xl md:text-3xl font-extrabold text-white mb-3">
+                  {T.demoTitle}
                 </h3>
                 <p className="text-sm text-slate-400">
-                  {lang === 'ar' ? 'ضع رابط أي مستودع مفتوح المصدر على GitHub لتوليد منشور احترافي فوراً.' : 'Paste any public GitHub repository URL to generate a professional post instantly.'}
+                  {T.demoDesc}
                 </p>
               </div>
 
-              <div className="flex flex-col md:flex-row gap-4 mb-8">
-                <div className="relative flex-1 group/input">
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
-                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-2xl p-2 transition-all focus-within:border-indigo-500/50" dir="ltr">
+              <div className="space-y-6 mb-8">
+                {/* Step 1 */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep1Title}</label>
+                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl p-1 focus-within:border-indigo-500/50 transition-colors">
                     <GithubIcon size={20} className="text-slate-500 mx-3 shrink-0" />
                     <input 
                       type="text" 
                       placeholder="https://github.com/facebook/react" 
                       value={demoUrl}
                       onChange={(e) => setDemoUrl(e.target.value)}
-                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm text-left"
+                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm py-3"
                       dir="ltr"
                       disabled={isDemoLoading}
                     />
                   </div>
                 </div>
-                <button 
-                  onClick={handleDemoGenerate}
-                  disabled={isDemoLoading || !demoUrl}
-                  className="relative overflow-hidden inline-flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn shrink-0"
-                >
-                  {isDemoLoading ? (
-                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
-                      <RefreshCw size={18} />
+
+                {/* Step 2 */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep2Title}</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {intents.map((intent) => (
+                      <button
+                        key={intent.id}
+                        onClick={() => setSelectedIntent(intent.id)}
+                        disabled={isDemoLoading}
+                        className={`text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                          selectedIntent === intent.id 
+                            ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200' 
+                            : 'bg-slate-950 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
+                        }`}
+                      >
+                        {intent.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Human Context (Conditional) */}
+                <AnimatePresence>
+                  {selectedIntent !== 'auto' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <label className="block text-sm font-bold text-slate-300 mb-2 mt-4">
+                        {currentIntent?.placeholder || T.demoContextHelp}
+                      </label>
+                      <textarea 
+                        value={humanContext}
+                        onChange={(e) => setHumanContext(e.target.value)}
+                        placeholder="..."
+                        maxLength={200}
+                        rows={2}
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm"
+                        disabled={isDemoLoading}
+                      />
+                      <div className="flex justify-between items-center mt-2 px-1">
+                        <span className="text-xs text-slate-500">{T.demoContextHelp}</span>
+                        <span className={`text-xs ${humanContext.length >= 200 ? 'text-red-400' : 'text-slate-500'}`}>
+                          {humanContext.length}/200
+                        </span>
+                      </div>
                     </motion.div>
-                  ) : (
-                    <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
                   )}
-                  <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل...' : 'Analyzing...') : (lang === 'ar' ? 'توليد المنشور' : 'Generate Post')}</span>
-                </button>
+                </AnimatePresence>
+
+                {/* Submit */}
+                <div className="pt-4">
+                  <button 
+                    onClick={handleDemoGenerate}
+                    disabled={isDemoLoading || !demoUrl}
+                    className="w-full overflow-hidden relative flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                  >
+                    {isDemoLoading ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
+                        <RefreshCw size={18} />
+                      </motion.div>
+                    ) : (
+                      <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
+                    )}
+                    <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل واستخراج السياق...' : 'Analyzing & Extracting Context...') : T.demoSubmitBtn}</span>
+                  </button>
+                </div>
               </div>
 
-              {demoError && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl text-center">
-                  {demoError}
-                </motion.div>
-              )}
+              {/* Error */}
+              <AnimatePresence>
+                {demoError && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl text-center flex items-center justify-center gap-2">
+                    <span className="font-bold">Error:</span> {demoError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <AnimatePresence mode="wait">
+              {/* Results */}
+              <AnimatePresence>
                 {demoResult && (
                   <motion.div 
-                    initial={{ opacity: 0, height: 0 }} 
-                    animate={{ opacity: 1, height: "auto" }} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5"
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="mt-8 pt-8 border-t border-white/10 grid grid-cols-1 lg:grid-cols-12 gap-8"
                   >
-                    <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-5 font-mono text-xs text-indigo-300">
-                      <div className="flex items-center gap-2 mb-3 text-slate-500 border-b border-white/5 pb-2">
-                        <Code2 size={14} />
-                        <span>Repository Data</span>
+                    {/* Left: Metadata & Evidence */}
+                    <div className="lg:col-span-5 space-y-4">
+                      {/* Repo info */}
+                      <div className="bg-slate-950/80 border border-white/10 rounded-2xl p-5">
+                        <div className="flex flex-col gap-1 mb-4 pb-4 border-b border-white/5">
+                          <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                            <GithubIcon size={18} className="text-indigo-400" />
+                            {demoResult.repository?.name || 'Repository'}
+                          </h4>
+                          <p className="text-sm text-slate-400">{demoResult.repository?.description || 'No description found.'}</p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-2 text-sm">
+                            <Target size={16} className="text-slate-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="text-slate-500 block text-xs">Intent</span>
+                              <span className="text-indigo-300 font-medium">{demoResult.selectedIntent}</span>
+                            </div>
+                          </div>
+                          
+                          {demoResult.evidence && demoResult.evidence.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm pt-2">
+                              <Zap size={16} className="text-slate-500 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-slate-500 block text-xs mb-1">Key Evidence Extracted</span>
+                                <ul className="text-emerald-400 space-y-1">
+                                  {demoResult.evidence.map((ev: string, idx: number) => (
+                                    <li key={idx} className="flex gap-1.5 items-start">
+                                      <span className="opacity-50 mt-1">•</span>
+                                      <span className="leading-snug">{ev}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {demoResult.analysisConfidence && (
+                            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-xs">
+                              <span className="text-slate-500">Analysis Confidence</span>
+                              <span className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">{demoResult.analysisConfidence}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-emerald-400">Name: {demoResult.repoName}</p>
-                      <p className="text-slate-400">Owner: {demoResult.owner}</p>
-                      <p className="text-slate-400">Stars: ⭐ {demoResult.stars}</p>
-                      <br />
-                      <p className="text-white font-bold animate-pulse">✓ AI Analysis Complete</p>
-                      <p className="text-slate-500 mt-2">Ready to publish to your network.</p>
+
+                      <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex gap-2">
+                        <div className="shrink-0 mt-0.5">⚠️</div>
+                        <p>{T.demoResultWarning}</p>
+                      </div>
                     </div>
 
-                    <div className="bg-slate-950 border border-white/10 rounded-2xl p-5 text-sm text-slate-300 shadow-lg relative group/card">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center overflow-hidden">
-                          <User size={16} className="text-indigo-400" />
+                    {/* Right: The Post */}
+                    <div className="lg:col-span-7">
+                      <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)] relative group">
+                        <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
+                          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+                            <User size={20} className="text-slate-400" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-white leading-tight">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
+                            <p className="text-[11px] text-slate-500">Software Engineer • 1st</p>
+                          </div>
+                          <div className="ml-auto text-slate-600">
+                            <LinkedinIcon size={20} />
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-white">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
-                          <p className="text-[10px] text-slate-500">Software Engineer • 1st</p>
+                        
+                        <div className="text-sm leading-relaxed text-slate-200 mb-6 whitespace-pre-wrap font-sans">
+                          {demoResult.post || demoResult.generatedPost}
                         </div>
-                      </div>
-                      <div className="text-xs leading-relaxed text-slate-300 mb-3 whitespace-pre-wrap">
-                        {demoResult.generatedPost}
-                      </div>
-                      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                        <button onClick={() => setView('login')} className="px-6 py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
-                          <Lock size={16} />
-                          {lang === 'ar' ? 'سجل للدخول للتعديل والنشر' : 'Login to edit & publish'}
-                        </button>
+
+                        {/* Fake engagement bar */}
+                        <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-slate-500 font-medium">
+                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">👍 Like</span>
+                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">💬 Comment</span>
+                          <span className="flex items-center gap-1.5 hover:text-indigo-400 cursor-pointer transition-colors">🔁 Repost</span>
+                        </div>
+
+                        {/* CTA Overlay on Post hover */}
+                        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center rounded-2xl">
+                          <button 
+                            onClick={() => {
+                              trackEvent('authentication_started', { source: 'demo_overlay' });
+                              setView('login');
+                            }} 
+                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
+                          >
+                            <Lock size={16} />
+                            {lang === 'ar' ? 'سجل للدخول للتعديل والنسخ' : 'Login to edit & copy'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Conversion Footer inside Demo block */}
+              {demoResult && (
+                <div className="mt-8 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 md:p-8 text-center mt-12">
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{T.demoConversionCta}</h3>
+                  <p className="text-sm text-indigo-200/80 mb-6 max-w-2xl mx-auto">{T.demoConversionSub}</p>
+                  <button
+                    onClick={() => {
+                      trackEvent('github_connect_clicked', { source: 'demo_conversion' });
+                      setView('login');
+                    }}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-lg"
+                  >
+                    <GithubIcon size={20} />
+                    {T.demoConversionBtn}
+                  </button>
+                  <p className="text-xs text-slate-400 mt-4 flex items-center justify-center gap-2">
+                    <Check size={14} className="text-indigo-400" />
+                    {T.demoConversionTrust}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Bento Grid Features */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-20">
-              {/* Feature 1 */}
-              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group hover:border-indigo-500/30 transition-all">
-                <div className="w-12 h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-center mb-5 text-indigo-400">
-                  <GithubIcon size={22} />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{T.landingFeature1Title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{T.landingFeature1Desc}</p>
+            {/* SECTIONS */}
+            <div className="w-full max-w-5xl space-y-32 mb-32">
+              {/* Problem */}
+              <div className="text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{T.sectionProblemTitle}</h2>
+                <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">{T.sectionProblemText}</p>
               </div>
 
-              {/* Feature 2 */}
-              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-                <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center mb-5 text-emerald-400">
-                  <Bot size={22} />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{T.landingFeature2Title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{T.landingFeature2Desc}</p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group hover:border-purple-500/30 transition-all">
-                <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center mb-5 text-purple-400">
-                  <Share2 size={22} />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{T.landingFeature3Title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{T.landingFeature3Desc}</p>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group hover:border-blue-500/30 transition-all">
-                <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center mb-5 text-blue-400">
-                  <Zap size={22} />
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{T.landingFeature4Title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{T.landingFeature4Desc}</p>
-              </div>
-            </div>
-
-            {/* Interactive FAQ Section */}
-            <div className="w-full max-w-3xl mb-20">
-              <h2 className="text-3xl font-bold text-center text-white mb-10">{T.landingFaq}</h2>
-              <div className="space-y-4">
-                {[
-                  { q: T.landingFaq1Q, a: T.landingFaq1A },
-                  { q: T.landingFaq2Q, a: T.landingFaq2A },
-                  { q: T.landingFaq3Q, a: T.landingFaq3A }
-                ].map((faq, index) => (
-                  <div key={index} className="bg-slate-900/30 border border-white/5 rounded-2xl overflow-hidden">
-                    <button
-                      onClick={() => toggleFaq(index)}
-                      className="w-full flex items-center justify-between p-5 text-left font-bold text-white transition-colors hover:bg-white/5"
-                    >
-                      <span className={isRtl ? "text-right w-full" : ""}>{faq.q}</span>
-                      <ChevronDown size={18} className={`text-slate-400 transition-transform ${activeFaq === index ? "rotate-180" : ""}`} />
-                    </button>
-                    <AnimatePresence>
-                      {activeFaq === index && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="border-t border-white/5 bg-slate-950/40 text-xs text-slate-400 p-5 leading-relaxed"
-                        >
-                          {faq.a}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+              {/* Compare */}
+              <div>
+                <h2 className="text-3xl font-bold text-center text-white mb-12">{T.sectionCompareTitle}</h2>
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Generic */}
+                  <div className="bg-slate-900/30 border border-red-500/20 rounded-3xl p-8">
+                    <h3 className="text-xl font-bold text-red-400 mb-6 pb-4 border-b border-white/5">{T.sectionCompareGenTitle}</h3>
+                    <ul className="space-y-4 text-slate-400">
+                      {[T.sectionCompareGen1, T.sectionCompareGen2, T.sectionCompareGen3, T.sectionCompareGen4].map((item, i) => (
+                        <li key={i} className="flex gap-3">
+                          <span className="text-red-500/50 mt-1 shrink-0">✗</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
+                  {/* Us */}
+                  <div className="bg-indigo-900/10 border border-indigo-500/30 rounded-3xl p-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
+                    <h3 className="text-xl font-bold text-indigo-400 mb-6 pb-4 border-b border-white/5">{T.sectionCompareUsTitle}</h3>
+                    <ul className="space-y-4 text-slate-200">
+                      {[T.sectionCompareUs1, T.sectionCompareUs2, T.sectionCompareUs3, T.sectionCompareUs4].map((item, i) => (
+                        <li key={i} className="flex gap-3">
+                          <Check size={18} className="text-indigo-400 mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* How it Works */}
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-white mb-12">{T.sectionHowTitle}</h2>
+                <div className="grid md:grid-cols-3 gap-8">
+                  {[
+                    { title: T.sectionHow1Title, desc: T.sectionHow1Text, icon: GithubIcon },
+                    { title: T.sectionHow2Title, desc: T.sectionHow2Text, icon: Target },
+                    { title: T.sectionHow3Title, desc: T.sectionHow3Text, icon: LinkedinIcon }
+                  ].map((step, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div className="w-16 h-16 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center mb-6 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+                        <step.icon size={28} />
+                      </div>
+                      <h4 className="text-xl font-bold text-white mb-3">{step.title}</h4>
+                      <p className="text-slate-400 leading-relaxed text-sm">{step.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recap */}
+              <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-10 md:p-12 text-center">
+                <h2 className="text-3xl font-bold text-white mb-6">{T.sectionRecapTitle}</h2>
+                <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">{T.sectionRecapText}</p>
+              </div>
+
+              {/* Final CTA */}
+              <div className="text-center pb-20">
+                <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6">{T.finalCtaTitle}</h2>
+                <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">{T.finalCtaDesc}</p>
+                <button
+                  onClick={() => {
+                    setView('login');
+                    trackEvent('authentication_started', { source: 'bottom_cta' });
+                  }}
+                  className="px-10 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.6)] hover:scale-105 transition-all"
+                >
+                  {T.landingCtaPrimary}
+                </button>
               </div>
             </div>
 
@@ -409,7 +611,6 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                   <span>{lang === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}</span>
                 </button>
 
-
                 <button
                   onClick={async () => {
                     try {
@@ -478,4 +679,3 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     </div>
   );
 };
-
