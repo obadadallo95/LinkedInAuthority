@@ -3,8 +3,10 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 
 import aiRoutes from "./server/routes/ai";
+import demoRoutes from "./server/routes/demo";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import rateLimit from "express-rate-limit";
 import fs from "fs";
 
 // Initialize Firebase Admin (using project config without service account for ID token verification only)
@@ -27,6 +29,18 @@ async function startServer() {
   const PORT = process.env.PORT || 3000;
 
   app.use(express.json({ limit: "10mb" }));
+
+  // Rate Limiting for public endpoints (like Demo)
+  const demoLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 3, // Limit each IP to 3 requests per windowMs
+    message: { error: "لقد استنفدت الحد المسموح به للتجربة المجانية اليوم. الرجاء تسجيل الدخول للمتابعة." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Mount public unauthenticated routes
+  app.use("/api", demoLimiter, demoRoutes);
 
   // Firebase Auth Middleware for API routes
   app.use("/api", async (req, res, next) => {

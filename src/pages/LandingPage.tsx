@@ -12,7 +12,8 @@ import {
   Sparkles, 
   Lock, 
   ArrowLeft,
-  User
+  User,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -39,6 +40,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const [view, setView] = useState<'landing' | 'login'>('landing');
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   
+  // Interactive Demo States
+  const [demoUrl, setDemoUrl] = useState('');
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [demoResult, setDemoResult] = useState<any>(null);
+  const [demoError, setDemoError] = useState('');
+  
   // Legal & About Modals states
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -54,6 +61,30 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
+  };
+
+  const handleDemoGenerate = async () => {
+    if (!demoUrl) return;
+    setIsDemoLoading(true);
+    setDemoError('');
+    setDemoResult(null);
+    try {
+      const res = await fetch("/api/demo-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoUrl: demoUrl, lang })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to generate demo');
+      }
+      const data = await res.json();
+      setDemoResult(data);
+    } catch (e: any) {
+      setDemoError(e.message);
+    } finally {
+      setIsDemoLoading(false);
+    }
   };
 
   return (
@@ -137,50 +168,102 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
               </span>
             </button>
 
-            {/* Before / After Concept Showcase */}
-            <div className="w-full max-w-4xl mt-20 mb-20 bg-slate-900/60 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 p-2 bg-indigo-500/10 border-b border-l border-white/5 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-400">
-                {lang === 'ar' ? 'نظام التحويل المرئي' : 'Transformation Sandbox'}
+            {/* Interactive PLG Demo Section */}
+            <div className="w-full max-w-4xl mt-20 mb-20 bg-slate-900/60 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-md relative overflow-hidden shadow-2xl group transition-all hover:border-indigo-500/30 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)]">
+              <div className="absolute top-0 right-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-l border-white/5 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
+                <Sparkles size={12} className="animate-pulse" />
+                {lang === 'ar' ? 'جرب الذكاء الاصطناعي مجاناً' : 'Interactive Demo Sandbox'}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                {/* Before: Raw Git / Code input */}
-                <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-5 font-mono text-xs text-indigo-300">
-                  <div className="flex items-center gap-2 mb-3 text-slate-500 border-b border-white/5 pb-2">
-                    <Code2 size={14} />
-                    <span>git log -n 1 --stat</span>
-                  </div>
-                  <p className="text-emerald-400">commit 89271df (HEAD -&gt; main)</p>
-                  <p className="text-slate-400">Author: Obada Dallo</p>
-                  <p className="text-slate-400">Date:   Thu Jul 16 21:05:32 2026</p>
-                  <br />
-                  <p className="text-white font-bold">feat: refactor Firebase App Hosting routes</p>
-                  <p className="text-slate-500"> apphosting.yaml | 12 ++--</p>
-                  <p className="text-slate-500"> src/App.tsx      | 85 +++++++++++---</p>
-                  <p className="text-slate-500"> 2 files changed, 72 insertions(+), 25 deletions(-)</p>
-                </div>
+              
+              <div className="mt-4 mb-8 text-center">
+                <h3 className="text-2xl font-extrabold text-white mb-2">
+                  {lang === 'ar' ? 'هل أنت مستعد للسحر؟' : 'Ready to see the magic?'}
+                </h3>
+                <p className="text-sm text-slate-400">
+                  {lang === 'ar' ? 'ضع رابط أي مستودع مفتوح المصدر على GitHub لتوليد منشور احترافي فوراً.' : 'Paste any public GitHub repository URL to generate a professional post instantly.'}
+                </p>
+              </div>
 
-                {/* After: LinkedIn Post card */}
-                <div className="bg-slate-950 border border-white/10 rounded-2xl p-5 text-sm text-slate-300 shadow-lg relative">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center overflow-hidden">
-                      <img src="/obada_portrait.webp" alt="Obada Dallo" className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white">Obada Dallo</h4>
-                      <p className="text-[10px] text-slate-500">Software Architect • 1st</p>
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed text-slate-300 mb-3">
-                    🚀 <strong>Optimizing serverless deployments:</strong> Just shifted our app configuration structure directly to Google Cloud Secret Manager.
-                  </p>
-                  <p className="text-xs leading-relaxed text-slate-400 mb-3">
-                    By extracting credentials from the build pipeline, we resolved runtime access scopes and enhanced environment security.
-                  </p>
-                  <div className="bg-gradient-to-r from-indigo-900/40 to-slate-900 border border-indigo-500/30 p-3 rounded-lg text-[10px] text-indigo-300 font-mono">
-                    #Serverless #GitHubAutomation #GeminiAI
+              <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <div className="relative flex-1 group/input">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
+                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-2xl p-2 transition-all focus-within:border-indigo-500/50">
+                    <GithubIcon size={20} className="text-slate-500 mx-3" />
+                    <input 
+                      type="text" 
+                      placeholder="https://github.com/facebook/react" 
+                      value={demoUrl}
+                      onChange={(e) => setDemoUrl(e.target.value)}
+                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm"
+                      disabled={isDemoLoading}
+                    />
                   </div>
                 </div>
+                <button 
+                  onClick={handleDemoGenerate}
+                  disabled={isDemoLoading || !demoUrl}
+                  className="relative overflow-hidden inline-flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn shrink-0"
+                >
+                  {isDemoLoading ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
+                      <RefreshCw size={18} />
+                    </motion.div>
+                  ) : (
+                    <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
+                  )}
+                  <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل...' : 'Analyzing...') : (lang === 'ar' ? 'توليد المنشور' : 'Generate Post')}</span>
+                </button>
               </div>
+
+              {demoError && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl text-center">
+                  {demoError}
+                </motion.div>
+              )}
+
+              <AnimatePresence mode="wait">
+                {demoResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: "auto" }} 
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5"
+                  >
+                    <div className="bg-slate-950/80 border border-white/5 rounded-2xl p-5 font-mono text-xs text-indigo-300">
+                      <div className="flex items-center gap-2 mb-3 text-slate-500 border-b border-white/5 pb-2">
+                        <Code2 size={14} />
+                        <span>Repository Data</span>
+                      </div>
+                      <p className="text-emerald-400">Name: {demoResult.repoName}</p>
+                      <p className="text-slate-400">Owner: {demoResult.owner}</p>
+                      <p className="text-slate-400">Stars: ⭐ {demoResult.stars}</p>
+                      <br />
+                      <p className="text-white font-bold animate-pulse">✓ AI Analysis Complete</p>
+                      <p className="text-slate-500 mt-2">Ready to publish to your network.</p>
+                    </div>
+
+                    <div className="bg-slate-950 border border-white/10 rounded-2xl p-5 text-sm text-slate-300 shadow-lg relative group/card">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center overflow-hidden">
+                          <User size={16} className="text-indigo-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
+                          <p className="text-[10px] text-slate-500">Software Engineer • 1st</p>
+                        </div>
+                      </div>
+                      <div className="text-xs leading-relaxed text-slate-300 mb-3 whitespace-pre-wrap">
+                        {demoResult.generatedPost}
+                      </div>
+                      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                        <button onClick={() => setView('login')} className="px-6 py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-xl hover:scale-105 transition-transform flex items-center gap-2">
+                          <Lock size={16} />
+                          {lang === 'ar' ? 'سجل للدخول للتعديل والنشر' : 'Login to edit & publish'}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Bento Grid Features */}
