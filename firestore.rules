@@ -43,6 +43,16 @@ service cloud.firestore {
           // Ensure nested map is a map
           && (!('cardConfig' in request.resource.data) || request.resource.data.cardConfig is map);
       }
+
+      // Projects Subcollection Rules
+      match /projects/{projectId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Drafts Subcollection Rules
+      match /drafts/{draftId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
       
       match /logs/{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;

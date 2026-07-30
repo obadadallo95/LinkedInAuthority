@@ -39,6 +39,15 @@ async function startServer() {
     legacyHeaders: false,
   });
 
+  // Rate Limiting for authenticated API routes (protect against Gemini cost abuse)
+  const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 50, // Limit each IP/user to 50 AI requests per hour
+    message: { error: "لقد تجاوزت الحد المسموح به من الطلبات لهذه الساعة (50 طلب). يرجى الانتظار والتجربة لاحقاً." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Mount public unauthenticated routes
   app.use("/api", demoLimiter, demoRoutes);
 
@@ -60,10 +69,13 @@ async function startServer() {
       (req as any).user = decodedToken;
       return next();
     } catch (error) {
-      console.error("Firebase Auth Error:", error);
-      return res.status(401).json({ error: "Authentication failed. Invalid or expired token." });
+      console.error("Firebase Admin Auth Verification Error:", error);
+      return res.status(401).json({ error: "Unauthorized. Invalid or expired token." });
     }
   });
+
+  // Apply rate limiter to authenticated AI routes
+  app.use("/api", authLimiter, aiRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {

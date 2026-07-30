@@ -138,7 +138,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isOnboardingComplete = settings.onboardingSkipped === true
-    || (!!(settings.githubUsername || settings.githubProfile) && !!(settings.linkedinToken || settings.linkedinProfile));
+    || !!(settings.githubUsername || settings.githubProfile);
 
   return (
     <SettingsContext.Provider value={{ settings, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>
