@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, GitBranch, Share2, RefreshCw, Check, LogIn, Shield, Terminal, Activity } from 'lucide-react';
 import { t } from '../constants';
 import { HelpGuides } from './HelpGuides';
-import { auth, githubProvider, linkedinProvider, db } from '../infrastructure/firebase/config';
+import { auth, githubProvider, db } from '../infrastructure/firebase/config';
 import { linkWithPopup, GithubAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { getConnectionLogs, subscribeToLogs, LogEntry } from '../services/githubService';
@@ -13,8 +13,6 @@ export const SettingsPanel = ({
   const isAr = lang === 'ar';
   
   const [testingGh, setTestingGh] = useState(false);
-  const [testingLi, setTestingLi] = useState(false);
-  const [testLiStatus, setTestLiStatus] = useState<'success' | 'err' | null>(null);
 
   // Connection logs states
   const [showLogs, setShowLogs] = useState(false);
@@ -80,67 +78,12 @@ export const SettingsPanel = ({
     }
   };
 
-  const linkLinkedinAccount = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setTestingLi(true);
-    setTestLiStatus(null);
-    if (!auth.currentUser) return;
-    
-    try {
-      const width = 600;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
 
-      const popup = window.open(
-        "/api/auth/linkedin",
-        "linkedin-auth",
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      if (!popup) {
-        throw new Error("Popup blocked. Please allow popups for this site.");
-      }
-
-      const handleAuthMessage = async (event: MessageEvent) => {
-        if (event.data && event.data.type === "LINKEDIN_AUTH_SUCCESS") {
-          window.removeEventListener("message", handleAuthMessage);
-          const { token, profile } = event.data;
-
-          if (token && auth.currentUser) {
-            const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
-            await setDoc(settingsRef, {
-              linkedinToken: token,
-              linkedinProfile: {
-                id: profile.id,
-                name: profile.name
-              }
-            }, { merge: true });
-
-            alert(isAr ? 'تم ربط حساب LinkedIn بنجاح!' : 'LinkedIn account linked successfully!');
-            window.location.reload();
-          }
-        }
-      };
-
-      window.addEventListener("message", handleAuthMessage);
-    } catch (err: any) {
-      console.error("LinkedIn OAuth Error:", err);
-      alert(err.message);
-      setTestLiStatus('err');
-    } finally {
-      setTestingLi(false);
-    }
-  };
 
   const ghConnected = !!settings?.githubProfile || !!settings?.githubUsername;
-  const liConnected = !!settings?.linkedinProfile || !!settings?.linkedinToken;
 
   // Set default values for permissions if not explicitly stored
   const ghPermission = settings?.githubPermissions || 'public';
-  const liPublish = settings?.linkedinPublish !== false;
-  const liComment = settings?.linkedinComment === true;
-  const liFollow = settings?.linkedinFollow === true;
 
   return (
     <section className={`flex flex-col gap-6 max-w-4xl mx-auto w-full pb-32 ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? 'rtl' : 'ltr'}>
@@ -302,141 +245,7 @@ export const SettingsPanel = ({
           </div>
         </div>
 
-        {/* LinkedIn Config Card */}
-        <div className="rounded-3xl bg-slate-900/50 border border-white/5 p-6 flex flex-col relative overflow-hidden group hover:border-white/10 transition-colors">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                <Share2 className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-sm">LinkedIn</h3>
-                <span className={`text-[10px] font-bold ${liConnected ? 'text-blue-400' : 'text-slate-500'}`}>
-                  {liConnected ? (isAr ? 'متصل بنجاح ✓' : 'Connected ✓') : (isAr ? 'غير متصل' : 'Not Connected')}
-                </span>
-              </div>
-            </div>
-            {liConnected && (
-              <button 
-                type="button" 
-                onClick={() => handleDisconnect("linkedin")}
-                className="text-[10px] px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-bold transition-colors cursor-pointer"
-              >
-                {isAr ? 'فصل الحساب' : 'Disconnect'}
-              </button>
-            )}
-          </div>
-          
-          <div className="space-y-4 flex-1 flex flex-col justify-between">
-            {!liConnected ? (
-              <div className="py-2 text-center">
-                <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
-                  {isAr ? 'اربط حسابك المهني لبدء نشر منشوراتك المكتوبة من الذكاء الاصطناعي مباشرة.' : 'Connect your professional account to publish generated posts directly.'}
-                </p>
-                <button 
-                  type="button" 
-                  onClick={linkLinkedinAccount}
-                  disabled={testingLi}
-                  className="px-6 py-3 rounded-xl text-[11px] font-black bg-[#0077b5] hover:bg-[#006396] text-white flex items-center gap-2 transition-all cursor-pointer w-full justify-center shadow-lg shadow-blue-600/10"
-                >
-                  {testingLi ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-                  {isAr ? 'تسجيل الدخول وربط LinkedIn' : 'Log in & Link LinkedIn'}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-white/5 shadow-inner">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/25">
-                    <Share2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[13px] font-bold text-white mb-1">{settings?.linkedinProfile?.name || 'LinkedIn Member'}</div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">
-                      {isAr ? 'مخول للنشر' : 'Authorized'}
-                    </span>
-                  </div>
-                </div>
 
-                {/* LinkedIn Permissions switches */}
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-white/5 space-y-4">
-                  <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-200 uppercase tracking-wider">
-                    <Shield className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{isAr ? 'صلاحيات النشر والتفاعل المهني' : 'B2B Interaction Permissions'}</span>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 leading-normal">
-                    {isAr ? 'قم بالتحكم في العمليات المسموح للتطبيق إجراؤها لضمان كامل الأمان والخصوصية لقناتك المهنية:' : 'Explicitly grant permissions for what the automation engine can perform:'}
-                  </p>
-
-                  <div className="space-y-3.5 pt-1">
-                    {/* Publish toggle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'نشر المنشورات على الخط الزمني' : 'Publish Posts on Timeline'}</span>
-                        <span className="text-[9px] text-slate-500">{isAr ? 'نشر التحليلات والملخصات المقررة' : 'Publish synthesized updates'}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updatePermission('linkedinPublish', !liPublish)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          liPublish ? 'bg-indigo-600' : 'bg-slate-800'
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          liPublish ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
-                        }`} />
-                      </button>
-                    </div>
-
-                    {/* Comment toggle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'كتابة الردود والتعليقات التلقائية' : 'Write AI Comments'}</span>
-                        <span className="text-[9px] text-slate-500">{isAr ? 'التعليق على المنشورات ذات الصلة لزيادة الانتشار' : 'Comment on relevant content to boost reach'}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updatePermission('linkedinComment', !liComment)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          liComment ? 'bg-indigo-600' : 'bg-slate-800'
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          liComment ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
-                        }`} />
-                      </button>
-                    </div>
-
-                    {/* Follow toggle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10.5px] font-bold text-white">{isAr ? 'متابعة الشركات والصفحات المهنية' : 'Auto Follow Pages'}</span>
-                        <span className="text-[9px] text-slate-500">{isAr ? 'بناء شبكة علاقات مع صناع القرار تلقائياً' : 'Automated B2B network building'}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updatePermission('linkedinFollow', !liFollow)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          liFollow ? 'bg-indigo-600' : 'bg-slate-800'
-                        }`}
-                      >
-                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          liFollow ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-4'
-                        }`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {liConnected && (
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[9px] text-slate-500">
-                <span>{isAr ? 'تم التحقق من الرمز والاتصال المهني نشط.' : 'Connection verified and active.'}</span>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       <div className="mt-8">

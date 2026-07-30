@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, AuthProvider } from './application/AuthContext';
 import { useSettings } from './contexts/SettingsContext';
 import { usePosts } from './contexts/PostsContext';
@@ -17,9 +18,8 @@ import {
 import { Sidebar } from './components/Layout/Sidebar';
 import { MobileNav } from './components/Layout/MobileNav';
 import { Header } from './components/Layout/Header';
-import { PostsHub } from './components/PostsHub';
 import { RepositoriesDashboard } from './components/RepositoriesDashboard';
-import { AnalyticsPanel } from './components/AnalyticsPanel';
+import { RepoDetails } from './components/RepoDetails';
 import { SettingsPanel } from './components/SettingsPanel';
 import { GeneratorModal } from './components/GeneratorModal';
 import { LegalModal } from './components/Layout/LegalModal';
@@ -55,9 +55,17 @@ function App() {
   const [scheduleTime, setScheduleTime] = useState("");
 
 
-  const [activeTab, setActiveTab] = useState<'home' | 'posts' | 'analytics' | 'templates' | 'settings' | 'logs'>('home');
   const { posts, loadingPosts, updatePostText, updateCardConfig, deletePost, schedulePost, cancelSchedule, saveAsTemplate, useTemplate } = usePosts();
   const [activePostId, setActivePostId] = useState<string | null>(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Infer activeTab from location path
+  const currentPath = location.pathname;
+  let activeTab: 'home' | 'posts' | 'analytics' | 'templates' | 'settings' | 'logs' = 'home';
+  if (currentPath.startsWith('/settings')) activeTab = 'settings';
+  else if (currentPath.startsWith('/templates')) activeTab = 'templates';
 
 
   const { settings, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
@@ -77,10 +85,9 @@ function App() {
   const [repoSearch, setRepoSearch] = useState("");
   const [selectedRepo, setSelectedRepo] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("general");
-  const [analyzingRepo, setAnalyzingRepo] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   // Generator Modal state
-  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<'privacy' | 'terms' | 'developer'>('privacy');
@@ -135,41 +142,18 @@ function App() {
         : isDe
         ? "Durchsuchen Sie Ihre GitHub-Repositories und analysieren Sie Codebasen, um professionelle LinkedIn-Beiträge zu generieren."
         : "Browse your GitHub repositories and analyze codebase structures to synthesize top-tier professional LinkedIn status updates.";
-    } else if (activeTab === 'posts') {
-      pageTitle = isAr
-        ? "إدارة المنشورات والجدولة | LinkedIn Authority Engine"
-        : isDe
-        ? "Beiträge & Planung | LinkedIn Authority Engine"
-        : "Posts & Scheduling | LinkedIn Authority Engine";
-    } else if (activeTab === 'analytics') {
-      pageTitle = isAr
-        ? "التحليلات ومؤشرات الأداء | LinkedIn Authority Engine"
-        : isDe
-        ? "Analysen & Kennzahlen | LinkedIn Authority Engine"
-        : "Analytics & Performance KPI | LinkedIn Authority Engine";
     } else if (activeTab === 'templates') {
       pageTitle = isAr
         ? "قوالب منشورات LinkedIn الاحترافية | LinkedIn Authority Engine"
         : isDe
         ? "Beitragsvorlagen | LinkedIn Authority Engine"
         : "LinkedIn B2B Post Templates | LinkedIn Authority Engine";
-    } else if (activeTab === 'faq') {
-      pageTitle = isAr
-        ? "الأسئلة الشائعة والدعم الفني | LinkedIn Authority Engine"
-        : isDe
-        ? "Häufig gestellte Fragen (FAQ) | LinkedIn Authority Engine"
-        : "Frequently Asked Questions (FAQ) | LinkedIn Authority Engine";
-      pageDesc = isAr
-        ? "إجابات على الأسئلة الشائعة حول أمان الأكواد البرمجية، وخصوصية الرموز الأمنية، وكيفية جدولة المنشورات."
-        : isDe
-        ? "Antworten auf häufig gestellte Fragen zu Code-Sicherheit, Token-Datenschutz und Planungsfunktionen."
-        : "Answers to common questions regarding code privacy, OAuth token security, GDPR data deletion, and scheduled publishing.";
     } else if (activeTab === 'settings') {
       pageTitle = isAr
-        ? "الإعدادات ومنطقة الخصوصية | LinkedIn Authority Engine"
+        ? "الإعدادات ومنطقة الخصوصية | Authority Engine"
         : isDe
-        ? "Einstellungen & Datenschutzbereich | LinkedIn Authority Engine"
-        : "Settings & GDPR Enclave | LinkedIn Authority Engine";
+        ? "Einstellungen & Datenschutzbereich | Authority Engine"
+        : "Settings & GDPR Enclave | Authority Engine";
     }
 
     updatePageMetadata({
@@ -180,12 +164,7 @@ function App() {
       lang: lang
     });
 
-    // Handle structured data
-    if (activeTab === 'faq') {
-      injectJSONLD(SchemaTemplates.getFAQSchema(lang));
-    } else {
-      injectJSONLD(SchemaTemplates.getSoftwareApplicationSchema(lang));
-    }
+    injectJSONLD(SchemaTemplates.getSoftwareApplicationSchema(lang));
   }, [activeTab, lang]);
 
 
@@ -243,65 +222,7 @@ function App() {
   };
 
   // Deep Scan codebase to generate premium draft
-  const handleAnalyzeRepo = async (overrideRepos?: string[], branch?: string, tone?: string, referenceTemplateText?: string, customFilesMap?: Record<string, string>) => {
-    const targetRepos = overrideRepos && overrideRepos.length > 0 ? overrideRepos : [selectedRepo];
-    if (targetRepos.length === 0 || !targetRepos[0]) return;
-    setAnalyzingRepo(true);
-    try {
-      let firstPostId = null;
-      for (const repoName of targetRepos) {
-        const res = await fetch("/api/analyze-repo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: settings.githubUsername,
-            token: settings.githubToken,
-            repo: repoName,
-            branch: branch || 'main',
-            tone: tone || 'Technical',
-            referenceTemplateText: referenceTemplateText || '',
-            customFiles: customFilesMap ? customFilesMap[repoName] : undefined,
-            lang,
-          })
-        });
 
-        if (res.ok) {
-          const data = await res.json();
-          const postsRef = collection(db, "users", user.uid, "posts");
-          for (const postItem of data.posts) {
-            const docRef = await addDoc(postsRef, {
-              repoName: repoName,
-              text: postItem.text,
-              originalText: postItem.text,
-              status: 'draft',
-              createdAt: new Date().toISOString(),
-              cardConfig: postItem.cardConfig || {
-                colorTheme: 'indigo',
-                title: repoName.toUpperCase(),
-                subtitle: 'Automated Code Architecture Analysis',
-                metrics: 'SEO ACTIVE'
-              }
-            });
-            if (!firstPostId) firstPostId = docRef.id;
-          }
-        } else {
-          console.error("Failed to analyze repo", repoName);
-          throw new Error("GitHub Repository fetch limit or analysis error on " + repoName);
-        }
-      }
-
-      if (firstPostId) {
-        setActivePostId(firstPostId);
-        setActiveTab('posts');
-      }
-      showToast(lang === 'ar' ? "تم الانتهاء من التحليل والتوليد ✓" : "Analysis and drafting completed ✓");
-    } catch (err) {
-      console.error(err);
-      showToast(lang === 'ar' ? "فشل تحليل المستودع" : "Failed to analyze repository");
-    } finally {
-      setAnalyzingRepo(false);
-    }
-  };
 
 
 
@@ -495,7 +416,10 @@ function App() {
           lang={lang}
           activeTab={activeTab}
           setActiveTab={(tab) => {
-            setActiveTab(tab);
+            if (tab === 'home') navigate('/repositories');
+            else if (tab === 'settings') navigate('/settings');
+            else if (tab === 'templates') navigate('/templates');
+            
             if (!['draft', 'scheduled', 'published'].includes(tab)) {
               setActivePostId(null);
             }
@@ -503,103 +427,80 @@ function App() {
           posts={posts}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-32 md:pb-8 flex flex-col">
-          {activeTab === 'settings' && (
-            <div className="fade-in-element flex-1">
-              <SettingsPanel 
-                lang={lang}
-                settings={settings}
-                handleDisconnect={handleDisconnect}
-                handleOpenLegal={(tab: 'privacy' | 'terms' | 'developer') => {
-                  setLegalModalTab(tab);
-                  setIsLegalModalOpen(true);
-                }}
-              />
-            </div>
-          )}
-          {activeTab === 'templates' && (
-            <div className="fade-in-element flex-1">
-              <TemplatesPanel 
-                lang={lang}
-                posts={posts}
-                handleUseTemplate={useTemplate}
-              />
-            </div>
-          )}
-          {activeTab === 'home' && (
-            <div className="fade-in-element flex-1 flex flex-col w-full h-full">
-              <RepositoriesDashboard 
-                lang={lang}
-                repos={repos}
-                loadingRepos={loadingRepos}
-                orgFilter={orgFilter}
-                setOrgFilter={setOrgFilter}
-                orgs={orgs}
-                repoSearch={repoSearch}
-                setRepoSearch={setRepoSearch}
-                selectedRepo={selectedRepo}
-                setSelectedRepo={setSelectedRepo}
-                analyzingRepo={analyzingRepo}
-                handleAnalyzeRepo={handleAnalyzeRepo}
-                selectedTemplate={selectedTemplate}
-                setSelectedTemplate={setSelectedTemplate}
-                refreshRepos={refreshRepos}
-                githubProfile={settings.githubProfile}
-                settings={settings}
-                posts={posts}
-              />
-            </div>
-          )}
-          {activeTab === 'posts' && (
-            <div className="fade-in-element flex-1 h-full w-full">
-              <PostsHub 
-                lang={lang}
-                posts={posts}
-                activePostId={activePostId}
-                setActivePostId={setActivePostId}
-                handleUpdatePostText={(text) => activePostId && updatePostText(activePostId, text)}
-                handleUpdateCardConfig={(config) => activePostId && updateCardConfig(activePostId, config)}
-                handlePublishNow={handlePublishNow}
-                handleSchedulePost={(date) => activePostId && schedulePost(activePostId, date)}
-                handleCancelSchedule={cancelSchedule}
-                handleDeletePost={() => activePostId && deletePost(activePostId)}
-                handleSaveAsTemplate={(post) => saveAsTemplate(post)}
-                showToast={showToast}
-                scheduleDate={scheduleDate}
-                setScheduleDate={setScheduleDate}
-                scheduleTime={scheduleTime}
-                setScheduleTime={setScheduleTime}
-                handleApplyPresetTime={handleApplyPresetTime}
-                settings={settings}
-              />
-            </div>
-          )}
+          <Routes>
+            <Route path="/" element={<Navigate to="/repositories" replace />} />
+            
+            <Route path="/settings" element={
+              <div className="fade-in-element flex-1">
+                <SettingsPanel 
+                  lang={lang}
+                  settings={settings}
+                  handleDisconnect={handleDisconnect}
+                  handleOpenLegal={(tab: 'privacy' | 'terms' | 'developer') => {
+                    setLegalModalTab(tab);
+                    setIsLegalModalOpen(true);
+                  }}
+                />
+              </div>
+            } />
+            
+            <Route path="/templates" element={
+              <div className="fade-in-element flex-1 flex flex-col w-full h-full relative">
+                <TemplatesPanel 
+                  lang={lang}
+                  posts={posts}
+                  handleUseTemplate={async () => {}}
+                  handleDeletePost={async () => {}}
+                  setActiveTab={() => {}}
+                  showToast={showToast}
+                />
+              </div>
+            } />
+            
+            <Route path="/repositories" element={
+              <div className="fade-in-element flex-1 flex flex-col w-full h-full">
+                <RepositoriesDashboard 
+                  lang={lang}
+                  repos={repos}
+                  loadingRepos={loadingRepos}
+                  orgFilter={orgFilter}
+                  setOrgFilter={setOrgFilter}
+                  orgs={orgs}
+                  repoSearch={repoSearch}
+                  setRepoSearch={setRepoSearch}
+                  selectedRepo={selectedRepo}
+                  setSelectedRepo={setSelectedRepo}
+                  selectedTemplate={selectedTemplate}
+                  setSelectedTemplate={setSelectedTemplate}
+                  refreshRepos={refreshRepos}
+                  githubProfile={settings.githubProfile}
+                  settings={settings}
+                  posts={posts}
+                />
+              </div>
+            } />
 
-          {activeTab === 'analytics' && (
-            <AnalyticsPanel lang={lang} posts={posts} settings={settings} />
-          )}
+            <Route path="/repositories/:owner/:repo" element={
+              <div className="fade-in-element flex-1 flex flex-col w-full h-full">
+                <RepoDetails 
+                  lang={lang}
+                  settings={settings}
+                  demoMode={demoMode}
+                />
+              </div>
+            } />
+          </Routes>
         </main>
       </div>
       <MobileNav 
         lang={lang}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          if (tab === 'home') navigate('/repositories');
+          else if (tab === 'settings') navigate('/settings');
+          else if (tab === 'templates') navigate('/templates');
+        }}
         posts={posts}
-      />
-      <GeneratorModal
-        lang={lang}
-        isOpen={isGeneratorOpen}
-        onClose={() => setIsGeneratorOpen(false)}
-        repos={repos}
-        loadingRepos={loadingRepos}
-        repoSearch={repoSearch}
-        setRepoSearch={setRepoSearch}
-        selectedRepo={selectedRepo}
-        setSelectedRepo={setSelectedRepo}
-        selectedTemplate={selectedTemplate}
-        setSelectedTemplate={setSelectedTemplate}
-        handleAnalyzeRepo={handleAnalyzeRepo}
-        analyzingRepo={analyzingRepo}
-        settings={settings}
       />
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 border border-indigo-500/30 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 duration-350 select-none">
@@ -637,8 +538,10 @@ function App() {
 
 export default function AppWithAuth() {
   return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </Router>
   );
 }

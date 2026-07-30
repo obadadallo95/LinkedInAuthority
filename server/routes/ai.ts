@@ -25,9 +25,9 @@ export function getGeminiClient(): GoogleGenAI | null {
   return aiClient;
 }
 
-// LinkedIn Authority Codebase Analysis Endpoint
+// Technical Project Analysis Endpoint
 router.post("/analyze-repo", async (req: any, res: any) => {
-  const { username, token, repo, branch, tone, referenceTemplateText, customFiles, lang } = req.body;
+  const { username, token, repo, branch, lang } = req.body;
   if (!repo) {
     return res.status(400).json({ error: "Missing repository name parameter" });
   }
@@ -35,68 +35,57 @@ router.post("/analyze-repo", async (req: any, res: any) => {
   let readmeContent = "";
   let repoDescription = "";
   let packageJsonContent = "";
+  let fileTreeContent = "";
 
-  // 1. Attempt to fetch public metadata from GitHub API to make it real
   if (username) {
     try {
       const headers: { [key: string]: string } = {
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "LinkedIn-Authority-App"
+        "User-Agent": "Tech-Doc-Generator"
       };
       if (token) {
         headers["Authorization"] = `token ${token}`;
       }
 
-      // Fetch repo metadata
+      // 1. Fetch repo metadata
       const repoRes = await fetch(`https://api.github.com/repos/${username}/${repo}`, { headers });
       if (repoRes.ok) {
         const repoData: any = await repoRes.json();
         repoDescription = repoData.description || "";
       }
 
-      // Fetch Custom Files if provided, otherwise fetch README
-      if (customFiles && typeof customFiles === 'string' && customFiles.trim().length > 0) {
-        const filePaths = customFiles.split(',').map(f => f.trim()).filter(f => f.length > 0);
-        let customContent = '';
-        for (const filePath of filePaths) {
-          const fileRes = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${filePath}${branch ? `?ref=${branch}` : ''}`, { headers });
-          if (fileRes.ok) {
-            const fileData: any = await fileRes.json();
-            if (fileData.content && fileData.encoding === "base64") {
-              const buffer = Buffer.from(fileData.content, "base64");
-              customContent += `\n\n--- File: ${filePath} ---\n${buffer.toString("utf8")}`;
-            }
-          }
-        }
-        readmeContent = customContent;
-      } else {
-        // Fetch README content
-        const readmeRes = await fetch(`https://api.github.com/repos/${username}/${repo}/readme${branch ? `?ref=${branch}` : ''}`, { headers });
-        if (readmeRes.ok) {
-          const readmeData: any = await readmeRes.json();
-          if (readmeData.content && readmeData.encoding === "base64") {
-            const buffer = Buffer.from(readmeData.content, "base64");
-            readmeContent = buffer.toString("utf8");
-          }
+      // 2. Fetch README content
+      const readmeRes = await fetch(`https://api.github.com/repos/${username}/${repo}/readme${branch ? `?ref=${branch}` : ''}`, { headers });
+      if (readmeRes.ok) {
+        const readmeData: any = await readmeRes.json();
+        if (readmeData.content && readmeData.encoding === "base64") {
+          readmeContent = Buffer.from(readmeData.content, "base64").toString("utf8");
         }
       }
 
-      // Fetch package.json content for tech stack context
+      // 3. Fetch package.json content for tech stack
       const pkgRes = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/package.json${branch ? `?ref=${branch}` : ''}`, { headers });
       if (pkgRes.ok) {
         const pkgData: any = await pkgRes.json();
         if (pkgData.content && pkgData.encoding === "base64") {
-          const buffer = Buffer.from(pkgData.content, "base64");
           try {
-            const pkgJson = JSON.parse(buffer.toString("utf8"));
-            // Extract only dependencies to save prompt tokens
+            const pkgJson = JSON.parse(Buffer.from(pkgData.content, "base64").toString("utf8"));
             packageJsonContent = JSON.stringify({
               dependencies: pkgJson.dependencies || {},
               devDependencies: pkgJson.devDependencies || {}
             });
-          } catch(e) {
-            packageJsonContent = buffer.toString("utf8").slice(0, 1000); // fallback
-          }
+          } catch(e) {}
+        }
+      }
+
+      // 4. Fetch file tree
+      const treeRes = await fetch(`https://api.github.com/repos/${username}/${repo}/git/trees/${branch || 'main'}?recursive=1`, { headers });
+      if (treeRes.ok) {
+        const treeData: any = await treeRes.json();
+        if (treeData.tree) {
+          // Keep only file paths, limit to 500 files to avoid massive prompts
+          const paths = treeData.tree.filter((t: any) => t.type === 'blob').map((t: any) => t.path).slice(0, 500);
+          fileTreeContent = paths.join('\n');
         }
       }
     } catch (err) {
@@ -104,7 +93,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
     }
   }
 
-  if (!readmeContent && !repoDescription) {
+  if (!readmeContent && !repoDescription && !fileTreeContent) {
     return res.status(400).json({ error: "Could not fetch repository data. Ensure the repository exists and the GitHub token has the correct permissions." });
   }
 
@@ -113,45 +102,29 @@ router.post("/analyze-repo", async (req: any, res: any) => {
     return res.status(500).json({ error: "Gemini API client is not configured. Please add GEMINI_API_KEY in the settings." });
   }
 
-  const systemInstruction = `You are an elite Developer Advocate and Technical Copywriter.
-Your job is to read the codebase info (README, description, and package.json dependencies) of a developer's GitHub repository and draft EXACTLY ONE high-impact, ultra-premium LinkedIn post.
-The post must be engaging, use clean spacing, code-friendly emojis, and have a highly professional executive tone.
-Do not include hashtags inside the 'text' of the post; those are generated separately.
+  const systemInstruction = `You are an elite Software Architect and Technical Writer.
+Your job is to read the codebase info (README, description, file tree, and package.json dependencies) of a developer's GitHub repository and generate a comprehensive technical analysis.
+You must output a JSON object with the following fields:
+- summary: A clear, concise overview of what the project does and its main value proposition (1-2 paragraphs).
+- techStack: An array of strings listing the core technologies, frameworks, and languages used.
+- architecture: A description of the likely architecture, patterns, and structure of the project based on the file tree and dependencies.
+- potentialContent: A draft of a technical update or blog post introducing this project, ready for the developer to edit and share.
 
-CRITICAL INSTRUCTIONS:
-1. You must write the post using the requested tone/framework: '${tone || 'technical'}'. 
-   - If 'Marketing (PAS)', use Problem-Agitation-Solution framework.
-   - If 'Storytelling', focus on the journey of building the project.
-   - If 'Technical', deep dive into the architecture and tech stack.
-   - If 'Executive Summary', focus on value proposition and metrics.
-2. If a 'Reference Template' is provided, use its style, structure, and formatting as a strict guide for your post. Fill in the placeholders from the template with actual details from the repository.
-3. Analyze the provided package.json dependencies to mention specific tech stack tools (e.g., React, Tailwind, Prisma) to make the post authentic and deeply technical.
+Provide the text in the requested language: '${lang}'. If 'ar', write in fluent, professional Arabic. If 'de', write in professional German. Otherwise, use English.`;
 
-Provide the text in the requested language: '${lang}'.
-If the requested language is Arabic ('ar'), write the post in professional, fluent, engaging native Arabic. If German ('de'), write in high-quality professional German. Otherwise, use English ('en').
-
-Also, customize a beautiful 'cardConfig' visual preview for the post:
-- 'colorTheme' should be one of: 'indigo', 'emerald', 'amber', 'rose', 'teal'
-- 'title' must be a short 2-3 word English title suitable for a graphical banner
-- 'subtitle' must be a short 5-6 word tagline description (keep it in English for professional appearance)
-- 'metrics' must be a high-level metric like '98% SPEED' or 'SEO ACTIVE' or 'VITE READY' based on the tech stack.`;
-
-  const prompt = `Generate exactly 1 professional LinkedIn post and card config for the repository '${repo}'.
+  const prompt = `Analyze the repository '${repo}'.
 Repository Description: ${repoDescription}
 Tech Stack (package.json): ${packageJsonContent || 'Not available'}
-Requested Tone: ${tone || 'technical'}
-Reference Template Style (follow this closely if provided):
-${referenceTemplateText || 'No specific template provided. Write a compelling post.'}
+File Tree:
+${fileTreeContent.slice(0, 10000) || 'Not available'}
 
-README File Content Preview:
-${readmeContent.slice(0, 4000)}
+README Content:
+${readmeContent.slice(0, 6000)}
 
-Respond strictly with valid JSON.`;
+Respond strictly with the required JSON structure.`;
 
   let responseText = "";
   try {
-    // First tier: gemini-3.5-flash
-    console.log("Analyzing repository with primary model: gemini-3.5-flash");
     const response = await client.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
@@ -161,90 +134,88 @@ Respond strictly with valid JSON.`;
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            posts: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  text: { type: Type.STRING },
-                  cardConfig: {
-                    type: Type.OBJECT,
-                    properties: {
-                      colorTheme: { type: Type.STRING },
-                      title: { type: Type.STRING },
-                      subtitle: { type: Type.STRING },
-                      metrics: { type: Type.STRING }
-                    },
-                    required: ["colorTheme", "title", "subtitle", "metrics"]
-                  }
-                },
-                required: ["text", "cardConfig"]
-              }
-            }
+            summary: { type: Type.STRING },
+            techStack: { type: Type.ARRAY, items: { type: Type.STRING } },
+            architecture: { type: Type.STRING },
+            potentialContent: { type: Type.STRING }
           },
-          required: ["posts"]
+          required: ["summary", "techStack", "architecture", "potentialContent"]
         }
       }
     });
     responseText = response.text || "";
   } catch (e: any) {
-    console.warn("Primary gemini-3.5-flash model failed or unavailable. Attempting fallback model gemini-3.1-flash-lite. Error:", e.message || e);
-    try {
-      // Second tier: gemini-3.1-flash-lite
-      const response = await client.models.generateContent({
-        model: "gemini-3.1-flash-lite",
-        contents: prompt,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              posts: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    text: { type: Type.STRING },
-                    cardConfig: {
-                      type: Type.OBJECT,
-                      properties: {
-                        colorTheme: { type: Type.STRING },
-                        title: { type: Type.STRING },
-                        subtitle: { type: Type.STRING },
-                        metrics: { type: Type.STRING }
-                      },
-                      required: ["colorTheme", "title", "subtitle", "metrics"]
-                    }
-                  },
-                  required: ["text", "cardConfig"]
-                }
-              }
-            },
-            required: ["posts"]
-          }
-        }
-      });
-      responseText = response.text || "";
-    } catch (fallbackErr: any) {
-      console.error("Both primary gemini-3.5-flash and fallback gemini-3.1-flash-lite models failed:", fallbackErr.message || fallbackErr);
-    }
+    console.error("Gemini model failed:", e.message || e);
+    return res.status(500).json({ error: "Failed to generate analysis from AI." });
   }
 
   if (responseText) {
     try {
       const parsed = JSON.parse(responseText);
-      if (parsed && Array.isArray(parsed.posts) && parsed.posts.length > 0) {
-        return res.json(parsed);
-      }
+      return res.json(parsed);
     } catch (parseErr: any) {
       console.error("Failed to parse response text from Gemini:", parseErr.message || parseErr);
+      return res.status(500).json({ error: "Failed to parse AI response." });
     }
   }
 
-  // Tier 3: Pre-computed highly customized fallback
-  console.error("Failed to generate posts from AI for repo:", repo);
-  return res.status(500).json({ error: "Failed to generate posts from AI." });
+  return res.status(500).json({ error: "Empty AI response." });
+});
+
+// Review Engine: Analyze Commits Endpoint
+router.post("/analyze-commits", async (req: any, res: any) => {
+  const { commits, repo, lang } = req.body;
+  if (!commits || !Array.isArray(commits)) {
+    return res.status(400).json({ error: "Missing or invalid commits array" });
+  }
+
+  const client = getGeminiClient();
+  if (!client) {
+    return res.status(500).json({ error: "Gemini API client is not configured." });
+  }
+
+  const systemInstruction = `You are an elite Software Engineer and Technical Writer.
+Your job is to review a list of recent commits for a repository and generate a technical update or changelog.
+You must output a JSON object with the following fields:
+- title: A catchy title for the update.
+- changelog: A formatted changelog summarizing the key changes and bug fixes.
+- technicalUpdate: A professional technical update paragraph that can be shared in a blog post or newsletter.
+
+Provide the text in the requested language: '${lang}'. If 'ar', write in fluent, professional Arabic. If 'de', write in professional German. Otherwise, use English.`;
+
+  const prompt = `Analyze these recent commits for the repository '${repo}':
+${commits.map((c: any) => `- [${c.sha.substring(0, 7)}] ${c.message}`).join('\n')}
+
+Respond strictly with the required JSON structure.`;
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            changelog: { type: Type.STRING },
+            technicalUpdate: { type: Type.STRING }
+          },
+          required: ["title", "changelog", "technicalUpdate"]
+        }
+      }
+    });
+    
+    if (response.text) {
+      return res.json(JSON.parse(response.text));
+    }
+  } catch (err: any) {
+    console.error("Gemini commit analysis failed:", err);
+    return res.status(500).json({ error: "Failed to generate commit analysis." });
+  }
+  
+  return res.status(500).json({ error: "Empty AI response." });
 });
 
 // Hashtag Optimization Endpoint

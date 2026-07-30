@@ -50,7 +50,6 @@ export interface Log {
 export interface UserSettings {
   githubToken?: string;
   githubUsername?: string;
-  linkedinToken?: string;
   globalWorkforceStatus?: "active" | "paused";
   stripeThreshold?: number;
   githubThreshold?: number;

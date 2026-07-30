@@ -406,3 +406,35 @@ No online README.md could be retrieved.
 `;
 }
 
+
+export async function fetchRepoTree(username: string, repo: string, branch: string = 'main', token?: string) {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github.v3+json",
+  };
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  const url = `https://api.github.com/repos/${username}/${repo}/git/trees/${branch}?recursive=1`;
+
+  addConnectionLog(
+    "Fetch Tree",
+    "info",
+    `Attempting to fetch file tree for ${username}/${repo} on branch ${branch}`
+  );
+
+  try {
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      addConnectionLog("Fetch Tree", "success", `Successfully fetched file tree for ${repo}`);
+      return data.tree || [];
+    } else {
+      addConnectionLog("Fetch Tree", "warning", `Failed to fetch file tree. Status: ${res.status}`);
+      return [];
+    }
+  } catch (err: any) {
+    addConnectionLog("Fetch Tree", "error", `Error fetching tree: ${err.message || err}`);
+    return [];
+  }
+}

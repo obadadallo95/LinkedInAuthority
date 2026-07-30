@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, GithubAuthProvider, OAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // The config values are available in the generated firebase-applet-config.json
@@ -24,10 +24,4 @@ const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
 githubProvider.addScope("repo");
 
-const linkedinProvider = new OAuthProvider("oidc.linkedin"); // Firebase standard for linkedin
-linkedinProvider.addScope("openid");
-linkedinProvider.addScope("profile");
-linkedinProvider.addScope("email");
-linkedinProvider.addScope("w_member_social");
-
-export { app, auth, db, googleProvider, githubProvider, linkedinProvider };
+export { app, auth, db, googleProvider, githubProvider };

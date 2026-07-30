@@ -8,18 +8,12 @@ const GithubIcon = ({ className, size = 24 }: { className?: string, size?: numbe
   </svg>
 );
 
-const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-    <rect x="2" y="9" width="4" height="12"/>
-    <circle cx="4" cy="4" r="2"/>
-  </svg>
-);
+
 import confetti from 'canvas-confetti';
 import { t } from '../locales';
 import { useSettings } from '../contexts/SettingsContext';
-import { auth, githubProvider, linkedinProvider, db } from '../infrastructure/firebase/config';
-import { linkWithPopup, GithubAuthProvider, OAuthProvider } from 'firebase/auth';
+import { auth, githubProvider, db } from '../infrastructure/firebase/config';
+import { linkWithPopup, GithubAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
@@ -32,15 +26,16 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
   
   // Calculate connected states
   const ghConnected = !!(settings.githubUsername || settings.githubProfile);
-  const liConnected = !!(settings.linkedinToken || settings.linkedinProfile);
 
   useEffect(() => {
     if (step === 1) {
-      if (ghConnected && liConnected) setStep(4);
-      else if (ghConnected) setStep(3);
+      if (ghConnected) setStep(3);
       else setStep(2); // If welcome screen is dismissed (but here we show welcome on 1)
     }
-  }, [ghConnected, liConnected]);
+    if (step === 3) {
+      triggerConfetti();
+    }
+  }, [ghConnected, step]);
 
   const skipOnboarding = async () => {
     if (!auth.currentUser) return;
@@ -110,57 +105,10 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
     }
   };
 
-  const connectLinkedin = async () => {
-    if (!auth.currentUser) return;
-    setLoading(true);
-    try {
-      const width = 600;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      
-      const popup = window.open(
-        "/api/auth/linkedin",
-        "linkedin-auth",
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
 
-      if (!popup) {
-        throw new Error("Popup blocked. Please allow popups for this site.");
-      }
-
-      const handleAuthMessage = async (event: MessageEvent) => {
-        if (event.data && event.data.type === "LINKEDIN_AUTH_SUCCESS") {
-          window.removeEventListener("message", handleAuthMessage);
-          const { token, profile } = event.data;
-          
-          if (token && auth.currentUser) {
-            const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
-            await setDoc(settingsRef, {
-              linkedinToken: token,
-              linkedinProfile: {
-                id: profile.id,
-                name: profile.name
-              }
-            }, { merge: true });
-
-            setStep(4);
-            triggerConfetti();
-          }
-        }
-      };
-
-      window.addEventListener("message", handleAuthMessage);
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // If completely done, component logic in App.tsx will unmount this, but just in case:
-  if (isOnboardingComplete && step !== 4) {
+  if (isOnboardingComplete && step !== 3) {
       return null;
   }
 
@@ -174,7 +122,7 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
         
         {/* Progress Bar */}
         <div className="flex items-center justify-center gap-2 mb-12">
-            {[1, 2, 3, 4].map(idx => (
+            {[1, 2, 3].map(idx => (
                 <div key={idx} className={`h-1.5 rounded-full transition-all duration-500 ${step >= idx ? 'w-12 bg-indigo-500' : 'w-4 bg-slate-800'}`} />
             ))}
         </div>
@@ -229,38 +177,12 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
               </motion.div>
             )}
 
-            {/* Step 3: LinkedIn */}
+
+
+            {/* Step 3: Success */}
             {step === 3 && (
               <motion.div
                 key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="absolute inset-0 flex flex-col items-center justify-center text-center bg-slate-900/50 backdrop-blur-md rounded-3xl border border-white/5 p-8"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-6">
-                  <LinkedinIcon size={32} className="text-blue-500" />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-4">{T.onboardingStep2 || "Connect LinkedIn"}</h2>
-                <p className="text-slate-400 mb-8 max-w-sm">{T.onboardingStep2Desc}</p>
-                <button
-                  onClick={connectLinkedin}
-                  disabled={loading}
-                  className="w-full py-4 bg-[#0077b5] text-white font-bold rounded-xl hover:bg-[#006396] transition-colors flex justify-center items-center gap-2"
-                >
-                  {loading ? (isRtl ? 'جاري الربط...' : 'Connecting...') : (isRtl ? 'ربط الحساب' : 'Connect Account')}
-                </button>
-                {/* Skip option just in case */}
-                <button onClick={skipOnboarding} className="mt-4 text-sm text-slate-500 hover:text-white transition-colors">
-                    {isRtl ? 'التخطي مؤقتاً' : 'Skip for now'}
-                </button>
-              </motion.div>
-            )}
-
-            {/* Step 4: Success */}
-            {step === 4 && (
-              <motion.div
-                key="step4"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="absolute inset-0 flex flex-col items-center justify-center text-center bg-indigo-900/20 backdrop-blur-md rounded-3xl border border-indigo-500/20 p-8"

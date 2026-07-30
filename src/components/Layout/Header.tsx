@@ -8,7 +8,7 @@ interface HeaderProps {
   lang: 'ar' | 'en' | 'de';
   settings: any;
   onToggleLang: (target?: 'en' | 'ar' | 'de') => void;
-  onDisconnect?: (platform: 'github' | 'linkedin') => void;
+  onDisconnect?: (platform: 'github' ) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, onDisconnect }) => {
@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
 
   // Active status color states
   const ghConnected = !!settings?.githubUsername;
-  const liConnected = !!settings?.linkedinToken;
+  const liConnected = !!settings?.githubToken;
 
   return (
     <header className="h-20 sm:h-20 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 bg-slate-900/95 backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
@@ -283,25 +283,10 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                     {ghConnected ? "● Live" : "○ Disconnected"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] p-2 hover:bg-white/5 rounded-lg text-slate-300">
-                  <span className="flex items-center gap-2"><Share2 className="w-3.5 h-3.5 text-slate-450" /> LinkedIn</span>
-                  <span className={liConnected ? "text-blue-400 font-bold" : "text-slate-500"}>
-                    {liConnected ? "● Live" : "○ Disconnected"}
-                  </span>
-                </div>
               </div>
 
               {/* Disconnect Shortcuts */}
               <div className="space-y-1">
-                {liConnected && onDisconnect && (
-                  <button 
-                    onClick={() => { onDisconnect('linkedin'); setDropdownOpen(false); }}
-                    className="w-full text-left flex items-center justify-between p-2 hover:bg-rose-500/10 text-rose-300 rounded-lg text-[11px] transition-all cursor-pointer"
-                  >
-                    <span>Disconnect LinkedIn</span>
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                )}
                 {ghConnected && onDisconnect && (
                   <button 
                     onClick={() => { onDisconnect('github'); setDropdownOpen(false); }}

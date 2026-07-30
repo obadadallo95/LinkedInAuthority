@@ -6,7 +6,7 @@ import { t } from '../../constants';
 
 interface SidebarProps {
   lang: 'ar' | 'en' | 'de';
-  activeTab: 'home' | 'posts' | 'analytics' | 'templates' | 'settings' | 'faq';
+  activeTab: 'home' | 'templates' | 'settings' | 'faq';
   setActiveTab: (tab: any) => void;
   posts: any[];
 }
@@ -23,8 +23,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
 
   const menuItems = [
     { id: 'home', label: isAr ? 'المستودعات' : 'Repositories', count: 0, icon: Home },
-    { id: 'posts', label: isAr ? 'المنشورات' : 'Posts & Drafts', count: counts.draft, icon: FileText },
-    { id: 'analytics', label: t[lang].tabAnalytics, count: 0, icon: BarChart3 },
     { id: 'templates', label: lang === 'ar' ? 'القوالب' : lang === 'en' ? 'Templates' : 'Vorlagen', count: 0, icon: Sparkles },
     { id: 'settings', label: lang === 'ar' ? 'الإعدادات' : lang === 'en' ? 'Settings' : 'Einstellungen', count: 0, icon: Settings }
   ];
