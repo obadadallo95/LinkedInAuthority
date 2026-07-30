@@ -20,6 +20,7 @@ import { MobileNav } from './components/Layout/MobileNav';
 import { Header } from './components/Layout/Header';
 import { RepositoriesDashboard } from './components/RepositoriesDashboard';
 import { RepoDetails } from './components/RepoDetails';
+import { DraftsDashboard } from './components/DraftsDashboard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { GeneratorModal } from './components/GeneratorModal';
 import { LegalModal } from './components/Layout/LegalModal';
@@ -63,9 +64,10 @@ function App() {
 
   // Infer activeTab from location path
   const currentPath = location.pathname;
-  let activeTab: 'home' | 'posts' | 'analytics' | 'templates' | 'settings' | 'logs' = 'home';
+  let activeTab: 'home' | 'drafts' | 'analytics' | 'templates' | 'settings' | 'logs' = 'home';
   if (currentPath.startsWith('/settings')) activeTab = 'settings';
   else if (currentPath.startsWith('/templates')) activeTab = 'templates';
+  else if (currentPath.startsWith('/drafts')) activeTab = 'drafts';
 
 
   const { settings, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
@@ -419,6 +421,7 @@ function App() {
             if (tab === 'home') navigate('/repositories');
             else if (tab === 'settings') navigate('/settings');
             else if (tab === 'templates') navigate('/templates');
+            else if (tab === 'drafts') navigate('/drafts');
             
             if (!['draft', 'scheduled', 'published'].includes(tab)) {
               setActivePostId(null);
@@ -454,6 +457,12 @@ function App() {
                   setActiveTab={() => {}}
                   showToast={showToast}
                 />
+              </div>
+            } />
+            
+            <Route path="/drafts" element={
+              <div className="fade-in-element flex-1 flex flex-col w-full h-full">
+                <DraftsDashboard lang={lang} />
               </div>
             } />
             
@@ -499,6 +508,7 @@ function App() {
           if (tab === 'home') navigate('/repositories');
           else if (tab === 'settings') navigate('/settings');
           else if (tab === 'templates') navigate('/templates');
+          else if (tab === 'drafts') navigate('/drafts');
         }}
         posts={posts}
       />
