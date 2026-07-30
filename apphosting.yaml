@@ -8,6 +8,9 @@ runConfig:
   memoryMiB: 512
 
 secrets:
+  - variable: GEMINI_API_KEY
+    secret: gemini_api_key
+    version: latest
   - variable: LINKEDIN_CLIENT_ID
     secret: linkedin_client_id
     version: latest
