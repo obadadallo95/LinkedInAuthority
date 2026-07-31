@@ -205,5 +205,16 @@ export const ar = {
     demoErrorTitle: "خطأ في التحليل",
     demoAnalysisConfidence: "مستوى الثقة",
     demoIntentLabel: "الهدف من المنشور",
+    demoAnalyzeBtn: "حلّل المشروع واقترح القصص",
+    demoAnalyzingState: "جاري استكشاف المشروع واستخراج الأدلة...",
+    demoAnglesTitle: "وجدنا أكثر من قصة تستحق النشر",
+    demoAnglesSubtitle: "اختر الزاوية التي تناسب هدفك، أو اكتب زاوية مخصصة.",
+    demoAngleRecommended: "موصى به ★",
+    demoAngleCustom: "لدي زاوية أخرى...",
+    demoAngleCustomPlaceholder: "اكتب فكرتك في جملة قصيرة",
+    demoAdaptiveQuestionTitle: "سؤال سريع:",
+    demoGenerateBtn: "اكتب المنشور بهذه الزاوية",
+    demoGeneratingState: "جاري صياغة المنشور...",
+    demoConflictsTitle: "ملاحظة حول دقة المعلومات:",
   };
 

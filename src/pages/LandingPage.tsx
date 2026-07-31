@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowRight, 
-  Bot, 
-  Globe, 
-  Check, 
-  Sparkles, 
-  Lock, 
-  ArrowLeft,
-  User,
-  RefreshCw,
-  Zap,
-  Target
+  ArrowRight, Bot, Globe, Check, Sparkles, Lock, ArrowLeft,
+  User, RefreshCw, Zap, Target
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -33,40 +24,28 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
   </svg>
 );
 
+type DemoPhase = 'idle' | 'analyzing' | 'needs_context' | 'angles' | 'adaptive_question' | 'generating' | 'result';
+
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   
   // Interactive Demo States
   const [demoUrl, setDemoUrl] = useState('');
-  const [selectedIntent, setSelectedIntent] = useState('auto');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [phase, setPhase] = useState<DemoPhase>('idle');
+  
+  const [angles, setAngles] = useState<any[]>([]);
+  const [selectedAngleId, setSelectedAngleId] = useState<string>('');
+  const [customAngle, setCustomAngle] = useState('');
+  
   const [humanContext, setHumanContext] = useState('');
   
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
-  const [needsContextMode, setNeedsContextMode] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const trackEditTimeout = useRef<any>(null);
 
-  const handlePostChange = (newText: string) => {
-    if (demoResult) {
-      setDemoResult({ ...demoResult, post: newText });
-      if (trackEditTimeout.current) clearTimeout(trackEditTimeout.current);
-      trackEditTimeout.current = setTimeout(() => {
-        trackEvent('generated_post_edited', { length: newText.length });
-      }, 2000);
-    }
-  };
-
-  const handleCopy = () => {
-    if (!demoResult?.post) return;
-    navigator.clipboard.writeText(demoResult.post);
-    setHasCopied(true);
-    trackEvent('generated_post_copied', { length: demoResult.post.length });
-    setTimeout(() => setHasCopied(false), 2000);
-  };
-  
   // Modals
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -93,66 +72,141 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     trackEvent('public_demo_started');
   };
 
-  const intents = [
-    { id: 'auto', label: T.demoIntentAuto },
-    { id: 'announcement', label: T.demoIntentAnnouncement, placeholder: T.demoContextPlaceholderAnnouncement },
-    { id: 'feature', label: T.demoIntentFeature, placeholder: T.demoContextPlaceholderFeature },
-    { id: 'problem', label: T.demoIntentProblem, placeholder: T.demoContextPlaceholderProblem },
-    { id: 'lesson', label: T.demoIntentLesson, placeholder: T.demoContextPlaceholderLesson },
-    { id: 'decision', label: T.demoIntentDecision, placeholder: T.demoContextHelp },
-    { id: 'expertise', label: T.demoIntentExpertise, placeholder: T.demoContextHelp },
-    { id: 'feedback', label: T.demoIntentFeedback, placeholder: T.demoContextHelp },
-  ];
+  const handlePostChange = (newText: string) => {
+    if (demoResult) {
+      setDemoResult({ ...demoResult, post: newText });
+      if (trackEditTimeout.current) clearTimeout(trackEditTimeout.current);
+      trackEditTimeout.current = setTimeout(() => {
+        trackEvent('generated_post_edited', { length: newText.length });
+      }, 2000);
+    }
+  };
 
-  const currentIntent = intents.find(i => i.id === selectedIntent);
+  const handleCopy = () => {
+    if (!demoResult?.post) return;
+    navigator.clipboard.writeText(demoResult.post);
+    setHasCopied(true);
+    trackEvent('generated_post_copied', { length: demoResult.post.length });
+    setTimeout(() => setHasCopied(false), 2000);
+  };
 
-  const handleDemoGenerate = async () => {
+  const handleAnalyze = async () => {
     if (!demoUrl) return;
     
     if (demoUrl.length > 5) trackEvent('repository_url_entered', { url: demoUrl });
-    trackEvent('post_intent_selected', { intent: selectedIntent });
-    if (humanContext) {
-      trackEvent('human_context_answered', { length: humanContext.length });
-    } else if (selectedIntent !== 'auto') {
-      trackEvent('human_context_skipped');
-    }
-    trackEvent('generation_started');
+    trackEvent('repository_analysis_started');
 
-    setIsDemoLoading(true);
+    setPhase('analyzing');
     setDemoError('');
     setDemoResult(null);
+
     try {
       const res = await fetch("/api/demo-analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          repoUrl: demoUrl, 
-          lang, 
-          intent: selectedIntent,
-          humanContext: humanContext.slice(0, 200) // enforce 200 chars max
-        })
+        body: JSON.stringify({ repoUrl: demoUrl, projectDescription: projectDescription.slice(0, 200) })
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to generate demo');
-      }
+      
       const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to analyze repository');
+      }
+      
       if (data.needsUserContext) {
-        setNeedsContextMode(true);
+        setPhase('needs_context');
         trackEvent('generation_needs_context');
         return;
       }
-      setNeedsContextMode(false);
-      setDemoResult(data);
-      trackEvent('generation_succeeded', { 
-        confidence: data.analysisConfidence, 
-        hasEvidence: !!data.evidence?.length 
-      });
+      
+      setAngles(data.angles || []);
+      setDemoResult({ repository: data.repository }); // Save repo metadata early
+      setPhase('angles');
+      trackEvent('repository_analysis_succeeded', { count: data.angles?.length });
     } catch (e: any) {
       setDemoError(e.message);
-      trackEvent('generation_failed', { error: e.message });
-    } finally {
-      setIsDemoLoading(false);
+      setPhase('idle');
+      trackEvent('repository_analysis_failed', { error: e.message });
+    }
+  };
+
+  const handleAngleSelection = () => {
+    if (!selectedAngleId) return;
+    
+    if (selectedAngleId === 'custom') {
+      if (!customAngle) return;
+      trackEvent('custom_angle_entered', { length: customAngle.length });
+      setPhase('generating');
+      handleGenerate('custom', customAngle, false);
+      return;
+    }
+
+    const angle = angles.find(a => a.id === selectedAngleId);
+    if (!angle) return;
+
+    trackEvent('candidate_angle_selected', { angleId: angle.id });
+
+    if (angle.requiresHumanContext) {
+      setPhase('adaptive_question');
+    } else {
+      setPhase('generating');
+      handleGenerate(angle.id, angle.title, false);
+    }
+  };
+
+  const submitAdaptiveQuestion = () => {
+    if (!humanContext) return;
+    trackEvent('adaptive_question_answered', { length: humanContext.length });
+    
+    const angle = angles.find(a => a.id === selectedAngleId);
+    if (!angle) return;
+
+    setPhase('generating');
+    handleGenerate(angle.id, angle.title, true);
+  };
+
+  const handleGenerate = async (intentId: string, intentLabel: string, requiresContext: boolean) => {
+    trackEvent('post_generation_started');
+    setDemoError('');
+    
+    try {
+      const payload = {
+        repoUrl: demoUrl,
+        projectDescription: projectDescription.slice(0, 200),
+        intent: intentId === 'custom' ? customAngle : intentLabel,
+        humanContext: humanContext.slice(0, 200),
+        angleRequiresContext: requiresContext,
+        lang
+      };
+
+      const res = await fetch("/api/demo-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate post');
+      }
+      
+      setDemoResult(prev => ({
+        ...prev,
+        selectedIntent: intentId === 'custom' ? customAngle : intentLabel,
+        evidence: data.evidence,
+        conflicts: data.conflicts,
+        post: data.post
+      }));
+      setPhase('result');
+      trackEvent('post_generation_succeeded');
+    } catch (e: any) {
+      setDemoError(e.message);
+      // Revert phase based on intent type
+      if (intentId === 'custom') setPhase('angles');
+      else if (requiresContext) setPhase('adaptive_question');
+      else setPhase('angles');
+      trackEvent('post_generation_failed', { error: e.message });
     }
   };
 
@@ -244,7 +298,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             </div>
 
             {/* DEMO SECTION */}
-            <div ref={demoRef} className="w-full max-w-4xl mb-32 bg-slate-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-md relative shadow-2xl">
+            <div ref={demoRef} className="w-full max-w-4xl mb-32 bg-slate-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-md relative shadow-2xl overflow-hidden min-h-[400px]">
               <div className="absolute top-0 right-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-l border-white/10 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
                 <Sparkles size={12} className="animate-pulse" />
                 Live Demo
@@ -259,104 +313,6 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 </p>
               </div>
 
-              <div className="space-y-6 mb-8">
-                {/* Step 1 */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep1Title}</label>
-                  <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl p-1 focus-within:border-indigo-500/50 transition-colors">
-                    <GithubIcon size={20} className="text-slate-500 mx-3 shrink-0" />
-                    <input 
-                      type="text" 
-                      placeholder="https://github.com/facebook/react" 
-                      value={demoUrl}
-                      onChange={(e) => setDemoUrl(e.target.value)}
-                      className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm py-3"
-                      dir="ltr"
-                      disabled={isDemoLoading}
-                    />
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep2Title}</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {intents.map((intent) => (
-                      <button
-                        key={intent.id}
-                        onClick={() => setSelectedIntent(intent.id)}
-                        disabled={isDemoLoading}
-                        className={`text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
-                          selectedIntent === intent.id 
-                            ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200' 
-                            : 'bg-slate-950 border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-300'
-                        }`}
-                      >
-                        {intent.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Human Context (Conditional) */}
-                <AnimatePresence>
-                  {(selectedIntent !== 'auto' || needsContextMode) && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      {needsContextMode && (
-                        <div className="mb-3 mt-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl flex items-start gap-2">
-                          <span className="shrink-0 mt-0.5">⚠️</span>
-                          <div>
-                            <p className="font-bold">{T.demoNeedsContextTitle}</p>
-                            <p className="text-amber-200/80 text-xs mt-1">{T.demoNeedsContextDesc}</p>
-                          </div>
-                        </div>
-                      )}
-                      <label className={`block text-sm font-bold text-slate-300 mb-2 ${needsContextMode ? 'mt-2' : 'mt-4'}`}>
-                        {needsContextMode ? T.demoContextInputPlaceholder : (currentIntent?.placeholder || T.demoContextHelp)}
-                      </label>
-                      <textarea 
-                        value={humanContext}
-                        onChange={(e) => setHumanContext(e.target.value)}
-                        placeholder="..."
-                        maxLength={200}
-                        rows={2}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm"
-                        disabled={isDemoLoading}
-                      />
-                      <div className="flex justify-between items-center mt-2 px-1">
-                        <span className="text-xs text-slate-500">{T.demoContextHelp}</span>
-                        <span className={`text-xs ${humanContext.length >= 200 ? 'text-red-400' : 'text-slate-500'}`}>
-                          {humanContext.length}/200
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Submit */}
-                <div className="pt-4">
-                  <button 
-                    onClick={handleDemoGenerate}
-                    disabled={isDemoLoading || !demoUrl}
-                    className="w-full overflow-hidden relative flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn"
-                  >
-                    {isDemoLoading ? (
-                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
-                        <RefreshCw size={18} />
-                      </motion.div>
-                    ) : (
-                      <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
-                    )}
-                    <span>{isDemoLoading ? (lang === 'ar' ? 'جاري التحليل واستخراج السياق...' : 'Analyzing & Extracting Context...') : needsContextMode ? T.demoRetryBtn : T.demoSubmitBtn}</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Error */}
               <AnimatePresence>
                 {demoError && (
@@ -366,13 +322,218 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 )}
               </AnimatePresence>
 
-              {/* Results */}
-              <AnimatePresence>
-                {demoResult && (
+              {/* Dynamic Phases */}
+              <AnimatePresence mode="wait">
+                {/* Phase 1: Idle & Needs Context */}
+                {(phase === 'idle' || phase === 'analyzing' || phase === 'needs_context') && (
+                  <motion.div
+                    key="phase-idle"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6 max-w-2xl mx-auto"
+                  >
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep1Title}</label>
+                      <div className="relative flex items-center bg-slate-950 border border-white/10 rounded-xl p-1 focus-within:border-indigo-500/50 transition-colors">
+                        <GithubIcon size={20} className="text-slate-500 mx-3 shrink-0" />
+                        <input 
+                          type="text" 
+                          placeholder="https://github.com/facebook/react" 
+                          value={demoUrl}
+                          onChange={(e) => setDemoUrl(e.target.value)}
+                          className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm py-3"
+                          dir="ltr"
+                          disabled={phase === 'analyzing'}
+                        />
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {phase === 'needs_context' && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mb-3 mt-2 p-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl flex items-start gap-3">
+                            <span className="shrink-0 mt-0.5 text-lg">⚠️</span>
+                            <div>
+                              <p className="font-bold text-base">{T.demoNeedsContextTitle}</p>
+                              <p className="text-amber-200/80 mt-1">{T.demoNeedsContextDesc}</p>
+                            </div>
+                          </div>
+                          <textarea 
+                            value={projectDescription}
+                            onChange={(e) => setProjectDescription(e.target.value)}
+                            placeholder={T.demoContextInputPlaceholder}
+                            maxLength={200}
+                            rows={3}
+                            className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm mt-2"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="pt-4">
+                      <button 
+                        onClick={handleAnalyze}
+                        disabled={phase === 'analyzing' || !demoUrl || (phase === 'needs_context' && !projectDescription)}
+                        className="w-full overflow-hidden relative flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                      >
+                        {phase === 'analyzing' ? (
+                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
+                            <RefreshCw size={18} />
+                          </motion.div>
+                        ) : (
+                          <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
+                        )}
+                        <span>{phase === 'analyzing' ? T.demoAnalyzingState : T.demoAnalyzeBtn}</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Phase 2: Angles Selection */}
+                {phase === 'angles' && (
+                  <motion.div
+                    key="phase-angles"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="max-w-2xl mx-auto"
+                  >
+                    <div className="text-center mb-6">
+                      <h4 className="text-xl font-bold text-white mb-2">{T.demoAnglesTitle}</h4>
+                      <p className="text-sm text-slate-400">{T.demoAnglesSubtitle}</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {angles.map((angle, idx) => (
+                        <button
+                          key={angle.id}
+                          onClick={() => setSelectedAngleId(angle.id)}
+                          className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-1 ${
+                            selectedAngleId === angle.id 
+                              ? 'bg-indigo-500/20 border-indigo-500/50' 
+                              : 'bg-slate-950 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold ${selectedAngleId === angle.id ? 'text-indigo-300' : 'text-slate-200'}`}>
+                              {angle.title}
+                            </span>
+                            {idx === 0 && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">{T.demoAngleRecommended}</span>}
+                          </div>
+                          <span className="text-sm text-slate-400">{angle.description}</span>
+                        </button>
+                      ))}
+                      
+                      <button
+                        onClick={() => setSelectedAngleId('custom')}
+                        className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-2 ${
+                          selectedAngleId === 'custom' 
+                            ? 'bg-indigo-500/20 border-indigo-500/50' 
+                            : 'bg-slate-950 border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <span className={`font-bold ${selectedAngleId === 'custom' ? 'text-indigo-300' : 'text-slate-200'}`}>
+                          {T.demoAngleCustom}
+                        </span>
+                        {selectedAngleId === 'custom' && (
+                          <textarea
+                            value={customAngle}
+                            onChange={(e) => setCustomAngle(e.target.value)}
+                            placeholder={T.demoAngleCustomPlaceholder}
+                            className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 resize-none mt-1"
+                            rows={2}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="pt-8">
+                      <button 
+                        onClick={handleAngleSelection}
+                        disabled={!selectedAngleId || (selectedAngleId === 'custom' && !customAngle)}
+                        className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {T.demoGenerateBtn}
+                        <ArrowRight size={18} className={isRtl ? "rotate-180" : ""} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Phase 3: Adaptive Question */}
+                {phase === 'adaptive_question' && (
+                  <motion.div
+                    key="phase-adaptive"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="max-w-xl mx-auto text-center"
+                  >
+                    <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <Bot size={32} />
+                    </div>
+                    <h4 className="text-2xl font-bold text-white mb-2">{T.demoAdaptiveQuestionTitle}</h4>
+                    <p className="text-slate-400 mb-8">{T.demoContextHelp}</p>
+                    
+                    <textarea 
+                      value={humanContext}
+                      onChange={(e) => setHumanContext(e.target.value)}
+                      placeholder="..."
+                      maxLength={200}
+                      rows={3}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm text-left mb-6"
+                      dir="auto"
+                    />
+
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => setPhase('angles')}
+                        className="flex-1 py-4 bg-slate-900 border border-white/10 hover:bg-slate-800 text-white font-bold rounded-xl transition-all"
+                      >
+                        {T.cancelScheduleBtn}
+                      </button>
+                      <button 
+                        onClick={submitAdaptiveQuestion}
+                        disabled={!humanContext}
+                        className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                      >
+                        {T.demoGenerateBtn}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Phase 4: Generating */}
+                {phase === 'generating' && (
+                  <motion.div
+                    key="phase-generating"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="max-w-xl mx-auto text-center py-12"
+                  >
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1.5 }} className="inline-block mb-6 text-indigo-400">
+                      <RefreshCw size={48} />
+                    </motion.div>
+                    <h4 className="text-xl font-bold text-white mb-2">{T.demoGeneratingState}</h4>
+                    <p className="text-slate-400">This takes a few seconds...</p>
+                  </motion.div>
+                )}
+
+                {/* Phase 5: Result */}
+                {phase === 'result' && demoResult && (
                   <motion.div 
+                    key="phase-result"
                     initial={{ opacity: 0, y: 20 }} 
                     animate={{ opacity: 1, y: 0 }} 
-                    className="mt-8 pt-8 border-t border-white/10 grid grid-cols-1 lg:grid-cols-12 gap-8"
+                    className="grid grid-cols-1 lg:grid-cols-12 gap-8"
                   >
                     {/* Left: Metadata & Evidence */}
                     <div className="lg:col-span-5 space-y-4">
@@ -386,7 +547,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                           <p className="text-sm text-slate-400">{demoResult.repository?.description || 'No description found.'}</p>
                         </div>
                         
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <div className="flex items-start gap-2 text-sm">
                             <Target size={16} className="text-slate-500 shrink-0 mt-0.5" />
                             <div>
@@ -399,14 +560,14 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                             <div className="flex items-start gap-2 text-sm pt-2">
                               <Zap size={16} className="text-slate-500 shrink-0 mt-0.5" />
                               <div>
-                                <span className="text-slate-500 block text-xs mb-1">Key Evidence Extracted</span>
-                                <ul className="text-emerald-400 space-y-1">
+                                <span className="text-slate-500 block text-xs mb-1">{T.demoEvidenceTitle}</span>
+                                <ul className="text-emerald-400 space-y-2">
                                   {demoResult.evidence.map((ev: any, idx: number) => (
                                     <li key={idx} className="flex gap-1.5 items-start">
                                       <span className="opacity-50 mt-1">•</span>
-                                      <span className="leading-snug">
+                                      <span className="leading-snug text-[13px]">
                                         {typeof ev === 'string' ? ev : ev.fact}
-                                        {ev.source && <span className="ml-2 text-xs font-mono opacity-50">[{ev.source}]</span>}
+                                        {ev.source && <span className="block mt-0.5 text-[10px] font-mono text-emerald-400/50 uppercase tracking-wider">{T.demoEvidenceSource}: {ev.source}</span>}
                                       </span>
                                     </li>
                                   ))}
@@ -414,19 +575,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                               </div>
                             </div>
                           )}
-
-                          {demoResult.analysisConfidence && (
-                            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-xs">
-                              <span className="text-slate-500">Analysis Confidence</span>
-                              <span className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">{demoResult.analysisConfidence}</span>
-                            </div>
-                          )}
                         </div>
                       </div>
 
-                      <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex gap-2">
+                      <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 shadow-lg">
                         <div className="shrink-0 mt-0.5">⚠️</div>
-                        <p>{T.demoResultWarning}</p>
+                        <p className="leading-relaxed">{T.demoResultWarning}</p>
                       </div>
                     </div>
 
@@ -452,7 +606,14 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                           className="w-full min-h-[250px] bg-transparent text-sm leading-relaxed text-slate-200 mb-6 whitespace-pre-wrap font-sans resize-y focus:outline-none border border-transparent focus:border-indigo-500/30 p-2 rounded-xl transition-colors"
                         />
 
-                        <div className="flex justify-end pt-4 border-t border-white/5">
+                        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                          <button
+                            onClick={() => setPhase('idle')}
+                            className="text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors"
+                          >
+                            <RefreshCw size={14} className="inline mr-1" />
+                            Start Over
+                          </button>
                           <button
                             onClick={handleCopy}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
@@ -472,8 +633,14 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
               </AnimatePresence>
 
               {/* Conversion Footer inside Demo block */}
-              {demoResult && (
-                <div className="mt-8 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 md:p-8 text-center mt-12">
+              {demoResult && phase === 'result' && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="mt-12 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 md:p-8 text-center relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
                   <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{T.demoConversionCta}</h3>
                   <p className="text-sm text-indigo-200/80 mb-6 max-w-2xl mx-auto">{T.demoConversionSub}</p>
                   <button
@@ -490,7 +657,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     <Check size={14} className="text-indigo-400" />
                     {T.demoConversionTrust}
                   </p>
-                </div>
+                </motion.div>
               )}
             </div>
 
