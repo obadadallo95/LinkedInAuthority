@@ -24,6 +24,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [intent, setIntent] = useState('auto');
   const [angles, setAngles] = useState<any[]>([]);
   const [selectedAngleId, setSelectedAngleId] = useState('');
+  const [analysisToken, setAnalysisToken] = useState('');
   const [humanContext, setHumanContext] = useState('');
   const [analyzeConflicts, setAnalyzeConflicts] = useState<any[]>([]);
   const [projectDescription, setProjectDescription] = useState('');
@@ -177,10 +178,16 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                               setNeedsContext(true);
                               setRepoPhase('idle');
                             } else {
-                              setAngles(data.angles || []);
-                              setAnalyzeConflicts(data.conflicts || []);
-                              setRepoPhase('angles');
-                              setNeedsContext(false);
+                              if (data.angles) {
+                                setAngles(data.angles);
+                                setAnalysisToken(data.analysisToken || '');
+                                setAnalyzeConflicts(data.conflicts || []);
+                                setRepoPhase('angles');
+                                setNeedsContext(false);
+                              } else {
+                                setAngles([]);
+                                setRepoPhase('angles');
+                              }
                             }
                           } else {
                             alert(data.error || 'Failed to analyze repository');
@@ -270,6 +277,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                                 token: settings.githubToken,
                                 repo: repo,
                                 projectDescription,
+                                analysisToken,
                                 angleId: angle.id,
                                 humanContext,
                                 lang

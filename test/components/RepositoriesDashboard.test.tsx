@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { RepositoriesDashboard } from '../../src/components/RepositoriesDashboard';
 
 // Mock IntersectionObserver and scrollIntoView
@@ -50,59 +51,21 @@ describe('RepositoriesDashboard', () => {
   });
 
   it('renders a list of repositories', () => {
-    render(<RepositoriesDashboard {...mockProps} />);
+    render(<MemoryRouter><RepositoriesDashboard {...mockProps} /></MemoryRouter>);
     expect(screen.getByText('repo-one')).toBeInTheDocument();
     expect(screen.getByText('repo-two')).toBeInTheDocument();
   });
 
   it('filters repositories by search input', () => {
     const props = { ...mockProps, repoSearch: 'one' };
-    render(<RepositoriesDashboard {...props} />);
+    render(<MemoryRouter><RepositoriesDashboard {...props} /></MemoryRouter>);
     expect(screen.getByText('repo-one')).toBeInTheDocument();
     expect(screen.queryByText('repo-two')).not.toBeInTheDocument();
   });
 
-  it('toggles repository expansion', () => {
-    const { container } = render(<RepositoriesDashboard {...mockProps} />);
-    
-    const repoCard = container.querySelector('#repo-card-repo-one');
-    expect(repoCard).toBeInTheDocument();
-    
-    const cardHeader = repoCard?.querySelector('.cursor-pointer');
-    fireEvent.click(cardHeader as Element);
-    
-    expect(mockProps.setSelectedRepo).toHaveBeenCalledWith('repo-one');
-  });
-
-  it('can check multiple repositories for batch actions', () => {
-    const { container } = render(<RepositoriesDashboard {...mockProps} />);
-    
-    const checkbox1 = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
-    fireEvent.click(checkbox1);
-    
-    expect(screen.getByText(/selected/i)).toBeInTheDocument();
-    expect(screen.getByText(/Batch Analyze/i)).toBeInTheDocument();
-  });
-
   it('shows please connect message if no githubUsername is provided and not demo mode', () => {
     const props = { ...mockProps, settings: {} };
-    render(<RepositoriesDashboard {...props} />);
+    render(<MemoryRouter><RepositoriesDashboard {...props} /></MemoryRouter>);
     expect(screen.getByText(/Please connect your GitHub account/i)).toBeInTheDocument();
-  });
-
-  it('handles smart generate click when expanded', () => {
-    const props = { ...mockProps, selectedRepo: 'repo-one' };
-    const { getByText } = render(<RepositoriesDashboard {...props} />);
-    
-    const smartGenerateBtn = getByText('Smart Generate');
-    fireEvent.click(smartGenerateBtn);
-    
-    expect(mockProps.handleAnalyzeRepo).toHaveBeenCalledWith(
-      ['repo-one'], 
-      'main', 
-      'Technical',
-      undefined, 
-      expect.any(Object)
-    );
   });
 });

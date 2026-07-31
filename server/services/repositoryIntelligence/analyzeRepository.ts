@@ -1,7 +1,7 @@
 import { getGeminiClient, callGeminiWithRetry } from './gemini';
 import { getAnalyzeSystemPrompt } from './prompts';
 import { analyzeSchema } from './schemas';
-import { saveAnalysisToCache } from './cache';
+import { CandidateAngle, Evidence, ClaimConflict } from './types';
 
 export async function analyzeRepositoryAngles(
   repoUrl: string, 
@@ -9,7 +9,7 @@ export async function analyzeRepositoryAngles(
   projectDescription: string, 
   intent: string, 
   lang: string
-) {
+): Promise<{ repository: any, angles: CandidateAngle[], atomicFacts: Evidence[], conflicts: ClaimConflict[] }> {
   const client = getGeminiClient();
   if (!client) {
     throw new Error("Gemini API client is not configured.");
@@ -42,11 +42,6 @@ export async function analyzeRepositoryAngles(
 
   const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema);
   
-  // Save to cache for Zero-Trust generation
-  if (result.finalAngles && result.finalAngles.length > 0) {
-    saveAnalysisToCache(repoUrl, result.finalAngles);
-  }
-
   return {
     repository: {
       name: ghContext.repoData.name,
@@ -54,7 +49,8 @@ export async function analyzeRepositoryAngles(
       description: ghContext.repoData.description,
       stars: ghContext.repoData.stargazers_count
     },
-    angles: result.finalAngles,
-    conflicts: result.conflicts
+    angles: result.finalAngles || [],
+    atomicFacts: result.atomicFacts || [],
+    conflicts: result.conflicts || []
   };
 }

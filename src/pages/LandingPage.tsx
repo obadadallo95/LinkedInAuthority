@@ -42,6 +42,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   
   const [humanContext, setHumanContext] = useState('');
   const [selectedMainIntent, setSelectedMainIntent] = useState('auto');
+  const [analysisToken, setAnalysisToken] = useState('');
   
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
@@ -107,7 +108,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       const res = await fetch("/api/demo/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl: demoUrl, projectDescription: projectDescription.slice(0, 200), lang })
+        body: JSON.stringify({ 
+          repoUrl: demoUrl, 
+          projectDescription: projectDescription.slice(0, 200),
+          intent: selectedMainIntent,
+          lang 
+        })
       });
       
       const data = await res.json();
@@ -122,8 +128,11 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         return;
       }
       
-      setAngles(data.angles || []);
-      setAnalyzeConflicts(data.conflicts || []);
+      if (data.angles) {
+        setAngles(data.angles);
+        setAnalysisToken(data.analysisToken || '');
+        setAnalyzeConflicts(data.conflicts || []);
+      }
       setDemoResult({ repository: data.repository }); // Save repo metadata early
       setPhase('angles');
       trackEvent('repository_analysis_succeeded', { count: data.angles?.length });
@@ -174,14 +183,19 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     setDemoError('');
     
     try {
-      const payload = {
+      const payload: any = {
         repoUrl: demoUrl,
         projectDescription: projectDescription.slice(0, 200),
-        intent: intentId === 'custom' ? customAngle : intentLabel,
+        analysisToken,
         humanContext: humanContext.slice(0, 200),
-        angleRequiresContext: requiresContext,
         lang
       };
+
+      if (intentId === 'custom') {
+        payload.customAngle = customAngle.slice(0, 200);
+      } else {
+        payload.angleId = intentId;
+      }
 
       const res = await fetch("/api/demo/generate", {
         method: "POST",

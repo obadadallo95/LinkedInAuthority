@@ -87,20 +87,17 @@ export const analyzeSchema: Schema = {
 export const generateSchema: Schema = {
   type: Type.OBJECT,
   properties: {
-    evidence: { 
+    post: { type: Type.STRING, description: "The generated LinkedIn post" },
+    usedEvidenceIds: { 
       type: Type.ARRAY, 
-      items: { 
-        type: Type.OBJECT,
-        properties: {
-          id: { type: Type.STRING, description: "Unique identifier for this piece of evidence" },
-          fact: { type: Type.STRING },
-          source: { type: Type.STRING, enum: ["README", "manifest", "metadata", "languages", "user_context", "project_description"] }
-        },
-        required: ["id", "fact", "source"]
-      }, 
-      description: "2-4 key technical facts extracted from the repo" 
+      items: { type: Type.STRING },
+      description: "IDs of the evidence facts used in the post" 
     },
-    post: { type: Type.STRING, description: "The generated LinkedIn post" }
+    warnings: { 
+      type: Type.ARRAY, 
+      items: { type: Type.STRING },
+      description: "Any warnings or deviations from the requested angle" 
+    }
   },
-  required: ["evidence", "post"]
+  required: ["post", "usedEvidenceIds", "warnings"]
 };

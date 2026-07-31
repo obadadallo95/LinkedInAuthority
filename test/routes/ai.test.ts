@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import aiRouter, { getGeminiClient } from '../../server/routes/ai';
+import aiRouter from '../../server/routes/ai';
 
 // Mock node-fetch
 vi.mock('node-fetch', () => {
@@ -10,6 +10,25 @@ vi.mock('node-fetch', () => {
   };
 });
 import fetch from 'node-fetch';
+
+vi.mock('../../server/services/repositoryIntelligence/analyzeRepository', () => {
+  return {
+    analyzeRepositoryAngles: vi.fn().mockResolvedValue({
+      repository: { name: 'testrepo' },
+      angles: [{ id: '1', title: 'Test Angle', summary: 'Test Summary' }],
+      atomicFacts: [],
+      conflicts: []
+    })
+  };
+});
+
+vi.mock('../../server/services/github', () => {
+  return {
+    fetchGithubContext: vi.fn().mockResolvedValue({
+      commits: [], readme: '', hasWeakRepo: false, repoData: { name: 'testrepo', description: 'test', owner: { login: 'testuser' } }, languages: {}, manifestData: '', readmeText: ''
+    })
+  };
+});
 
 // Mock @google/genai
 vi.mock('@google/genai', () => {
@@ -55,12 +74,13 @@ describe('AI Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test-key';
+    process.env.ANALYSIS_SIGNING_SECRET = 'test-secret';
   });
 
   it('POST /api/analyze-repo fails if repo is missing', async () => {
     const res = await request(app).post('/api/analyze-repo').send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Missing repository name parameter');
+    expect(res.body.error).toBe('Missing or invalid repository information');
   });
 
   it('POST /api/analyze-repo handles successful analysis', async () => {
@@ -81,9 +101,8 @@ describe('AI Routes', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.posts).toBeDefined();
-    expect(res.body.posts[0].text).toBe('Mocked AI Response');
-    expect(fetch).toHaveBeenCalled();
+    expect(res.body.angles).toBeDefined();
+    expect(res.body.angles[0].title).toBe('Test Angle');
   });
 
   it('POST /api/generate-hashtags generates tags', async () => {

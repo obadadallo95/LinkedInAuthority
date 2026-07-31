@@ -1,0 +1,15 @@
+{
+  "repository": {
+    "name": "Sama",
+    "description": "An AI-powered document analysis platform built with Next.js and Firebase.",
+    "owner": { "login": "obadadallo" }
+  },
+  "readme": "# Sama\n\nSama is a full-stack platform that uses Large Language Models to analyze legal documents. Built using Next.js 14, Tailwind CSS, Firebase Auth, and Firestore.\n\n## Architecture\n- App Router for routing\n- Firebase for backend logic\n- Server Actions for secure API calls",
+  "commits": [
+    { "message": "Initialize Next.js project", "author": "Obada", "date": "2024-01-01" },
+    { "message": "Add Firebase Auth integration", "author": "Obada", "date": "2024-01-02" },
+    { "message": "Implement Server Actions for AI analysis", "author": "Obada", "date": "2024-01-10" }
+  ],
+  "hasWeakRepo": false,
+  "languages": { "TypeScript": 50000, "CSS": 5000 }
+}

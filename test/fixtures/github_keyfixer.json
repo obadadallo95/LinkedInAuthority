@@ -1,0 +1,15 @@
+{
+  "repository": {
+    "name": "KeyFixer",
+    "description": "A lightweight utility to remap broken keyboard keys in Windows.",
+    "owner": { "login": "obadadallo" }
+  },
+  "readme": "# KeyFixer\n\nKeyFixer is a simple, no-dependency C++ utility to remap broken keys via Windows Registry. It avoids running in the background and sets a permanent global remap.\n\n## Features\n- Zero CPU usage (Registry based)\n- Open source\n",
+  "commits": [
+    { "message": "Initial commit", "author": "Obada", "date": "2023-01-01" },
+    { "message": "Add registry modification script", "author": "Obada", "date": "2023-01-02" },
+    { "message": "Fix elevation prompt", "author": "Obada", "date": "2023-01-05" }
+  ],
+  "hasWeakRepo": false,
+  "languages": { "C++": 10000 }
+}

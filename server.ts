@@ -29,21 +29,15 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  app.use(express.json({ limit: "10mb" }));
+  app.set('trust proxy', 1);
 
-  // Rate Limiting for public endpoints (like Demo)
-  const demoLimiter = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 3, // Limit each IP to 3 requests per windowMs
-    message: { error: "لقد استنفدت الحد المسموح به للتجربة المجانية اليوم. الرجاء تسجيل الدخول للمتابعة." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  app.use(express.json({ limit: "10mb" }));
 
   // Rate Limiting for authenticated API routes (keyed by Firebase Auth user UID or IP)
   const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 50, // Limit each user to 50 AI requests per hour
+    skipFailedRequests: true, // Only successful completions are counted against quota
     keyGenerator: (req: express.Request) => {
       return (req as any).user?.uid || req.ip || "unknown";
     },
@@ -52,8 +46,8 @@ async function startServer() {
     legacyHeaders: false,
   });
 
-  // Public unauthenticated demo routes (rate-limited to 3/day per IP)
-  app.use("/api/demo", demoLimiter, demoRoutes);
+  // Public unauthenticated demo routes
+  app.use("/api/demo", demoRoutes);
 
   // Health check endpoint (unauthenticated)
   app.get("/api/health", (req, res) => {

@@ -72,6 +72,7 @@ describe('PostEditor', () => {
   });
 
   it('generates smart hashtags successfully', async () => {
+    vi.useRealTimers();
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ hashtags: ['#test', '#linkedin'] }),
@@ -84,7 +85,9 @@ describe('PostEditor', () => {
     const tagsBtn = screen.getByText('Smart Hashtag Generator (Recommended)');
     fireEvent.click(tagsBtn);
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/generate-hashtags', expect.any(Object));
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/generate-hashtags', expect.any(Object));
+    });
 
     // Await state updates
     await act(async () => {
@@ -97,6 +100,7 @@ describe('PostEditor', () => {
   });
 
   it('handles optimization', async () => {
+    vi.useRealTimers();
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ optimizedText: 'This is the optimized text.' }),
@@ -108,9 +112,11 @@ describe('PostEditor', () => {
     const optimizeBtn = screen.getByText('Punchy Opening Hook'); // Needs to match actual UI text
     fireEvent.click(optimizeBtn);
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/optimize-post', expect.objectContaining({
-      body: expect.stringContaining('"actionType":"hook"')
-    }));
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith('/api/optimize-post', expect.objectContaining({
+        body: expect.stringContaining('"actionType":"hook"')
+      }));
+    });
 
     await act(async () => {
       await Promise.resolve();

@@ -2,17 +2,26 @@ import { Router } from "express";
 import { getGeminiClient } from "../services/repositoryIntelligence/gemini";
 import { fetchGithubContext } from "../services/github";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
+import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
 import { Type } from "@google/genai";
 
 const router = Router();
 
 // Endpoint for registered users to analyze a repo and get angles
 router.post("/analyze-repo", async (req: any, res: any) => {
-  const { username, token, repo, projectDescription, lang, intent = 'auto' } = req.body;
+  const { username, token, repo, projectDescription, lang, intent } = req.body;
   
-  if (!username || !repo) {
-    return res.status(400).json({ error: "Missing repository information" });
+  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string') {
+    return res.status(400).json({ error: "Missing or invalid repository information" });
   }
+  if (lang && !['ar', 'en', 'de'].includes(lang)) {
+    return res.status(400).json({ error: "Unsupported language" });
+  }
+  if (projectDescription && projectDescription.length > 200) {
+    return res.status(400).json({ error: "Project description exceeds 200 characters" });
+  }
+
+  const safeIntent = intent || 'auto';
 
   try {
     const repoUrl = `https://github.com/${username}/${repo}`;
@@ -23,8 +32,27 @@ router.post("/analyze-repo", async (req: any, res: any) => {
       return res.json({ needsUserContext: true });
     }
 
-    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, intent, lang);
-    res.json(result);
+    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang);
+    
+    // Generate Analysis Token for authenticated user
+    const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
+    const analysisToken = signAnalysisToken({
+      version: 1,
+      repository: canonicalRepo,
+      lang: lang || 'en',
+      intent: safeIntent,
+      angles: result.angles,
+      atomicFacts: result.atomicFacts,
+      conflicts: result.conflicts,
+      audience: "authenticated",
+      userId: req.user?.uid
+    });
+
+    res.json({
+      repository: result.repository,
+      angles: result.angles,
+      analysisToken
+    });
   } catch (err: any) {
     console.error("AI Analyze Error:", err);
     res.status(500).json({ error: err.message || "Failed to analyze repository" });
@@ -33,20 +61,57 @@ router.post("/analyze-repo", async (req: any, res: any) => {
 
 // Endpoint for registered users to generate a post from an angle
 router.post("/generate-post", async (req: any, res: any) => {
-  const { username, token, repo, projectDescription, angleId, humanContext, lang } = req.body;
+  const { username, token, repo, projectDescription, analysisToken, angleId, customAngle, humanContext, lang } = req.body;
   
-  if (!username || !repo || !angleId) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string') {
+    return res.status(400).json({ error: "Missing or invalid repository information" });
+  }
+  if (!analysisToken) {
+    return res.status(400).json({ error: "Missing analysis token." });
+  }
+  if (!angleId && !customAngle) {
+    return res.status(400).json({ error: "Either angleId or customAngle is required." });
+  }
+  if (angleId && customAngle) {
+    return res.status(400).json({ error: "Provide either angleId OR customAngle, not both." });
+  }
+  if (humanContext && humanContext.length > 200) {
+    return res.status(400).json({ error: "Human context exceeds 200 characters" });
+  }
+  if (customAngle && customAngle.length > 200) {
+    return res.status(400).json({ error: "Custom angle exceeds 200 characters" });
   }
 
   try {
+    const tokenPayload = verifyAnalysisToken(analysisToken);
+    
+    if (tokenPayload.audience !== 'authenticated' || tokenPayload.userId !== req.user?.uid) {
+      return res.status(403).json({ error: "Invalid token audience or user mismatch." });
+    }
+
     const repoUrl = `https://github.com/${username}/${repo}`;
     const ghContext = await fetchGithubContext(repoUrl, token);
     
-    const result = await generatePostFromAngle(repoUrl, ghContext, projectDescription, angleId, humanContext, lang);
+    const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
+    if (tokenPayload.repository !== canonicalRepo) {
+      return res.status(403).json({ error: "Token does not match the requested repository." });
+    }
+
+    const result = await generatePostFromAngle(
+      tokenPayload, 
+      ghContext, 
+      projectDescription, 
+      angleId, 
+      customAngle,
+      humanContext, 
+      lang
+    );
     res.json(result);
   } catch (err: any) {
     console.error("AI Generate Error:", err);
+    if (err.message.includes('token') || err.message.includes('signature')) {
+      return res.status(403).json({ error: "Invalid or expired analysis session. Please analyze again." });
+    }
     res.status(500).json({ error: err.message || "Failed to generate post" });
   }
 });

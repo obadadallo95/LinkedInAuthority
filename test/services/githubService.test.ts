@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchRateLimit, checkTokenScopes, getFallbackRepos, getFallbackReposForOrg, fetchReadme } from '../../src/services/githubService';
+import { fetchRateLimit, checkTokenScopes, fetchReadme } from '../../src/services/githubService';
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -9,28 +9,7 @@ describe('githubService', () => {
     vi.resetAllMocks();
   });
 
-  describe('getFallbackRepos', () => {
-    it('should return a list of mock repos for a given username', () => {
-      const repos = getFallbackRepos('testuser');
-      expect(repos).toHaveLength(5);
-      expect(repos[0].name).toBe('kashef-syrian-post-guard');
-      expect(repos[0].isFallback).toBe(true);
-    });
-  });
 
-  describe('getFallbackReposForOrg', () => {
-    it('should return personal repos if orgFilter is "Personal" or empty', () => {
-      const repos = getFallbackReposForOrg('testuser', 'Personal');
-      expect(repos).toHaveLength(4);
-      expect(repos[0].name).toBe('nextjs-enterprise-boilerplate');
-    });
-
-    it('should return org specific repos for Google-OpenSource', () => {
-      const repos = getFallbackReposForOrg('testuser', 'Google-OpenSource');
-      expect(repos).toHaveLength(2);
-      expect(repos[0].name).toBe('angular-enterprise-core');
-    });
-  });
 
   describe('fetchRateLimit', () => {
     it('should return rate limit info when API responds with 200', async () => {
@@ -85,11 +64,12 @@ describe('githubService', () => {
   });
 
   describe('fetchReadme', () => {
-    it('should return fallback simulated README if isFallback is true', async () => {
+    it('should return fallback README string on fetch failure', async () => {
+      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
       const readme = await fetchReadme('testuser', 'testrepo', undefined, true);
-      expect(readme).toContain('(Local Simulation)');
+      expect(readme).toContain('No online README.md could be retrieved');
       expect(readme).toContain('testrepo');
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
     });
   });
 });

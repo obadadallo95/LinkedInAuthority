@@ -35,7 +35,7 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
     setEditingId(draft.id);
     try {
         const parsed = JSON.parse(draft.content);
-        setEditContent(parsed.potentialContent || parsed.changelog || draft.content);
+        setEditContent(parsed.post || parsed.potentialContent || parsed.changelog || draft.content);
     } catch {
         setEditContent(draft.content);
     }
@@ -57,7 +57,9 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
       if (originalDraft) {
         try {
             const parsed = JSON.parse(originalDraft.content);
-            if (parsed.potentialContent) {
+            if (parsed.post) {
+                parsed.post = editContent;
+            } else if (parsed.potentialContent) {
                 parsed.potentialContent = editContent;
             } else if (parsed.changelog) {
                 parsed.changelog = editContent;
@@ -94,7 +96,7 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
     let textToCopy = content;
     try {
         const parsed = JSON.parse(content);
-        textToCopy = parsed.potentialContent || parsed.changelog || content;
+        textToCopy = parsed.post || parsed.potentialContent || parsed.changelog || content;
     } catch {
         // Not JSON
     }
@@ -107,7 +109,7 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
   const getDisplayText = (content: string) => {
       try {
           const parsed = JSON.parse(content);
-          return parsed.potentialContent || parsed.changelog || content;
+          return parsed.post || parsed.potentialContent || parsed.changelog || content;
       } catch {
           return content;
       }
