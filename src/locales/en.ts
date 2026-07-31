@@ -210,6 +210,8 @@ export const en = {
     demoAnglesTitle: "We found more than one story worth publishing",
     demoAnglesSubtitle: "Choose the angle that fits your goal, or write a custom one.",
     demoAngleRecommended: "Recommended ★",
+    demoConflictWarning: "Data Conflict Detected",
+    demoAudienceValue: "Audience Value",
     demoAngleCustom: "I have another angle...",
     demoAngleCustomPlaceholder: "Write your idea in a short sentence",
     demoAdaptiveQuestionTitle: "Quick question:",

@@ -210,6 +210,8 @@ export const de = {
     demoAnglesTitle: "Wir haben mehr als eine Geschichte gefunden",
     demoAnglesSubtitle: "Wählen Sie den passenden Winkel oder schreiben Sie einen eigenen.",
     demoAngleRecommended: "Empfohlen ★",
+    demoConflictWarning: "Datenkonflikt Erkannt",
+    demoAudienceValue: "Nutzen für Zielgruppe",
     demoAngleCustom: "Ich habe einen anderen Winkel...",
     demoAngleCustomPlaceholder: "Schreiben Sie Ihre Idee in einem kurzen Satz",
     demoAdaptiveQuestionTitle: "Kurze Frage:",

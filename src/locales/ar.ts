@@ -210,6 +210,8 @@ export const ar = {
     demoAnglesTitle: "وجدنا أكثر من قصة تستحق النشر",
     demoAnglesSubtitle: "اختر الزاوية التي تناسب هدفك، أو اكتب زاوية مخصصة.",
     demoAngleRecommended: "موصى به ★",
+    demoConflictWarning: "تعارض في البيانات",
+    demoAudienceValue: "القيمة للمهتمين",
     demoAngleCustom: "لدي زاوية أخرى...",
     demoAngleCustomPlaceholder: "اكتب فكرتك في جملة قصيرة",
     demoAdaptiveQuestionTitle: "سؤال سريع:",

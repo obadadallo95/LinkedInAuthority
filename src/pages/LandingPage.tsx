@@ -36,6 +36,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const [phase, setPhase] = useState<DemoPhase>('idle');
   
   const [angles, setAngles] = useState<any[]>([]);
+  const [analyzeConflicts, setAnalyzeConflicts] = useState<any[]>([]);
   const [selectedAngleId, setSelectedAngleId] = useState<string>('');
   const [customAngle, setCustomAngle] = useState('');
   
@@ -99,6 +100,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     setPhase('analyzing');
     setDemoError('');
     setDemoResult(null);
+    setAnalyzeConflicts([]);
 
     try {
       const res = await fetch("/api/demo/analyze", {
@@ -120,6 +122,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       }
       
       setAngles(data.angles || []);
+      setAnalyzeConflicts(data.conflicts || []);
       setDemoResult({ repository: data.repository }); // Save repo metadata early
       setPhase('angles');
       trackEvent('repository_analysis_succeeded', { count: data.angles?.length });
@@ -428,11 +431,21 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     </div>
                     
                     <div className="space-y-3">
+                      {analyzeConflicts.map((conflict, idx) => (
+                        <div key={idx} className="mb-4 text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 shadow-lg">
+                          <div className="shrink-0 mt-0.5">⚠️</div>
+                          <div>
+                            <p className="font-bold text-amber-500">{T.demoConflictWarning || 'Analysis Warning'}</p>
+                            <p className="mt-1">{conflict.safeAlternative || conflict.claim}</p>
+                          </div>
+                        </div>
+                      ))}
+
                       {angles.map((angle, idx) => (
                         <button
                           key={angle.id}
                           onClick={() => setSelectedAngleId(angle.id)}
-                          className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-1 ${
+                          className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-2 ${
                             selectedAngleId === angle.id 
                               ? 'bg-indigo-500/20 border-indigo-500/50' 
                               : 'bg-slate-950 border-white/10 hover:border-white/20'
@@ -442,9 +455,19 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                             <span className={`font-bold ${selectedAngleId === angle.id ? 'text-indigo-300' : 'text-slate-200'}`}>
                               {angle.title}
                             </span>
-                            {idx === 0 && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">{T.demoAngleRecommended}</span>}
+                            {angle.recommended && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">{T.demoAngleRecommended}</span>}
                           </div>
-                          <span className="text-sm text-slate-400">{angle.description}</span>
+                          <span className="text-sm text-slate-400 leading-relaxed">{angle.angleSummary}</span>
+                          
+                          {angle.audienceValue && (
+                            <div className="mt-2 text-xs bg-white/5 p-2 rounded-lg border border-white/5 flex gap-2 items-start">
+                              <Target size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                              <div>
+                                <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wide">{T.demoAudienceValue || 'Value'}</span>
+                                <span className="text-slate-300">{angle.audienceValue}</span>
+                              </div>
+                            </div>
+                          )}
                         </button>
                       ))}
                       
@@ -498,7 +521,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                       <Bot size={32} />
                     </div>
                     <h4 className="text-2xl font-bold text-white mb-2">{T.demoAdaptiveQuestionTitle}</h4>
-                    <p className="text-slate-400 mb-8">{T.demoContextHelp}</p>
+                    <p className="text-slate-400 mb-8">{angles.find(a => a.id === selectedAngleId)?.adaptiveQuestion || T.demoContextHelp}</p>
                     
                     <textarea 
                       value={humanContext}
