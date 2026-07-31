@@ -1,11 +1,12 @@
 import crypto from 'crypto';
 import { AnalysisTokenPayload } from './types';
 
-const SECRET = process.env.ANALYSIS_SIGNING_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
-
-if (!SECRET) {
-  console.error("FATAL ERROR: ANALYSIS_SIGNING_SECRET is not set in the environment.");
-  process.exit(1);
+export function getAnalysisSigningSecret(): string {
+  const secret = process.env.ANALYSIS_SIGNING_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
+  if (!secret) {
+    throw new Error("Configuration Error: ANALYSIS_SIGNING_SECRET is not set in the environment.");
+  }
+  return secret;
 }
 
 export function signAnalysisToken(payload: Omit<AnalysisTokenPayload, "issuedAt" | "expiresAt">): string {
@@ -17,7 +18,7 @@ export function signAnalysisToken(payload: Omit<AnalysisTokenPayload, "issuedAt"
   };
 
   const data = Buffer.from(JSON.stringify(fullPayload)).toString('base64');
-  const signature = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
+  const signature = crypto.createHmac('sha256', getAnalysisSigningSecret()).update(data).digest('hex');
   
   return `${data}.${signature}`;
 }
@@ -33,7 +34,7 @@ export function verifyAnalysisToken(token: string): AnalysisTokenPayload {
   }
 
   const [data, signature] = parts;
-  const expectedSignature = crypto.createHmac('sha256', SECRET!).update(data).digest('hex');
+  const expectedSignature = crypto.createHmac('sha256', getAnalysisSigningSecret()).update(data).digest('hex');
   
   const expectedBuf = Buffer.from(expectedSignature, 'hex');
   const sigBuf = Buffer.from(signature, 'hex');
@@ -49,8 +50,21 @@ export function verifyAnalysisToken(token: string): AnalysisTokenPayload {
     throw new Error("Malformed token payload");
   }
 
-  if (payload.version !== 1) {
-    throw new Error("Unsupported token version");
+  // Runtime Validation
+  if (!payload || typeof payload !== 'object') throw new Error("Invalid payload format");
+  if (payload.version !== 1) throw new Error("Unsupported token version");
+  if (typeof payload.repository !== 'string' || !payload.repository) throw new Error("Missing repository in token");
+  if (typeof payload.lang !== 'string' || !payload.lang) throw new Error("Missing lang in token");
+  if (typeof payload.intent !== 'string' || !payload.intent) throw new Error("Missing intent in token");
+  if (!Array.isArray(payload.angles)) throw new Error("Missing or invalid angles in token");
+  if (!Array.isArray(payload.atomicFacts)) throw new Error("Missing or invalid atomicFacts in token");
+  if (!Array.isArray(payload.conflicts)) throw new Error("Missing or invalid conflicts in token");
+  if (typeof payload.issuedAt !== 'number') throw new Error("Missing issuedAt in token");
+  if (typeof payload.expiresAt !== 'number') throw new Error("Missing expiresAt in token");
+  if (payload.audience !== 'demo' && payload.audience !== 'authenticated') throw new Error("Invalid audience in token");
+  
+  if (payload.audience === 'authenticated' && typeof payload.userId !== 'string') {
+    throw new Error("Missing userId for authenticated token");
   }
 
   if (Date.now() > payload.expiresAt) {

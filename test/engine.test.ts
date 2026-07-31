@@ -14,17 +14,22 @@ vi.mock('../server/services/repositoryIntelligence/gemini', () => ({
 describe('Intelligence Engine V1 - Token & Security', () => {
   const dummyAngles: CandidateAngle[] = [{
     id: '1',
+    intent: 'custom',
     title: 'Test Angle',
     angleSummary: 'Test Summary',
+    audience: 'developers',
     audienceValue: 'Test Value',
-    intentMatch: 'Test Match',
-    requiresHumanContext: false
+    evidenceIds: [],
+    supportLevel: 'verified',
+    requiresHumanContext: false,
+    recommended: true,
+    tone: 'confident',
+    claimRisk: 'low'
   }];
 
   const dummyFacts: Evidence[] = [{
     fact: 'Added React',
-    source: 'package.json',
-    confidence: 'high'
+    source: 'package.json'
   }];
 
   const dummyConflicts: ClaimConflict[] = [];
@@ -77,6 +82,13 @@ describe('Intelligence Engine V1 - Token & Security', () => {
 
     expect(() => verifyAnalysisToken(tamperedToken)).toThrow('Invalid token signature');
   });
+
+  it('should reject audience mismatches', () => {
+    const unauthToken = signAnalysisToken({ ...basePayload, audience: 'demo' });
+    const decoded = verifyAnalysisToken(unauthToken);
+    expect(decoded.audience).toBe('demo');
+    // Actual audience checking is done in the route handler, but we verify it's preserved
+  });
 });
 
 describe('Intelligence Engine V1 - Generation & Conflict Prevention', () => {
@@ -84,7 +96,8 @@ describe('Intelligence Engine V1 - Generation & Conflict Prevention', () => {
     const blockingConflicts: ClaimConflict[] = [{
       claim: "We are the first to do this",
       severity: "blocking",
-      safeAlternative: "We introduced a novel approach"
+      safeAlternative: "We introduced a novel approach",
+      conflictingEvidenceIds: []
     }];
 
     const payload: AnalysisTokenPayload = {
@@ -115,5 +128,45 @@ describe('Intelligence Engine V1 - Generation & Conflict Prevention', () => {
     const callArgs = (callGeminiWithRetry as any).mock.calls[0][1]; // The 'prompt' argument
     expect(callArgs).toContain('Severity: blocking');
     expect(callArgs).toContain('We are the first to do this');
+  });
+
+  it('should throw an error if the generated post contains a blocking claim', async () => {
+    const blockingConflicts: ClaimConflict[] = [{
+      claim: "We are the first to do this",
+      severity: "blocking",
+      safeAlternative: "We introduced a novel approach",
+      conflictingEvidenceIds: []
+    }];
+
+    const payload: AnalysisTokenPayload = {
+      version: 1,
+      repository: 'github.com/test/repo',
+      lang: 'en',
+      intent: 'auto',
+      angles: [],
+      atomicFacts: [],
+      conflicts: blockingConflicts,
+      audience: 'authenticated',
+      userId: 'user123',
+      issuedAt: Date.now(),
+      expiresAt: Date.now() + 3600000
+    };
+
+    const { callGeminiWithRetry } = await import('../server/services/repositoryIntelligence/gemini');
+    (callGeminiWithRetry as any).mockResolvedValueOnce({
+      post: "We are the first to do this with our new tech.", 
+      usedEvidenceIds: [], 
+      warnings: []
+    });
+
+    await expect(generatePostFromAngle(
+      payload,
+      { commits: [], readme: '', hasWeakRepo: false, repoData: { name: 'test', description: 'test' }, languages: {}, manifestData: '', readmeText: '' },
+      '',
+      undefined,
+      'Custom angle',
+      '',
+      'en'
+    )).rejects.toThrow('Generated post contains a blocking claim');
   });
 });

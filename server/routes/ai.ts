@@ -4,26 +4,44 @@ import { fetchGithubContext } from "../services/github";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
 import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
 import { Type } from "@google/genai";
+import { rateLimitStore } from "../services/rateLimitStore";
 
 const router = Router();
+
+const SUPPORTED_LANGUAGES = ["ar", "en", "de"];
+const SUPPORTED_INTENTS = ["auto", "project", "technical_decision", "challenge_lesson", "progress_update"];
+
+// Validate username and repo name against standard GitHub naming rules
+function isValidGitHubName(name: string): boolean {
+  return /^[a-zA-Z0-9_.-]+$/.test(name);
+}
 
 // Endpoint for registered users to analyze a repo and get angles
 router.post("/analyze-repo", async (req: any, res: any) => {
   const { username, token, repo, projectDescription, lang, intent } = req.body;
   
-  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string') {
+  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
     return res.status(400).json({ error: "Missing or invalid repository information" });
   }
-  if (lang && !['ar', 'en', 'de'].includes(lang)) {
+  if (lang && !SUPPORTED_LANGUAGES.includes(lang)) {
     return res.status(400).json({ error: "Unsupported language" });
+  }
+  const safeIntent = intent || 'auto';
+  if (!SUPPORTED_INTENTS.includes(safeIntent) && safeIntent !== 'auto') {
+    return res.status(400).json({ error: "Unsupported intent" });
   }
   if (projectDescription && projectDescription.length > 200) {
     return res.status(400).json({ error: "Project description exceeds 200 characters" });
   }
 
-  const safeIntent = intent || 'auto';
-
   try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const allowed = await rateLimitStore.checkAndIncrement(uid, 'analyze', 50, 60 * 60 * 1000); // 50 per hour
+    if (!allowed) {
+      return res.status(429).json({ error: "Hourly limit of 50 analyses reached." });
+    }
     const repoUrl = `https://github.com/${username}/${repo}`;
     // Pass the user's Github token if available
     const ghContext = await fetchGithubContext(repoUrl, token);
@@ -63,7 +81,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
 router.post("/generate-post", async (req: any, res: any) => {
   const { username, token, repo, projectDescription, analysisToken, angleId, customAngle, humanContext, lang } = req.body;
   
-  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string') {
+  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
     return res.status(400).json({ error: "Missing or invalid repository information" });
   }
   if (!analysisToken) {
@@ -83,6 +101,13 @@ router.post("/generate-post", async (req: any, res: any) => {
   }
 
   try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    const allowed = await rateLimitStore.checkAndIncrement(uid, 'generate', 50, 60 * 60 * 1000); // 50 per hour
+    if (!allowed) {
+      return res.status(429).json({ error: "Hourly limit of 50 generations reached." });
+    }
     const tokenPayload = verifyAnalysisToken(analysisToken);
     
     if (tokenPayload.audience !== 'authenticated' || tokenPayload.userId !== req.user?.uid) {
@@ -95,6 +120,9 @@ router.post("/generate-post", async (req: any, res: any) => {
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
     if (tokenPayload.repository !== canonicalRepo) {
       return res.status(403).json({ error: "Token does not match the requested repository." });
+    }
+    if (lang && tokenPayload.lang !== lang) {
+      return res.status(403).json({ error: "Language mismatch. Token was created for a different language." });
     }
 
     const result = await generatePostFromAngle(
@@ -109,8 +137,11 @@ router.post("/generate-post", async (req: any, res: any) => {
     res.json(result);
   } catch (err: any) {
     console.error("AI Generate Error:", err);
-    if (err.message.includes('token') || err.message.includes('signature')) {
+    if (err.message.includes('token') || err.message.includes('signature') || err.message.includes('Missing')) {
       return res.status(403).json({ error: "Invalid or expired analysis session. Please analyze again." });
+    }
+    if (err.message.includes('Custom angle contradicts') || err.message.includes('Generated post contains a blocking claim')) {
+      return res.status(422).json({ error: err.message });
     }
     res.status(500).json({ error: err.message || "Failed to generate post" });
   }

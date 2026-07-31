@@ -23,14 +23,26 @@ export async function generatePostFromAngle(
     if (customAngle.length > 200) {
       throw new Error("Custom angle too long. Maximum 200 characters.");
     }
+    const blockingConflicts = tokenPayload.conflicts.filter(c => c.severity === "blocking");
+    for (const conflict of blockingConflicts) {
+      if (customAngle.toLowerCase().includes(conflict.claim.toLowerCase())) {
+        throw new Error(`Custom angle contradicts repository facts: ${conflict.claim}`);
+      }
+    }
+
     chosenAngle = {
+      id: "custom",
       title: "Custom Angle",
       angleSummary: customAngle,
-      intentMatch: "custom",
+      intent: "custom",
       tone: "confident",
-      claimRisk: "low",
+      claimRisk: "high",
+      audience: "professional_network",
       audienceValue: "Sharing user-specified context.",
-      requiresHumanContext: false
+      requiresHumanContext: false,
+      evidenceIds: [],
+      supportLevel: "human_context_required",
+      recommended: false
     };
   } else if (angleId) {
     chosenAngle = tokenPayload.angles.find(a => a.id === angleId);
@@ -92,20 +104,28 @@ export async function generatePostFromAngle(
   
   // Strict Server-side Validation of used Evidence IDs
   const validIds = new Set(tokenPayload.atomicFacts.map(f => f.id));
-  const usedEvidenceIds = (result.usedEvidenceIds || []).filter((id: string) => validIds.has(id));
-
-  // Identify if any blocking conflicts were ignored (Simplified check: if post contains exact blocked phrase)
-  const blockingConflicts = tokenPayload.conflicts.filter(c => c.severity === "blocking");
+  const rawEvidenceIds = result.usedEvidenceIds || [];
+  const usedEvidenceIds = rawEvidenceIds.filter((id: string) => validIds.has(id));
+  
   const warnings = result.warnings || [];
   
+  if (rawEvidenceIds.length > 0 && usedEvidenceIds.length === 0) {
+    warnings.push("Warning: The AI attempted to use unverified or hallucinated evidence facts.");
+  }
+
+  // Identify if any blocking conflicts were ignored
+  const blockingConflicts = tokenPayload.conflicts.filter(c => c.severity === "blocking");
   for (const conflict of blockingConflicts) {
     if (result.post.toLowerCase().includes(conflict.claim.toLowerCase())) {
-      warnings.push(`Warning: The generated post may contain a blocked claim: "${conflict.claim}"`);
+      throw new Error(`Generated post contains a blocking claim that contradicts facts: "${conflict.claim}"`);
     }
   }
 
+  const evidence = tokenPayload.atomicFacts.filter(f => usedEvidenceIds.includes(f.id));
+
   return {
     post: result.post,
+    evidence,
     usedEvidenceIds,
     warnings
   };

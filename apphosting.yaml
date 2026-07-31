@@ -11,9 +11,6 @@ secrets:
   - variable: GEMINI_API_KEY
     secret: gemini_api_key
     version: latest
-  - variable: LINKEDIN_CLIENT_ID
-    secret: linkedin_client_id
-    version: latest
-  - variable: LINKEDIN_CLIENT_SECRET
-    secret: linkedin_client_secret
+  - variable: ANALYSIS_SIGNING_SECRET
+    secret: analysis_signing_secret
     version: latest

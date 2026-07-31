@@ -164,7 +164,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                               "Authorization": `Bearer ${idToken}`
                             },
                             body: JSON.stringify({
-                              username: settings.githubUsername,
+                              username: owner,
                               token: settings.githubToken,
                               repo: repo,
                               projectDescription,
@@ -238,9 +238,22 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                         }`}
                       >
                         <h5 className="font-bold text-white text-sm">{angle.title}</h5>
-                        <p className="text-xs text-slate-400 mt-1">{angle.summary}</p>
+                        <p className="text-xs text-slate-400 mt-1">{angle.angleSummary}</p>
                       </button>
                     ))}
+                    
+                    {analyzeConflicts.length > 0 && (
+                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                        <h4 className="text-red-400 text-xs font-bold mb-2">{isAr ? 'تعارضات مكتشفة:' : 'Detected Conflicts:'}</h4>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {analyzeConflicts.map((c, i) => (
+                            <li key={i} className="text-xs text-red-300/80">
+                              <span className="font-semibold">{c.claim}</span> - {c.severity}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     
                     {selectedAngleId && angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && (
                       <div className="mt-3">
@@ -273,7 +286,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                                 "Authorization": `Bearer ${idToken}`
                               },
                               body: JSON.stringify({
-                                username: settings.githubUsername,
+                                username: owner,
                                 token: settings.githubToken,
                                 repo: repo,
                                 projectDescription,
@@ -298,7 +311,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                             setRepoPhase('angles');
                           }
                         }}
-                        disabled={!selectedAngleId || (angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && !humanContext)}
+                        disabled={!selectedAngleId || !analysisToken || (angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && !humanContext)}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                       >
                         {isAr ? 'اكتب المنشور' : 'Generate Post'}
@@ -334,9 +347,24 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                         </div>
                       </div>
                     )}
+                    {analysisResult.warnings?.length > 0 && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                        <h4 className="text-amber-400 text-xs font-bold mb-2">{isAr ? 'تحذيرات:' : 'Warnings:'}</h4>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {analysisResult.warnings.map((w: string, i: number) => (
+                            <li key={i} className="text-xs text-amber-300/80">{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <div className="pt-2 flex justify-end">
                       <button 
-                        onClick={() => saveToFirestore('repo_analysis', { title: angles.find(a => a.id === selectedAngleId)?.title, post: analysisResult.post, evidence: analysisResult.evidence }, setSavingAnalysis)}
+                        onClick={() => saveToFirestore('repo_analysis', { 
+                          title: angles.find(a => a.id === selectedAngleId)?.title, 
+                          post: analysisResult.post, 
+                          evidence: analysisResult.evidence,
+                          warnings: analysisResult.warnings
+                        }, setSavingAnalysis)}
                         disabled={savingAnalysis}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
                       >

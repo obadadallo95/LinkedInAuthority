@@ -2,25 +2,30 @@ export interface Evidence {
   id?: string; // We will generate an ID if not present
   fact: string;
   source: string;
-  confidence: "high" | "medium" | "low";
 }
 
 export interface ClaimConflict {
   claim: string;
-  severity: "blocking" | "warning" | "safe";
-  safeAlternative: string;
+  conflictingEvidenceIds: string[];
+  severity: "blocking" | "warning";
+  safeAlternative?: string;
 }
 
 export interface CandidateAngle {
   id: string;
+  intent: "announcement" | "feature" | "decision" | "problem" | "lesson" | "expertise" | "feedback" | "custom";
   title: string;
-  angleSummary: string; // changed from summary to match schema strictly
-  audienceValue: string; // changed from professionalValue
-  intentMatch: string;
+  angleSummary: string;
+  audience: "developers" | "technical_leads" | "recruiters" | "potential_users" | "contributors" | "professional_network";
+  audienceValue: string;
+  evidenceIds: string[];
+  supportLevel: "verified" | "partial" | "human_context_required";
+  humanInsightGap?: string;
   requiresHumanContext: boolean;
   adaptiveQuestion?: string;
-  tone?: "calm" | "confident" | "bold";
-  claimRisk?: "low" | "medium" | "high";
+  recommended: boolean;
+  tone: "calm" | "confident" | "bold";
+  claimRisk: "low" | "medium" | "high";
 }
 
 export interface AnalysisTokenPayload {
@@ -37,8 +42,28 @@ export interface AnalysisTokenPayload {
   userId?: string;
 }
 
+export interface AnalyzeRequest {
+  repoUrl: string;
+  intent: string;
+  lang: "ar" | "en" | "de";
+}
+
+export interface AnalyzeResponse {
+  repository: string;
+  angles: CandidateAngle[];
+  conflicts: Pick<ClaimConflict, "claim" | "severity" | "safeAlternative">[];
+  analysisToken: string;
+}
+
+export interface GenerateRequest {
+  analysisToken: string;
+  angleId?: string;
+  customAngle?: string;
+}
+
 export interface GenerateResponse {
   post: string;
+  evidence: Evidence[];
   usedEvidenceIds: string[];
   warnings: string[];
 }

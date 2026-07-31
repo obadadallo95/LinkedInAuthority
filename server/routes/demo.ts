@@ -5,62 +5,49 @@ import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIn
 
 const router = express.Router();
 
-// In-memory Rate Limiter
-interface RateLimitData {
-  analyzeCount: number;
-  generateCount: number;
-  lastReset: number;
-}
-const rateLimits = new Map<string, RateLimitData>();
+import { rateLimitStore } from "../services/rateLimitStore";
+import crypto from "crypto";
 
-function checkRateLimit(ip: string, type: 'analyze' | 'generate'): boolean {
-  const now = Date.now();
-  const ONE_DAY = 24 * 60 * 60 * 1000;
-  
-  if (!rateLimits.has(ip)) {
-    rateLimits.set(ip, { analyzeCount: 0, generateCount: 0, lastReset: now });
-  }
-  
-  const data = rateLimits.get(ip)!;
-  if (now - data.lastReset > ONE_DAY) {
-    data.analyzeCount = 0;
-    data.generateCount = 0;
-    data.lastReset = now;
-  }
-  
-  if (type === 'analyze' && data.analyzeCount >= 3) return false;
-  if (type === 'generate' && data.generateCount >= 3) return false;
-  
-  return true;
+const SUPPORTED_LANGUAGES = ["ar", "en", "de"];
+const SUPPORTED_INTENTS = ["auto", "project", "technical_decision", "challenge_lesson", "progress_update"];
+
+function hashIp(ip: string): string {
+  return crypto.createHash('sha256').update(ip).digest('hex');
 }
 
-function incrementRateLimit(ip: string, type: 'analyze' | 'generate') {
-  const data = rateLimits.get(ip)!;
-  if (type === 'analyze') data.analyzeCount++;
-  if (type === 'generate') data.generateCount++;
+function parseGithubUrl(url: string): { owner: string, repo: string } | null {
+  const match = url.match(/^https:\/\/github\.com\/([\w-]+)\/([\w.-]+?)(?:\.git|\/)?$/i);
+  if (!match) return null;
+  return { owner: match[1], repo: match[2] };
 }
 
 router.post("/analyze", async (req, res) => {
   try {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
-    if (!checkRateLimit(ip, 'analyze')) {
+    const hashedIp = hashIp(ip);
+    
+    // Check and increment atomically
+    const allowed = await rateLimitStore.checkAndIncrement(hashedIp, 'analyze', 3, 24 * 60 * 60 * 1000);
+    if (!allowed) {
       return res.status(429).json({ error: "Daily limit of 3 analyses reached. Please try again tomorrow." });
     }
 
     const { repoUrl, projectDescription, lang, intent } = req.body;
     
     // Strict Server-Side Validation
-    if (!repoUrl || typeof repoUrl !== 'string' || !repoUrl.includes("github.com/")) {
-      return res.status(400).json({ error: "Valid GitHub Repository URL is required" });
+    if (!repoUrl || typeof repoUrl !== 'string' || !parseGithubUrl(repoUrl)) {
+      return res.status(400).json({ error: "Valid GitHub Repository URL is required (e.g. https://github.com/owner/repo)" });
     }
-    if (lang && !['ar', 'en', 'de'].includes(lang)) {
+    if (lang && !SUPPORTED_LANGUAGES.includes(lang)) {
       return res.status(400).json({ error: "Unsupported language" });
+    }
+    const safeIntent = intent || 'auto';
+    if (!SUPPORTED_INTENTS.includes(safeIntent) && safeIntent !== 'auto') {
+      return res.status(400).json({ error: "Unsupported intent" });
     }
     if (projectDescription && projectDescription.length > 200) {
       return res.status(400).json({ error: "Project description exceeds 200 characters" });
     }
-
-    const safeIntent = intent || 'auto';
 
     const ghContext = await fetchGithubContext(repoUrl);
     
@@ -70,7 +57,6 @@ router.post("/analyze", async (req, res) => {
     }
 
     const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang);
-    incrementRateLimit(ip, 'analyze');
     
     // Generate Analysis Token
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
@@ -103,14 +89,16 @@ router.post("/analyze", async (req, res) => {
 router.post("/generate", async (req, res) => {
   try {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
-    if (!checkRateLimit(ip, 'generate')) {
+    const hashedIp = hashIp(ip);
+    const allowed = await rateLimitStore.checkAndIncrement(hashedIp, 'generate', 3, 24 * 60 * 60 * 1000);
+    if (!allowed) {
       return res.status(429).json({ error: "Daily limit of 3 generations reached. Please try again tomorrow." });
     }
 
     const { repoUrl, projectDescription, analysisToken, angleId, customAngle, humanContext, lang } = req.body;
     
     // Strict Server-Side Validation
-    if (!repoUrl || typeof repoUrl !== 'string' || !repoUrl.includes("github.com/")) {
+    if (!repoUrl || typeof repoUrl !== 'string' || !parseGithubUrl(repoUrl)) {
       return res.status(400).json({ error: "Valid GitHub Repository URL is required" });
     }
     if (!analysisToken) {
@@ -139,6 +127,9 @@ router.post("/generate", async (req, res) => {
     if (tokenPayload.repository !== canonicalRepo) {
       return res.status(403).json({ error: "Token does not match the requested repository." });
     }
+    if (lang && tokenPayload.lang !== lang) {
+      return res.status(403).json({ error: "Language mismatch. Token was created for a different language." });
+    }
 
     const result = await generatePostFromAngle(
       tokenPayload, 
@@ -150,14 +141,15 @@ router.post("/generate", async (req, res) => {
       lang
     );
     
-    incrementRateLimit(ip, 'generate');
-    
     res.json(result);
   } catch (error: any) {
     console.error("Demo Generate Error:", error);
     // Explicitly handle token verification errors as 401/403
-    if (error.message.includes('token') || error.message.includes('signature')) {
+    if (error.message.includes('token') || error.message.includes('signature') || error.message.includes('Missing')) {
       return res.status(403).json({ error: "Invalid or expired analysis session. Please analyze again." });
+    }
+    if (error.message.includes('Custom angle contradicts') || error.message.includes('Generated post contains a blocking claim')) {
+      return res.status(422).json({ error: error.message });
     }
     let errMsg = error.message || "Failed to generate post";
     if (typeof errMsg === 'string' && (errMsg.includes('503') || errMsg.includes('high demand'))) {
