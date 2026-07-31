@@ -218,4 +218,6 @@ export const de = {
     demoGenerateBtn: "Beitrag mit diesem Winkel schreiben",
     demoGeneratingState: "Beitrag wird formuliert...",
     demoConflictsTitle: "Hinweis zur Informationsgenauigkeit:",
+    repoFallbackName: "Repository",
+    repoFallbackDesc: "Keine Beschreibung gefunden.",
   };

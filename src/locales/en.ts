@@ -218,4 +218,6 @@ export const en = {
     demoGenerateBtn: "Write the post with this angle",
     demoGeneratingState: "Drafting the post...",
     demoConflictsTitle: "Information accuracy note:",
+    repoFallbackName: "Repository",
+    repoFallbackDesc: "No description found.",
   };

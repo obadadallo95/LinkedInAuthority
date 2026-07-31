@@ -218,5 +218,7 @@ export const ar = {
     demoGenerateBtn: "اكتب المنشور بهذه الزاوية",
     demoGeneratingState: "جاري صياغة المنشور...",
     demoConflictsTitle: "ملاحظة حول دقة المعلومات:",
+    repoFallbackName: "مستودع",
+    repoFallbackDesc: "لا يوجد وصف متاح.",
   };
 

@@ -109,11 +109,28 @@ router.post("/analyze", async (req, res) => {
       return res.json({ needsUserContext: true });
     }
 
+    const strictLangRule = `
+CRITICAL LANGUAGE RULE:
+Write all user-facing output directly and exclusively in the requested language (${lang}).
+Do not generate an English version first.
+Do not provide bilingual text in any field.
+Keep technical terms in English only when that is more natural in the requested language.
+Ensure the following fields are strictly in ${lang}:
+- title
+- angleSummary
+- audienceValue
+- adaptiveQuestion
+- conflicts (claim, safeAlternative)
+`;
+
     const languageInstruction = lang === 'ar' 
-      ? '10. ARABIC EDITORIAL PASS: Write natural, professional Arabic suitable for LinkedIn. Do NOT translate literally. Keep technical terms in English (Portfolio, Prompt, AI Agent, README, Framework, Open Source). Use "ملف أعمال" instead of "محفظة". Translate meaning and function, not words (e.g., "المطورون الذين يعتمدون على الذكاء الاصطناعي" instead of "المطورون الأصليون"). Ensure RTL reading is smooth.' 
+      ? `${strictLangRule}
+10. ARABIC EDITORIAL PASS: Apply an editorial pass before returning the result. Write natural, professional Arabic suitable for LinkedIn. Do NOT translate literally. Keep technical terms in English (Portfolio, Prompt, AI Agent, README, Framework, Open Source). Use "ملف أعمال" instead of "محفظة". Translate meaning and function, not words (e.g., "نظام مهارات منظم يتضمن قواعد واضحة يمكن تطبيقها مراراً" instead of "نظام مهارات منظم مع حكم قابل لإعادة الاستخدام", and "نظام يمكن لـ AI Agents استخدامه مباشرة" instead of "المطورون الأصليون"). Ensure RTL reading is smooth.` 
       : lang === 'de'
-      ? '10. The response (titles and descriptions) must be in natural, professional German.'
-      : '10. The response (titles and descriptions) must be in English.';
+      ? `${strictLangRule}
+10. The response must be in natural, professional German.`
+      : `${strictLangRule}
+10. The response must be in English.`;
 
     const systemPrompt = `You are LinkedIn Authority, an expert Product and Developer Advocate. 
 Your goal is to analyze GitHub repositories and suggest professional, high-impact stories (angles) that the developer can post on LinkedIn.

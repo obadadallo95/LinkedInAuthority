@@ -583,9 +583,9 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                         <div className="flex flex-col gap-1 mb-4 pb-4 border-b border-white/5">
                           <h4 className="text-white font-bold text-lg flex items-center gap-2">
                             <GithubIcon size={18} className="text-indigo-400" />
-                            {demoResult.repository?.name || 'Repository'}
+                            {demoResult.repository?.name || T.repoFallbackName}
                           </h4>
-                          <p className="text-sm text-slate-400">{demoResult.repository?.description || 'No description found.'}</p>
+                          <p className="text-sm text-slate-400">{demoResult.repository?.description || T.repoFallbackDesc}</p>
                         </div>
                         
                         <div className="space-y-4">
