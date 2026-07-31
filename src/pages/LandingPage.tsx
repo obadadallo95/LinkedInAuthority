@@ -41,6 +41,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const [customAngle, setCustomAngle] = useState('');
   
   const [humanContext, setHumanContext] = useState('');
+  const [selectedMainIntent, setSelectedMainIntent] = useState('auto');
   
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
@@ -396,6 +397,22 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                         </motion.div>
                       )}
                     </AnimatePresence>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep2Title}</label>
+                      <select 
+                        value={selectedMainIntent}
+                        onChange={(e) => setSelectedMainIntent(e.target.value)}
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors text-sm appearance-none cursor-pointer"
+                        disabled={phase === 'analyzing'}
+                      >
+                        <option value="auto">{T.demoIntentAuto || "Suggest best stories (Recommended)"}</option>
+                        <option value="project">{T.demoIntentAnnouncement || "Present project or feature"}</option>
+                        <option value="technical_decision">{T.demoIntentDecision || "Explain technical decision"}</option>
+                        <option value="challenge_lesson">{T.demoIntentLesson || "Share a challenge or lesson"}</option>
+                        <option value="progress_update">{"Share progress or update"}</option>
+                      </select>
+                    </div>
 
                     <div className="pt-4">
                       <button 

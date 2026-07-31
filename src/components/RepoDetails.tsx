@@ -17,7 +17,18 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [readme, setReadme] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(null); // For the generated post
+
+  // New Intelligence Engine State
+  const [repoPhase, setRepoPhase] = useState<'idle' | 'angles' | 'generating' | 'result'>('idle');
+  const [intent, setIntent] = useState('auto');
+  const [angles, setAngles] = useState<any[]>([]);
+  const [selectedAngleId, setSelectedAngleId] = useState('');
+  const [humanContext, setHumanContext] = useState('');
+  const [analyzeConflicts, setAnalyzeConflicts] = useState<any[]>([]);
+  const [projectDescription, setProjectDescription] = useState('');
+  const [needsContext, setNeedsContext] = useState(false);
+
   const [analyzingCommits, setAnalyzingCommits] = useState(false);
   const [commitAnalysis, setCommitAnalysis] = useState<any>(null);
   
@@ -121,78 +132,203 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
             <div className="md:col-span-2 space-y-6">
               
               <div className="bg-slate-950/50 rounded-xl p-4 border border-white/5">
-                <div className="flex justify-between items-center mb-3">
+                <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
                   <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-indigo-400" /> README
                   </h2>
-                  <button 
-                    onClick={async () => {
-                      setAnalyzing(true);
-                      try {
-                        const idToken = await user?.getIdToken();
-                        const res = await fetch("/api/analyze-repo", {
-                          method: "POST",
-                          headers: { 
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${idToken}`
-                          },
-                          body: JSON.stringify({
-                            username: settings.githubUsername,
-                            token: settings.githubToken,
-                            repo: repo,
-                            branch: selectedBranch,
-                            lang: lang
-                          })
-                        });
-                        if(res.ok) {
+                  
+                  <div className="flex gap-2 items-center">
+                    <select 
+                      value={intent}
+                      onChange={(e) => setIntent(e.target.value)}
+                      className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors text-xs appearance-none cursor-pointer"
+                      disabled={analyzing || repoPhase === 'generating'}
+                    >
+                      <option value="auto">{isAr ? "أفضل زاوية تلقائياً" : "Auto (Recommended)"}</option>
+                      <option value="project">{isAr ? "أعلن عن المشروع" : "Project / Feature"}</option>
+                      <option value="technical_decision">{isAr ? "قرار تقني" : "Technical Decision"}</option>
+                      <option value="challenge_lesson">{isAr ? "شارك درساً" : "Challenge / Lesson"}</option>
+                      <option value="progress_update">{isAr ? "تحديث أو تقدم" : "Progress Update"}</option>
+                    </select>
+
+                    <button 
+                      onClick={async () => {
+                        setAnalyzing(true);
+                        try {
+                          const idToken = await user?.getIdToken();
+                          const res = await fetch("/api/analyze-repo", {
+                            method: "POST",
+                            headers: { 
+                              "Content-Type": "application/json",
+                              "Authorization": `Bearer ${idToken}`
+                            },
+                            body: JSON.stringify({
+                              username: settings.githubUsername,
+                              token: settings.githubToken,
+                              repo: repo,
+                              projectDescription,
+                              intent,
+                              lang: lang
+                            })
+                          });
                           const data = await res.json();
-                          setAnalysisResult(data);
-                        } else {
-                          alert('Failed to analyze repository');
+                          if(res.ok) {
+                            if (data.needsUserContext) {
+                              setNeedsContext(true);
+                              setRepoPhase('idle');
+                            } else {
+                              setAngles(data.angles || []);
+                              setAnalyzeConflicts(data.conflicts || []);
+                              setRepoPhase('angles');
+                              setNeedsContext(false);
+                            }
+                          } else {
+                            alert(data.error || 'Failed to analyze repository');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error analyzing repository');
+                        } finally {
+                          setAnalyzing(false);
                         }
-                      } catch (err) {
-                        console.error(err);
-                        alert('Error analyzing repository');
-                      } finally {
-                        setAnalyzing(false);
-                      }
-                    }}
-                    disabled={analyzing}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                  >
-                    {analyzing ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحليل المستودع' : 'Analyze Repository')}
-                  </button>
+                      }}
+                      disabled={analyzing || repoPhase === 'generating' || (needsContext && !projectDescription)}
+                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {analyzing ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحليل المستودع' : 'Analyze Repository')}
+                    </button>
+                  </div>
                 </div>
                 
-                {analysisResult ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-white mb-1">Summary</h3>
-                      <p className="text-sm text-slate-400">{analysisResult.summary}</p>
+                {needsContext && repoPhase === 'idle' && (
+                  <div className="mb-4">
+                    <div className="mb-3 mt-2 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs rounded-xl">
+                      <p className="font-bold mb-1">{isAr ? "نحتاج لمزيد من السياق" : "More Context Needed"}</p>
+                      <p className="text-amber-200/80">{isAr ? "لم نجد README. صف مشروعك بجملة:" : "No README found. Describe your project:"}</p>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-white mb-1">Architecture</h3>
-                      <p className="text-sm text-slate-400">{analysisResult.architecture}</p>
+                    <textarea 
+                      value={projectDescription}
+                      onChange={(e) => setProjectDescription(e.target.value)}
+                      placeholder="..."
+                      maxLength={200}
+                      rows={2}
+                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm"
+                    />
+                  </div>
+                )}
+
+                {repoPhase === 'angles' && angles.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <h3 className="text-sm font-bold text-white mb-2">{isAr ? "اختر الزاوية المناسبة:" : "Select a Narrative Angle:"}</h3>
+                    {angles.map((angle) => (
+                      <button
+                        key={angle.id}
+                        onClick={() => setSelectedAngleId(angle.id)}
+                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                          selectedAngleId === angle.id 
+                            ? 'bg-indigo-500/20 border-indigo-500/50' 
+                            : 'bg-slate-900 border-white/5 hover:border-white/10 hover:bg-slate-800'
+                        }`}
+                      >
+                        <h5 className="font-bold text-white text-sm">{angle.title}</h5>
+                        <p className="text-xs text-slate-400 mt-1">{angle.summary}</p>
+                      </button>
+                    ))}
+                    
+                    {selectedAngleId && angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && (
+                      <div className="mt-3">
+                        <label className="text-xs text-slate-400 mb-1 block">
+                          {angles.find(a => a.id === selectedAngleId)?.adaptiveQuestion}
+                        </label>
+                        <textarea 
+                          value={humanContext}
+                          onChange={(e) => setHumanContext(e.target.value)}
+                          placeholder="..."
+                          rows={2}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none text-sm"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex justify-end mt-4">
+                      <button 
+                        onClick={async () => {
+                          const angle = angles.find(a => a.id === selectedAngleId);
+                          if (!angle) return;
+                          
+                          setRepoPhase('generating');
+                          try {
+                            const idToken = await user?.getIdToken();
+                            const res = await fetch("/api/generate-post", {
+                              method: "POST",
+                              headers: { 
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${idToken}`
+                              },
+                              body: JSON.stringify({
+                                username: settings.githubUsername,
+                                token: settings.githubToken,
+                                repo: repo,
+                                projectDescription,
+                                angleId: angle.id,
+                                humanContext,
+                                lang
+                              })
+                            });
+                            
+                            const data = await res.json();
+                            if(res.ok) {
+                              setAnalysisResult(data);
+                              setRepoPhase('result');
+                            } else {
+                              alert(data.error || 'Failed to generate post');
+                              setRepoPhase('angles');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('Error generating post');
+                            setRepoPhase('angles');
+                          }
+                        }}
+                        disabled={!selectedAngleId || (angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && !humanContext)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                      >
+                        {isAr ? 'اكتب المنشور' : 'Generate Post'}
+                      </button>
                     </div>
+                  </div>
+                )}
+                
+                {repoPhase === 'generating' && (
+                  <div className="py-8 flex justify-center flex-col items-center gap-3">
+                    <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
+                    <p className="text-sm text-slate-400">{isAr ? "جاري صياغة المنشور..." : "Generating Post..."}</p>
+                  </div>
+                )}
+
+                {repoPhase === 'result' && analysisResult ? (
+                  <div className="space-y-4 mt-4">
                     <div>
-                      <h3 className="text-sm font-bold text-white mb-1">Tech Stack</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {analysisResult.techStack?.map((tech: string, i: number) => (
-                          <span key={i} className="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-md border border-indigo-500/20">
-                            {tech}
-                          </span>
-                        ))}
+                      <h3 className="text-sm font-bold text-white mb-2">{isAr ? 'مسودة المنشور' : 'Draft Content'}</h3>
+                      <div className="bg-slate-900 p-4 rounded-xl border border-white/10 text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                        {analysisResult.post}
                       </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-white mb-1">Draft Content</h3>
-                      <div className="bg-slate-900 p-3 rounded-lg border border-white/10 text-sm text-slate-300 whitespace-pre-wrap">
-                        {analysisResult.potentialContent}
+                    {analysisResult.evidence?.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{isAr ? 'الأدلة المستخدمة' : 'Used Evidence'}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {analysisResult.evidence.map((ev: any, i: number) => (
+                            <span key={i} className="px-2 py-1 bg-slate-800 text-slate-300 text-[10px] rounded border border-white/5 truncate max-w-xs">
+                              {ev.fact}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="pt-2 flex justify-end">
                       <button 
-                        onClick={() => saveToFirestore('repo_analysis', analysisResult, setSavingAnalysis)}
+                        onClick={() => saveToFirestore('repo_analysis', { title: angles.find(a => a.id === selectedAngleId)?.title, post: analysisResult.post, evidence: analysisResult.evidence }, setSavingAnalysis)}
                         disabled={savingAnalysis}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
                       >
@@ -201,11 +337,11 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  <div className="prose prose-invert prose-sm max-w-none text-slate-400 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                ) : repoPhase === 'idle' && !needsContext ? (
+                  <div className="prose prose-invert prose-sm max-w-none text-slate-400 max-h-64 overflow-y-auto custom-scrollbar pr-2 mt-4">
                     <pre className="whitespace-pre-wrap font-sans text-xs">{readme || 'No README found.'}</pre>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 

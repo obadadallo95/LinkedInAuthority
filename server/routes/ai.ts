@@ -1,168 +1,57 @@
 import { Router } from "express";
-import { GoogleGenAI, Type } from "@google/genai";
-import fetch from "node-fetch";
+import { getGeminiClient } from "../services/repositoryIntelligence/gemini";
+import { fetchGithubContext } from "../services/github";
+import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
+import { Type } from "@google/genai";
 
 const router = Router();
 
-// Lazy-initialized Gemini Client to prevent crash on startup if key is missing
-let aiClient: GoogleGenAI | null = null;
-export function getGeminiClient(): GoogleGenAI | null {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("WARNING: GEMINI_API_KEY environment variable is missing.");
-      return null;
-    }
-    aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
-  }
-  return aiClient;
-}
-
-// Technical Project Analysis Endpoint
+// Endpoint for registered users to analyze a repo and get angles
 router.post("/analyze-repo", async (req: any, res: any) => {
-  const { username, token, repo, branch, lang } = req.body;
-  if (!repo) {
-    return res.status(400).json({ error: "Missing repository name parameter" });
+  const { username, token, repo, projectDescription, lang, intent = 'auto' } = req.body;
+  
+  if (!username || !repo) {
+    return res.status(400).json({ error: "Missing repository information" });
   }
 
-  let readmeContent = "";
-  let repoDescription = "";
-  let packageJsonContent = "";
-  let fileTreeContent = "";
-
-  if (username) {
-    try {
-      const headers: { [key: string]: string } = {
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "Tech-Doc-Generator"
-      };
-      if (token) {
-        headers["Authorization"] = `token ${token}`;
-      }
-
-      // 1. Fetch repo metadata
-      const repoRes = await fetch(`https://api.github.com/repos/${username}/${repo}`, { headers });
-      if (repoRes.ok) {
-        const repoData: any = await repoRes.json();
-        repoDescription = repoData.description || "";
-      }
-
-      // 2. Fetch README content
-      const readmeRes = await fetch(`https://api.github.com/repos/${username}/${repo}/readme${branch ? `?ref=${branch}` : ''}`, { headers });
-      if (readmeRes.ok) {
-        const readmeData: any = await readmeRes.json();
-        if (readmeData.content && readmeData.encoding === "base64") {
-          readmeContent = Buffer.from(readmeData.content, "base64").toString("utf8");
-        }
-      }
-
-      // 3. Fetch package.json content for tech stack
-      const pkgRes = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/package.json${branch ? `?ref=${branch}` : ''}`, { headers });
-      if (pkgRes.ok) {
-        const pkgData: any = await pkgRes.json();
-        if (pkgData.content && pkgData.encoding === "base64") {
-          try {
-            const pkgJson = JSON.parse(Buffer.from(pkgData.content, "base64").toString("utf8"));
-            packageJsonContent = JSON.stringify({
-              dependencies: pkgJson.dependencies || {},
-              devDependencies: pkgJson.devDependencies || {}
-            });
-          } catch(e) {}
-        }
-      }
-
-      // 4. Fetch file tree
-      const treeRes = await fetch(`https://api.github.com/repos/${username}/${repo}/git/trees/${branch || 'main'}?recursive=1`, { headers });
-      if (treeRes.ok) {
-        const treeData: any = await treeRes.json();
-        if (treeData.tree) {
-          // Keep only file paths, limit to 500 files to avoid massive prompts
-          const paths = treeData.tree.filter((t: any) => t.type === 'blob').map((t: any) => t.path).slice(0, 500);
-          fileTreeContent = paths.join('\n');
-        }
-      }
-    } catch (err) {
-      console.error("GitHub API error:", err);
-    }
-  }
-
-  if (!readmeContent && !repoDescription && !fileTreeContent) {
-    return res.status(400).json({ error: "Could not fetch repository data. Ensure the repository exists and the GitHub token has the correct permissions." });
-  }
-
-  const client = getGeminiClient();
-  if (!client) {
-    return res.status(500).json({ error: "Gemini API client is not configured. Please add GEMINI_API_KEY in the settings." });
-  }
-
-  const systemInstruction = `You are an elite Software Architect and Technical Writer.
-Your job is to read the codebase info (README, description, file tree, and package.json dependencies) of a developer's GitHub repository and generate a comprehensive technical analysis.
-You must output a JSON object with the following fields:
-- summary: A clear, concise overview of what the project does and its main value proposition (1-2 paragraphs).
-- techStack: An array of strings listing the core technologies, frameworks, and languages used.
-- architecture: A description of the likely architecture, patterns, and structure of the project based on the file tree and dependencies.
-- potentialContent: A draft of a technical update or blog post introducing this project, ready for the developer to edit and share.
-
-Provide the text in the requested language: '${lang}'. If 'ar', write in fluent, professional Arabic. If 'de', write in professional German. Otherwise, use English.`;
-
-  const prompt = `Analyze the repository '${repo}'.
-Repository Description: ${repoDescription}
-Tech Stack (package.json): ${packageJsonContent || 'Not available'}
-File Tree:
-${fileTreeContent.slice(0, 10000) || 'Not available'}
-
-README Content:
-${readmeContent.slice(0, 6000)}
-
-Respond strictly with the required JSON structure.`;
-
-  let responseText = "";
   try {
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING },
-            techStack: { type: Type.ARRAY, items: { type: Type.STRING } },
-            architecture: { type: Type.STRING },
-            potentialContent: { type: Type.STRING }
-          },
-          required: ["summary", "techStack", "architecture", "potentialContent"]
-        }
-      }
-    });
-    responseText = response.text || "";
-  } catch (e: any) {
-    console.error("Gemini model failed:", e.message || e);
-    return res.status(500).json({ error: "Failed to generate analysis from AI." });
-  }
-
-  if (responseText) {
-    try {
-      const parsed = JSON.parse(responseText);
-      return res.json(parsed);
-    } catch (parseErr: any) {
-      console.error("Failed to parse response text from Gemini:", parseErr.message || parseErr);
-      return res.status(500).json({ error: "Failed to parse AI response." });
+    const repoUrl = `https://github.com/${username}/${repo}`;
+    // Pass the user's Github token if available
+    const ghContext = await fetchGithubContext(repoUrl, token);
+    
+    if (ghContext.hasWeakRepo && !projectDescription) {
+      return res.json({ needsUserContext: true });
     }
-  }
 
-  return res.status(500).json({ error: "Empty AI response." });
+    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, intent, lang);
+    res.json(result);
+  } catch (err: any) {
+    console.error("AI Analyze Error:", err);
+    res.status(500).json({ error: err.message || "Failed to analyze repository" });
+  }
 });
 
-// Review Engine: Analyze Commits Endpoint
+// Endpoint for registered users to generate a post from an angle
+router.post("/generate-post", async (req: any, res: any) => {
+  const { username, token, repo, projectDescription, angleId, humanContext, lang } = req.body;
+  
+  if (!username || !repo || !angleId) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const repoUrl = `https://github.com/${username}/${repo}`;
+    const ghContext = await fetchGithubContext(repoUrl, token);
+    
+    const result = await generatePostFromAngle(repoUrl, ghContext, projectDescription, angleId, humanContext, lang);
+    res.json(result);
+  } catch (err: any) {
+    console.error("AI Generate Error:", err);
+    res.status(500).json({ error: err.message || "Failed to generate post" });
+  }
+});
+
+// Review Engine: Analyze Commits Endpoint (Kept as is for now, as it serves a different purpose)
 router.post("/analyze-commits", async (req: any, res: any) => {
   const { commits, repo, lang } = req.body;
   if (!commits || !Array.isArray(commits)) {
@@ -190,7 +79,7 @@ Respond strictly with the required JSON structure.`;
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         systemInstruction,
@@ -218,7 +107,7 @@ Respond strictly with the required JSON structure.`;
   return res.status(500).json({ error: "Empty AI response." });
 });
 
-// Hashtag Optimization Endpoint
+// Hashtag Optimization Endpoint (Kept as is)
 router.post("/generate-hashtags", async (req: any, res: any) => {
   const { text, lang } = req.body;
   if (!text) {
@@ -227,7 +116,6 @@ router.post("/generate-hashtags", async (req: any, res: any) => {
 
   const client = getGeminiClient();
   if (!client) {
-    // Safe high-quality fallback hashtags
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
 
@@ -238,7 +126,7 @@ Return ONLY a JSON array of strings, where each string is a hashtag starting wit
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         systemInstruction,

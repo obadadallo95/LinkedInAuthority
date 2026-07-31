@@ -39,7 +39,7 @@ export const fetchWithTimeout = async (url: string, options: RequestInit, timeou
   }
 };
 
-export async function fetchGithubContext(repoUrl: string): Promise<GithubContext> {
+export async function fetchGithubContext(repoUrl: string, token?: string): Promise<GithubContext> {
   const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) {
     throw new Error("Invalid GitHub URL format");
@@ -51,7 +51,9 @@ export async function fetchGithubContext(repoUrl: string): Promise<GithubContext
   const headers: Record<string, string> = {
     "Accept": "application/vnd.github.v3+json"
   };
-  if (process.env.GITHUB_TOKEN) {
+  if (token) {
+    headers["Authorization"] = `token ${token}`;
+  } else if (process.env.GITHUB_TOKEN) {
     headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
   }
 
