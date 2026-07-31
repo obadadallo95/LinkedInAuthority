@@ -26,7 +26,7 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
 
 type DemoPhase = 'idle' | 'analyzing' | 'needs_context' | 'angles' | 'adaptive_question' | 'generating' | 'result';
 
-export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: () => void }) => {
+export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: (target?: 'en' | 'ar' | 'de') => void }) => {
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   
@@ -104,7 +104,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       const res = await fetch("/api/demo/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl: demoUrl, projectDescription: projectDescription.slice(0, 200) })
+        body: JSON.stringify({ repoUrl: demoUrl, projectDescription: projectDescription.slice(0, 200), lang })
       });
       
       const data = await res.json();
@@ -226,12 +226,30 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Beautiful Segmented Language Switcher */}
+          <div className="hidden sm:flex bg-slate-900/50 p-1 rounded-xl border border-white/5 backdrop-blur-md items-center shadow-inner">
+            {(['en', 'ar', 'de'] as const).map(l => (
+              <button 
+                key={l}
+                onClick={() => onToggleLang(l)}
+                className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-300 uppercase tracking-wider ${
+                  lang === l 
+                    ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]' 
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          
+          {/* Mobile compact language switcher */}
           <button 
-            onClick={onToggleLang} 
-            className="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5"
+            onClick={() => onToggleLang()} 
+            className="sm:hidden text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5"
           >
             <Globe size={15} />
-            {lang === 'ar' ? 'English' : lang === 'en' ? 'Deutsch' : 'العربية'}
+            <span className="uppercase text-[11px] font-bold">{lang}</span>
           </button>
 
           {view === 'landing' ? (
