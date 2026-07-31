@@ -101,7 +101,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     setDemoResult(null);
 
     try {
-      const res = await fetch("/api/demo-analyze", {
+      const res = await fetch("/api/demo/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repoUrl: demoUrl, projectDescription: projectDescription.slice(0, 200) })
@@ -179,7 +179,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         lang
       };
 
-      const res = await fetch("/api/demo-generate", {
+      const res = await fetch("/api/demo/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

@@ -52,8 +52,8 @@ async function startServer() {
     legacyHeaders: false,
   });
 
-  // Public unauthenticated demo route (rate-limited to 3/day per IP)
-  app.use("/api/demo-analyze", demoLimiter, demoRoutes);
+  // Public unauthenticated demo routes (rate-limited to 3/day per IP)
+  app.use("/api/demo", demoLimiter, demoRoutes);
 
   // Health check endpoint (unauthenticated)
   app.get("/api/health", (req, res) => {
