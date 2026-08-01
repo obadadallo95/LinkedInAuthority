@@ -20,7 +20,7 @@ async function runTests() {
     try {
       console.log("[1/4] Fetching GitHub Context...");
       const ghContext = await fetchGithubContext(repoUrl, process.env.GITHUB_TOKEN);
-      console.log(`✓ Fetched ${ghContext.commits.length} commits and README (${ghContext.readme.length} chars)`);
+      console.log(`✓ Fetched context and README (${ghContext.readmeText?.length || 0} chars)`);
       
       console.log("\n[2/4] Analyzing Repository Angles...");
       const analysisResult = await analyzeRepositoryAngles(
@@ -38,7 +38,7 @@ async function runTests() {
       
       analysisResult.angles?.forEach((angle: any, i: number) => {
         console.log(`\n  Angle ${i+1}: ${angle.title}`);
-        console.log(`  Summary: ${angle.summary}`);
+        console.log(`  Summary: ${angle.angleSummary}`);
         console.log(`  Requires Context: ${angle.requiresHumanContext}`);
       });
       
@@ -52,11 +52,26 @@ async function runTests() {
       console.log(`\n[3/4] Generating Post for Angle: ${selectedAngle.title}...`);
       const humanContext = selectedAngle.requiresHumanContext ? "We focused on performance." : "";
       
+      const tokenPayload = {
+        version: 1,
+        repository: repoUrl,
+        lang: "en",
+        intent: "auto",
+        angles: analysisResult.angles,
+        atomicFacts: analysisResult.atomicFacts,
+        conflicts: analysisResult.conflicts,
+        audience: "demo",
+        userId: "testUser",
+        issuedAt: Date.now(),
+        expiresAt: Date.now() + 3600000
+      };
+
       const generateResult = await generatePostFromAngle(
-        repoUrl,
+        tokenPayload as any,
         ghContext,
         "",
         selectedAngle.id,
+        undefined,
         humanContext,
         "en"
       );

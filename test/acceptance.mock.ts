@@ -1,24 +1,18 @@
 import { analyzeRepositoryAngles, generatePostFromAngle } from '../server/services/repositoryIntelligence/index.js';
 import * as geminiModule from '../server/services/repositoryIntelligence/gemini.js';
-import { analysisCache } from '../server/services/repositoryIntelligence/cache.js';
+import { AnalysisTokenPayload } from '../server/services/repositoryIntelligence/types.js';
 
 // Mock Gemini Client
 const mockGenerateContent = async (req: any) => {
   const reqStr = JSON.stringify(req);
-  if (reqStr.includes('Extract maximum 5 unique Atomic Facts')) {
-    return { response: { text: () => JSON.stringify({ facts: [{ fact: "Mock fact", confidence: "high", source: "readme" }] }) } };
-  }
-  if (reqStr.includes('Group the following Atomic Facts')) {
-    return { response: { text: () => JSON.stringify({ clusters: [{ theme: "Mock theme", facts: ["Mock fact"] }] }) } };
-  }
-  if (reqStr.includes('Generate candidate narrative angles')) {
-    return { response: { text: () => JSON.stringify({ angles: [{ id: "angle1", title: "Mock Angle", summary: "Mock Summary", intentMatch: "auto", professionalValue: "high", requiresHumanContext: true, adaptiveQuestion: "Why?" }] }) } };
-  }
-  if (reqStr.includes('Identify any exaggerated')) {
-    return { response: { text: () => JSON.stringify({ conflicts: [] }) } };
+  if (reqStr.includes('Perform your reasoning steps')) {
+    return { response: { text: () => JSON.stringify({ 
+      atomicFacts: [{ id: "f1", fact: "Mock fact", source: "readme" }],
+      finalAngles: [{ id: "angle1", title: "Mock Angle", angleSummary: "Mock Summary", intent: "auto", audienceValue: "high", requiresHumanContext: true }] 
+    }) } };
   }
   if (reqStr.includes('Generate a LinkedIn post')) {
-    return { response: { text: () => JSON.stringify({ post: "This is a mock post." }) } };
+    return { response: { text: () => JSON.stringify({ post: "This is a mock post.", usedEvidenceIds: ["f1"] }) } };
   }
   return { response: { text: () => "{}" } };
 };
@@ -35,7 +29,7 @@ async function runTests() {
   const mockGhContext = {
     owner: "test",
     repo: "test-repo",
-    repoData: { name: "test-repo", description: "A test" },
+    repoData: { name: "test-repo", description: "A test", owner: { login: "test" } },
     languages: { TypeScript: 100 },
     readmeText: "Mock Readme",
     manifestData: "",
@@ -63,12 +57,25 @@ async function runTests() {
     const selectedAngle = analysisResult.angles[0];
     console.log(`\n[2/3] Generating Post for Angle: ${selectedAngle.title}...`);
     
-    // The angle is cached in analysisCache
+    const tokenPayload: AnalysisTokenPayload = {
+      version: 1,
+      repository: "https://github.com/test/test-repo",
+      lang: "en",
+      intent: "auto",
+      angles: analysisResult.angles,
+      atomicFacts: analysisResult.atomicFacts,
+      conflicts: analysisResult.conflicts,
+      audience: "demo",
+      issuedAt: Date.now(),
+      expiresAt: Date.now() + 3600000
+    };
+
     const generateResult = await generatePostFromAngle(
-      "https://github.com/test/test-repo",
+      tokenPayload,
       mockGhContext as any,
       "",
       selectedAngle.id,
+      undefined,
       "Because testing is good.",
       "en"
     );
