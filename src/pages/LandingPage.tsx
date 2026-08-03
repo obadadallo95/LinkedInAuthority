@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Bot, Globe, Check, Sparkles, Lock, ArrowLeft,
-  User, RefreshCw, Zap, Target, AlertTriangle
+  User, RefreshCw, Zap, Target, AlertTriangle, BrainCircuit, ShieldCheck, Workflow, Activity
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -263,7 +263,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             </div>
 
             {/* DEMO SECTION */}
-            <motion.div ref={demoRef} variants={itemVariants} className="w-full max-w-4xl mb-32 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden group shadow-xl">
+            <motion.div ref={demoRef} className="w-full max-w-4xl mb-32 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden group shadow-xl">
               <div className="absolute top-0 end-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-s border-white/10 rounded-es-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
                 <Sparkles size={12} className="animate-pulse" />
                 Live Demo
@@ -549,58 +549,115 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">{T.sectionProblemText}</p>
               </div>
 
-              {/* Compare */}
-              <div>
-                <h2 className="text-3xl font-bold text-center text-white mb-12">{T.sectionCompareTitle}</h2>
-                <div className="grid md:grid-cols-2 gap-8">
-                  {/* Generic */}
-                  <div className="bg-slate-900/30 border border-red-500/20 rounded-3xl p-8">
-                    <h3 className="text-xl font-bold text-red-400 mb-6 pb-4 border-b border-white/5">{T.sectionCompareGenTitle}</h3>
-                    <ul className="space-y-4 text-slate-400">
-                      {[T.sectionCompareGen1, T.sectionCompareGen2, T.sectionCompareGen3, T.sectionCompareGen4].map((item, i) => (
-                        <li key={i} className="flex gap-3">
-                          <span className="text-red-500/50 mt-1 shrink-0">✗</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+              {/* The Bento Grid (Why Us) */}
+              <div className="pt-10">
+                <div className="text-center mb-16">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-white/[0.08] text-slate-300 text-[11px] font-semibold tracking-wider uppercase mb-6 shadow-inner">
+                    <Sparkles size={12} className="text-slate-400" />
+                    <span>The LinkedIn Authority Advantage</span>
                   </div>
-                  {/* Us */}
-                  <div className="bg-slate-900/80 backdrop-blur-sm border border-indigo-500/20 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 end-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
-                  
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <h3 className="text-xl font-bold text-indigo-400 pb-4 border-b border-white/5">{T.sectionCompareUsTitle}</h3>
+                  <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6 tracking-tight">
+                    {T.sectionCompareTitle}
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  {/* Large Card: Real Work on GitHub */}
+                  <div className="lg:col-span-8 bg-[#0a0a0a] border border-white/[0.08] rounded-[2rem] p-8 md:p-10 relative overflow-hidden group shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:border-white/[0.15] transition-colors duration-500">
+                    
+                    <div className="flex flex-col md:flex-row gap-10 relative z-10 h-full items-center">
+                      <div className="flex-1 space-y-5">
+                        <div className="w-12 h-12 bg-slate-900 border border-white/[0.08] rounded-xl flex items-center justify-center text-slate-400 mb-6 shadow-inner group-hover:text-white transition-colors duration-500">
+                          <GithubIcon size={24} />
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight tracking-tight">{T.sectionCompareUs1}</h3>
+                        <p className="text-slate-400 leading-relaxed text-base md:text-lg font-light">{T.sectionCompareUs2}</p>
+                      </div>
+
+                      {/* Visual Graphic: Abstract Data Flow */}
+                      <div className="flex-1 w-full bg-[#111] rounded-2xl border border-white/[0.05] p-6 shadow-2xl relative overflow-hidden flex items-center justify-center min-h-[220px]">
+                        {/* Grid Background */}
+                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+                        
+                        {/* Flow lines and nodes */}
+                        <div className="relative w-full h-full flex items-center justify-center">
+                           <div className="absolute w-3/4 h-[1px] bg-gradient-to-r from-transparent via-slate-600 to-transparent opacity-50"></div>
+                           <div className="absolute w-[1px] h-3/4 bg-gradient-to-b from-transparent via-slate-600 to-transparent opacity-50"></div>
+                           <div className="absolute w-40 h-40 rounded-full border border-slate-700/50 scale-[0.6]"></div>
+                           
+                           {/* Pulsing Core */}
+                           <div className="relative w-12 h-12 bg-[#0a0a0a] border border-slate-700 rounded-lg flex items-center justify-center z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+                             <div className="w-3 h-3 bg-slate-300 rounded-sm animate-pulse"></div>
+                           </div>
+
+                           {/* Satellites */}
+                           <div className="absolute top-1/4 start-1/4 w-2.5 h-2.5 bg-slate-500 rounded-full border border-[#111]"></div>
+                           <div className="absolute bottom-1/4 end-1/4 w-2.5 h-2.5 bg-slate-600 rounded-full border border-[#111]"></div>
+                        </div>
+
+                        {/* Subtle highlight gradient on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                      </div>
+                    </div>
                   </div>
-                    <ul className="space-y-4 text-slate-200">
-                      {[T.sectionCompareUs1, T.sectionCompareUs2, T.sectionCompareUs3, T.sectionCompareUs4].map((item, i) => (
-                        <li key={i} className="flex gap-3">
-                          <Check size={18} className="text-indigo-400 mt-0.5 shrink-0" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+
+                  {/* Small Vertical Cards */}
+                  <div className="lg:col-span-4 flex flex-col gap-5">
+                    <div className="flex-1 bg-[#0a0a0a] border border-white/[0.08] rounded-[2rem] p-8 relative overflow-hidden group shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:border-white/[0.15] transition-colors duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 end-0 p-6 opacity-0 -translate-y-2 translate-x-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500 text-slate-600">
+                        <ArrowRight size={20} className="rtl:rotate-180" />
+                      </div>
+                      <div className="w-10 h-10 bg-slate-900 border border-white/[0.08] rounded-lg flex items-center justify-center text-slate-400 mb-5 shadow-inner group-hover:text-white transition-colors duration-500">
+                        <BrainCircuit size={20} />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{T.sectionCompareUs3}</h3>
+                      <p className="text-sm text-slate-400 font-light leading-relaxed">The AI engine adapts to the specific narrative angle you choose.</p>
+                    </div>
+                    
+                    <div className="flex-1 bg-[#0a0a0a] border border-white/[0.08] rounded-[2rem] p-8 relative overflow-hidden group shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] hover:border-white/[0.15] transition-colors duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 end-0 p-6 opacity-0 -translate-y-2 translate-x-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500 text-slate-600">
+                        <ArrowRight size={20} className="rtl:rotate-180" />
+                      </div>
+                      <div className="w-10 h-10 bg-slate-900 border border-white/[0.08] rounded-lg flex items-center justify-center text-slate-400 mb-5 shadow-inner group-hover:text-white transition-colors duration-500">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{T.sectionCompareUs4}</h3>
+                      <p className="text-sm text-slate-400 font-light leading-relaxed">No hallucinations. Every claim is cryptographically backed by commits.</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* How it Works */}
-              <div className="text-center">
-                <h2 className="text-3xl font-bold text-white mb-12">{T.sectionHowTitle}</h2>
-                <div className="grid md:grid-cols-3 gap-8">
-                  {[
-                    { title: T.sectionHow1Title, desc: T.sectionHow1Text, icon: GithubIcon },
-                    { title: T.sectionHow2Title, desc: T.sectionHow2Text, icon: Target },
-                    { title: T.sectionHow3Title, desc: T.sectionHow3Text, icon: LinkedinIcon }
-                  ].map((step, i) => (
-                    <div key={i} className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center mb-6 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
-                        <step.icon size={28} />
+              {/* How it Works (Pipeline Flow) */}
+              <div className="pt-10">
+                <div className="text-center mb-16">
+                  <h2 className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 tracking-tight">
+                    {T.sectionHowTitle}
+                  </h2>
+                </div>
+                
+                <div className="relative max-w-5xl mx-auto bg-[#0a0a0a] border border-white/[0.08] rounded-[2rem] p-8 md:p-12 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                  {/* Connecting Line (Desktop) */}
+                  <div className="hidden md:block absolute top-[5.5rem] start-24 end-24 h-[1px] bg-gradient-to-r from-transparent via-slate-700 to-transparent opacity-60"></div>
+                  
+                  <div className="grid md:grid-cols-3 gap-12 md:gap-8 relative z-10">
+                    {[
+                      { title: T.sectionHow1Title, desc: T.sectionHow1Text, icon: GithubIcon },
+                      { title: T.sectionHow2Title, desc: T.sectionHow2Text, icon: Workflow },
+                      { title: T.sectionHow3Title, desc: T.sectionHow3Text, icon: LinkedinIcon }
+                    ].map((step, i) => (
+                      <div key={i} className="flex flex-col items-center group relative">
+                        <div className="mb-6 relative">
+                          {/* Sleek Node */}
+                          <div className="w-14 h-14 bg-[#0a0a0a] border border-slate-700 rounded-2xl flex items-center justify-center text-slate-400 relative z-10 transition-all duration-500 group-hover:border-slate-400 group-hover:text-white group-hover:-translate-y-1 group-hover:shadow-[0_8px_30px_rgba(255,255,255,0.08)] bg-[linear-gradient(110deg,#0a0a0a,45%,#1a1a1a,55%,#0a0a0a)] bg-[length:200%_100%] group-hover:animate-[shimmer_2s_infinite]">
+                            <step.icon size={22} />
+                          </div>
+                        </div>
+                        <h4 className="text-lg font-bold text-white mb-2 text-center tracking-tight">{step.title}</h4>
+                        <p className="text-slate-400 leading-relaxed text-sm text-center max-w-[240px] font-light">{step.desc}</p>
                       </div>
-                      <h4 className="text-xl font-bold text-white mb-3">{step.title}</h4>
-                      <p className="text-slate-400 leading-relaxed text-sm">{step.desc}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -610,15 +667,25 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed">{T.sectionRecapText}</p>
               </div>
 
-              {/* Final CTA */}
-              <div className="text-center pb-20">
-                <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6">{T.finalCtaTitle}</h2>
-                <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">{T.finalCtaDesc}</p>
+              {/* Final CTA (Intense Gradient) */}
+              <div className="text-center pb-20 pt-10">
+                <div className="relative inline-block">
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-[100px] rounded-full" />
+                  <h2 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 relative z-10 tracking-tight">
+                    {T.finalCtaTitle}
+                  </h2>
+                </div>
+                <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">{T.finalCtaDesc}</p>
+                
                 <button
                   onClick={scrollToDemo}
-                  className="px-10 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.6)] hover:scale-105 transition-all"
+                  className="group relative px-10 py-5 bg-white text-slate-950 font-bold text-lg rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)] hover:scale-105 transition-all overflow-hidden"
                 >
-                  {T.landingCtaPrimary}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-200/50 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 ease-in-out transition-transform"></div>
+                  <span className="relative z-10 flex items-center gap-3">
+                    {T.landingCtaPrimary}
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+                  </span>
                 </button>
               </div>
             </div>
@@ -655,7 +722,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             transition={{ duration: 0.3 }}
             className="relative z-10 min-h-[80vh] flex items-center justify-center px-6 py-12"
           >
-            <motion.div variants={itemVariants} className="bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden w-full max-w-md shadow-2xl">
+            <motion.div className="bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden w-full max-w-md shadow-2xl">
               <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
               
               <div className="flex flex-col items-center justify-center text-center py-4">
@@ -741,7 +808,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 <Check size={12} className="text-indigo-400" />
                 <span>{lang === 'ar' ? 'ربط آمن بنظام تشفير وقواعد أمان صارمة' : 'Secured with Enterprise-Grade TLS Encryption'}</span>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
