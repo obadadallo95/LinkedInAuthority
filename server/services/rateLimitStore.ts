@@ -1,13 +1,13 @@
 import { getFirestore } from 'firebase-admin/firestore';
 
 export interface RateLimitStore {
-  checkAndIncrement(key: string, type: 'analyze' | 'generate', limit: number, windowMs: number): Promise<boolean>;
+  checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean>;
 }
 
 export class MemoryRateLimitStore implements RateLimitStore {
   private limits = new Map<string, { count: number, resetAt: number }>();
 
-  async checkAndIncrement(key: string, type: 'analyze' | 'generate', limit: number, windowMs: number): Promise<boolean> {
+  async checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean> {
     const fullKey = `${key}:${type}`;
     const now = Date.now();
     let data = this.limits.get(fullKey);
@@ -27,7 +27,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
 }
 
 export class FirestoreRateLimitStore implements RateLimitStore {
-  async checkAndIncrement(key: string, type: 'analyze' | 'generate', limit: number, windowMs: number): Promise<boolean> {
+  async checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean> {
     const db = getFirestore();
     const docRef = db.collection('rate_limits').doc(`${key}_${type}`);
     

@@ -10,9 +10,10 @@ export async function generatePostFromAngle(
   angleId: string | undefined, 
   customAngle: string | undefined,
   humanContext: string, 
-  lang: string
+  lang: string,
+  tier: 'free' | 'pro' = 'free'
 ): Promise<GenerateResponse> {
-  const client = getGeminiClient();
+  const client = getGeminiClient(tier);
   if (!client) {
     throw new Error("Gemini API client is not configured.");
   }
@@ -96,7 +97,8 @@ export async function generatePostFromAngle(
     7. Return any warnings if the user's human context or custom angle contradicted facts.
   `;
 
-  const result = await callGeminiWithRetry(client, prompt, systemPrompt, generateSchema);
+  const model = tier === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const result = await callGeminiWithRetry(client, prompt, systemPrompt, generateSchema, model);
   
   // Strict Server-side Validation of used Evidence IDs
   const validIds = new Set(tokenPayload.atomicFacts.map(f => f.id));

@@ -3,6 +3,8 @@ import { getGeminiClient } from "../services/repositoryIntelligence/gemini";
 import { fetchGithubContext } from "../services/github";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
 import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
+import { performDeepScan } from "../services/deepIntelligence";
+import { generateDeepPost } from "../services/deepIntelligence/deepPostGenerator";
 import { Type } from "@google/genai";
 import { rateLimitStore } from "../services/rateLimitStore";
 
@@ -50,7 +52,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
       return res.json({ needsUserContext: true });
     }
 
-    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang);
+    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang, 'pro');
     
     // Generate Analysis Token for authenticated user
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
@@ -73,7 +75,13 @@ router.post("/analyze-repo", async (req: any, res: any) => {
     });
   } catch (err: any) {
     console.error("AI Analyze Error:", err);
-    res.status(500).json({ error: err.message || "Failed to analyze repository" });
+    let errorMessage = err.message || "Failed to analyze repository";
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = lang === 'ar' 
+        ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
+        : "AI model free tier quota exceeded. Please try again in a moment.";
+    }
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -132,18 +140,27 @@ router.post("/generate-post", async (req: any, res: any) => {
       angleId, 
       customAngle,
       humanContext, 
-      lang
+      lang,
+      'pro'
     );
     res.json(result);
   } catch (err: any) {
     console.error("AI Generate Error:", err);
-    if (err.message.includes('token') || err.message.includes('signature') || err.message.includes('Missing')) {
+    let errorMessage = err.message || "Failed to generate post";
+    
+    if (errorMessage.includes('token') || errorMessage.includes('signature') || errorMessage.includes('Missing')) {
       return res.status(403).json({ error: "Invalid or expired analysis session. Please analyze again." });
     }
-    if (err.message.includes('Custom angle contradicts') || err.message.includes('Generated post contains a blocking claim')) {
-      return res.status(422).json({ error: err.message });
+    if (errorMessage.includes('Custom angle contradicts') || errorMessage.includes('Generated post contains a blocking claim')) {
+      return res.status(422).json({ error: errorMessage });
     }
-    res.status(500).json({ error: err.message || "Failed to generate post" });
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = lang === 'ar' 
+        ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
+        : "AI model free tier quota exceeded. Please try again in a moment.";
+    }
+
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -154,7 +171,7 @@ router.post("/analyze-commits", async (req: any, res: any) => {
     return res.status(400).json({ error: "Missing or invalid commits array" });
   }
 
-  const client = getGeminiClient();
+  const client = getGeminiClient('pro');
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -210,7 +227,7 @@ router.post("/generate-hashtags", async (req: any, res: any) => {
     return res.status(400).json({ error: "Missing text parameter" });
   }
 
-  const client = getGeminiClient();
+  const client = getGeminiClient('pro');
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -250,6 +267,60 @@ Return ONLY a JSON array of strings, where each string is a hashtag starting wit
   } catch (err: any) {
     console.error("Hashtag generation error:", err);
     return res.status(500).json({ error: "Failed to generate hashtags." });
+  }
+});
+
+// Deep Scan Endpoint (Beta)
+router.post("/deep-scan", async (req: any, res: any) => {
+  const { username, repo, token, lang } = req.body;
+
+  if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
+    return res.status(400).json({ error: "Missing or invalid repository information" });
+  }
+
+  const requestedLang = lang && SUPPORTED_LANGUAGES.includes(lang) ? lang : 'en';
+
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+    // Assuming Deep Scan is a premium/heavy feature, lower rate limit
+    const allowed = await rateLimitStore.checkAndIncrement(uid, 'deep-scan', 20, 60 * 60 * 1000); 
+    if (!allowed) {
+      return res.status(429).json({ error: "Hourly limit of 20 deep scans reached." });
+    }
+
+    const repoUrl = `https://github.com/${username}/${repo}`;
+
+    // 1. Fetch & Synthesize Deep Context
+    const scanResult = await performDeepScan(repoUrl, token);
+
+    // 2. Generate Final Post
+    const finalPost = await generateDeepPost(scanResult.synthesizedContext, repoUrl, requestedLang);
+
+    return res.json({
+      success: true,
+      repository: {
+        owner: scanResult.githubContext.owner,
+        name: scanResult.githubContext.repo,
+      },
+      synthesizedContext: scanResult.synthesizedContext,
+      post: finalPost.post,
+      suggestedComment: finalPost.suggestedComment
+    });
+
+  } catch (error: any) {
+    console.error("Deep scan failed:", error);
+    let errorMessage = error.message || "Failed to perform deep scan.";
+    
+    // Check if it's a Gemini API quota error
+    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      errorMessage = requestedLang === 'ar' 
+        ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
+        : "AI model free tier quota exceeded. Please try again in a moment.";
+    }
+
+    return res.status(500).json({ error: errorMessage });
   }
 });
 

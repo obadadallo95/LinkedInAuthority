@@ -56,7 +56,7 @@ router.post("/analyze", async (req, res) => {
       return res.json({ needsUserContext: true });
     }
 
-    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang);
+    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang, 'free');
     
     // Generate Analysis Token
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
@@ -138,7 +138,8 @@ router.post("/generate", async (req, res) => {
       angleId, 
       customAngle,
       humanContext, 
-      lang
+      lang,
+      'free'
     );
     
     res.json(result);

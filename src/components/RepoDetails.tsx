@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy } from 'lucide-react';
+import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap } from 'lucide-react';
 import { fetchReadme } from '../services/githubService';
 import { useAuth } from '../application/AuthContext';
 import { firestoreService, DraftData } from '../services/firestoreService';
+import { DeepScanLoader } from './DeepScan/DeepScanLoader';
 
 export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null); // For the generated post
 
   // New Intelligence Engine State
-  const [repoPhase, setRepoPhase] = useState<'idle' | 'angles' | 'generating' | 'result'>('idle');
+  const [repoPhase, setRepoPhase] = useState<'idle' | 'angles' | 'generating' | 'deep_scanning' | 'result'>('idle');
   const [intent, setIntent] = useState('auto');
   const [angles, setAngles] = useState<any[]>([]);
   const [selectedAngleId, setSelectedAngleId] = useState('');
@@ -155,6 +156,53 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                     <button 
                       onClick={async () => {
                         setAnalyzing(true);
+                        setRepoPhase('deep_scanning');
+                        try {
+                          const idToken = await user?.getIdToken();
+                          const res = await fetch("/api/deep-scan", {
+                            method: "POST",
+                            headers: { 
+                              "Content-Type": "application/json",
+                              "Authorization": `Bearer ${idToken}`
+                            },
+                            body: JSON.stringify({
+                              username: owner,
+                              token: settings.githubToken,
+                              repo: repo,
+                              lang: lang
+                            })
+                          });
+                          const data = await res.json();
+                          if(res.ok) {
+                            setAnalysisResult({
+                              post: data.post,
+                              suggestedComment: data.suggestedComment,
+                              synthesizedContext: data.synthesizedContext,
+                              repository: data.repository
+                            });
+                            setRepoPhase('result');
+                          } else {
+                            alert(data.error || 'Failed to perform deep scan');
+                            setRepoPhase('idle');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error performing deep scan');
+                          setRepoPhase('idle');
+                        } finally {
+                          setAnalyzing(false);
+                        }
+                      }}
+                      disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
+                      className="flex items-center gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] disabled:opacity-50 whitespace-nowrap"
+                    >
+                      <Zap className="w-4 h-4" />
+                      {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
+                    </button>
+
+                    <button 
+                      onClick={async () => {
+                        setAnalyzing(true);
                         try {
                           const idToken = await user?.getIdToken();
                           const res = await fetch("/api/analyze-repo", {
@@ -199,10 +247,10 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                           setAnalyzing(false);
                         }
                       }}
-                      disabled={analyzing || repoPhase === 'generating' || (needsContext && !projectDescription)}
-                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
+                      disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
+                      className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
                     >
-                      {analyzing ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحليل المستودع' : 'Analyze Repository')}
+                      {analyzing && repoPhase !== 'deep_scanning' ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحليل المستودع' : 'Analyze Repository')}
                     </button>
                   </div>
                 </div>
@@ -327,6 +375,10 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                   </div>
                 )}
 
+                {repoPhase === 'deep_scanning' && (
+                  <DeepScanLoader repoName={`${owner}/${repo}`} isAr={isAr} />
+                )}
+
                 {repoPhase === 'result' && analysisResult ? (
                   <div className="space-y-4 mt-4">
                     <div>
@@ -369,13 +421,24 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                     </div>
                     {analysisResult.evidence?.length > 0 && (
                       <div>
-                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{isAr ? 'الأدلة المستخدمة' : 'Used Evidence'}</h3>
+                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{isAr ? 'الأدلة المستخرجة' : 'Extracted Evidence'}</h3>
                         <div className="flex flex-wrap gap-2">
                           {analysisResult.evidence.map((ev: any, i: number) => (
                             <span key={i} className="px-2 py-1 bg-slate-800 text-slate-300 text-[10px] rounded border border-white/5 truncate max-w-xs">
                               {ev.fact}
                             </span>
                           ))}
+                        </div>
+                      </div>
+                    )}
+                    {analysisResult.synthesizedContext && (
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
+                          <Zap className="w-3 h-3 inline-block mr-1 text-purple-400" />
+                          {isAr ? 'ملخص الاستكشاف العميق' : 'Deep Scan Synthesis'}
+                        </h3>
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-purple-500/20 text-xs text-slate-400 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                          {analysisResult.synthesizedContext}
                         </div>
                       </div>
                     )}

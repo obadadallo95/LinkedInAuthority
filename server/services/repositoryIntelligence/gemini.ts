@@ -1,31 +1,53 @@
 import { GoogleGenAI, Schema } from "@google/genai";
 
-let ai: GoogleGenAI | null = null;
+let freeAi: GoogleGenAI | null = null;
+let proAi: GoogleGenAI | null = null;
 
-export function getGeminiClient(): GoogleGenAI | null {
-  if (!ai) {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (geminiApiKey) {
-      ai = new GoogleGenAI({ 
-        apiKey: geminiApiKey,
-        httpOptions: {
-          headers: {
-            "User-Agent": "aistudio-build",
+export function getGeminiClient(tier: 'free' | 'pro' = 'free'): GoogleGenAI | null {
+  if (tier === 'pro') {
+    if (!proAi) {
+      // Use GEMINI_PRO_API_KEY if available, fallback to GEMINI_API_KEY
+      const proKey = process.env.GEMINI_PRO_API_KEY || process.env.GEMINI_API_KEY;
+      if (proKey) {
+        if (!process.env.GEMINI_PRO_API_KEY) {
+          console.warn("GEMINI_PRO_API_KEY is not set. Falling back to GEMINI_API_KEY for pro tier.");
+        }
+        proAi = new GoogleGenAI({ 
+          apiKey: proKey,
+          httpOptions: {
+            headers: {
+              "User-Agent": "aistudio-build",
+            },
           },
-        },
-      });
+        });
+      }
     }
+    return proAi;
+  } else {
+    if (!freeAi) {
+      const freeKey = process.env.GEMINI_API_KEY;
+      if (freeKey) {
+        freeAi = new GoogleGenAI({ 
+          apiKey: freeKey,
+          httpOptions: {
+            headers: {
+              "User-Agent": "aistudio-build",
+            },
+          },
+        });
+      }
+    }
+    return freeAi;
   }
-  return ai;
 }
 
-export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, systemInstruction: string, schema: Schema) {
+export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, systemInstruction: string, schema: Schema, model: string = "gemini-2.5-flash") {
   let response;
   let retries = 2;
   while (retries >= 0) {
     try {
       response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: model,
         contents: prompt,
         config: {
           systemInstruction,

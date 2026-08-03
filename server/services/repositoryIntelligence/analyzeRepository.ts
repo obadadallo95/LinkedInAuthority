@@ -8,9 +8,10 @@ export async function analyzeRepositoryAngles(
   ghContext: any, 
   projectDescription: string, 
   intent: string, 
-  lang: string
+  lang: string,
+  tier: 'free' | 'pro' = 'free'
 ): Promise<{ repository: any, angles: CandidateAngle[], atomicFacts: Evidence[], conflicts: ClaimConflict[] }> {
-  const client = getGeminiClient();
+  const client = getGeminiClient(tier);
   if (!client) {
     throw new Error("Gemini API client is not configured.");
   }
@@ -40,7 +41,8 @@ export async function analyzeRepositoryAngles(
     5. Output the finalAngles.
   `;
 
-  const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema);
+  const model = tier === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema, model);
   
   return {
     repository: {
