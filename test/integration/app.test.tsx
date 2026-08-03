@@ -195,7 +195,7 @@ describe('LinkedIn Authority - End-to-End Integration', () => {
 
     // Should now be on the Dashboard/App (which fetches repos)
     // We haven't mocked the repos fetch, but SettingsProvider/PostsProvider should render Dashboard Layout.
-    // Dashboard Layout has "GitHub Repositories" or similar.
-    expect(await screen.findByText(/GitHub Repositories/i)).toBeInTheDocument();
+    // Dashboard Layout has "Search repositories..." or similar.
+    expect(await screen.findByPlaceholderText(/Search repositories/i)).toBeInTheDocument();
   });
 });

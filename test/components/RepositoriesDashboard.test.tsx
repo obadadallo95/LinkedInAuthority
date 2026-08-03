@@ -66,6 +66,6 @@ describe('RepositoriesDashboard', () => {
   it('shows please connect message if no githubUsername is provided and not demo mode', () => {
     const props = { ...mockProps, settings: {} };
     render(<MemoryRouter><RepositoriesDashboard {...props} /></MemoryRouter>);
-    expect(screen.getByText(/Please connect your GitHub account/i)).toBeInTheDocument();
+    expect(screen.getByText(/Connect your account to browse real repositories/i)).toBeInTheDocument();
   });
 });
