@@ -80,7 +80,8 @@ CRITICAL LINKEDIN ALGORITHM RULES:
 2. FIRST COMMENT RULE: You MUST end the post by telling the audience to find the link in the first comment (e.g., "الرابط في التعليق الأول 👇" or "Link in the first comment 👇").
 3. WHITE SPACE: Use single-sentence paragraphs. Leave an empty line between every block. Highly scannable.
 4. TONE: Human, conversational, and sharp. ZERO AI clichés ("يسرني", "متحمس", "في عالمنا").
-5. HASHTAGS: You MUST include 3 to 5 highly relevant technical hashtags at the very bottom of the post (e.g., #TechStack #ProblemSolved). Do not overdo it. Place them just before or just after the "Link in first comment" text.`;
+5. HASHTAGS: You MUST include 3 to 5 highly relevant technical hashtags at the very bottom of the post (e.g., #TechStack #ProblemSolved). Do not overdo it. Place them just before or just after the "Link in first comment" text.
+6. SUGGESTED COMMENT: You MUST generate a "suggestedComment" if there are any links (repository URL, App Store, Mac Store, live demo, etc.) available in the context. This comment should be a short, friendly message containing these links, ready to be pasted as the first comment.`;
 }
 
 export function getGenerateLanguageInstruction(lang: string): string {

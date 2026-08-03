@@ -88,6 +88,7 @@ export const generateSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     post: { type: Type.STRING, description: "The generated LinkedIn post" },
+    suggestedComment: { type: Type.STRING, description: "A suggested comment containing relevant links (e.g., repository URL, App Store links) to be posted along with the main post." },
     usedEvidenceIds: { 
       type: Type.ARRAY, 
       items: { type: Type.STRING },

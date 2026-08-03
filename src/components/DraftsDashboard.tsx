@@ -92,16 +92,18 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
     }
   };
 
-  const handleCopy = (content: string, id: string) => {
-    let textToCopy = content;
+  const handleCopy = async (content: string, id: string) => {
     try {
         const parsed = JSON.parse(content);
-        textToCopy = parsed.post || parsed.potentialContent || parsed.changelog || content;
+        let textToCopy = parsed.post || parsed.potentialContent || parsed.changelog || content;
+        if (parsed.suggestedComment) {
+            textToCopy += `\n\n--- Suggested Comment ---\n${parsed.suggestedComment}`;
+        }
+        await navigator.clipboard.writeText(textToCopy);
     } catch {
-        // Not JSON
+        navigator.clipboard.writeText(content);
     }
     
-    navigator.clipboard.writeText(textToCopy);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -109,7 +111,11 @@ export const DraftsDashboard = ({ lang }: { lang: 'ar' | 'en' | 'de' }) => {
   const getDisplayText = (content: string) => {
       try {
           const parsed = JSON.parse(content);
-          return parsed.post || parsed.potentialContent || parsed.changelog || content;
+          let text = parsed.post || parsed.potentialContent || parsed.changelog || content;
+          if (parsed.suggestedComment) {
+              text += `\n\n--- Suggested Comment ---\n${parsed.suggestedComment}`;
+          }
+          return text;
       } catch {
           return content;
       }

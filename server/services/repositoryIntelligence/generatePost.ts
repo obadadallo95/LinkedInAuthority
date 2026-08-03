@@ -62,6 +62,8 @@ export async function generatePostFromAngle(
 
   const prompt = `
     Repository: ${ghContext.repoData.name}
+    URL: ${ghContext.repoData.html_url || "None"}
+    Homepage: ${ghContext.repoData.homepage || "None"}
     Description: ${ghContext.repoData.description || "None"}
     Languages: ${Object.keys(ghContext.languages).join(", ")}
     
@@ -119,6 +121,7 @@ export async function generatePostFromAngle(
 
   return {
     post: result.post,
+    suggestedComment: result.suggestedComment,
     evidence,
     usedEvidenceIds,
     warnings

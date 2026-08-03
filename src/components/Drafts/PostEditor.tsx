@@ -182,8 +182,12 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
 
   const qualityScore = calculateQualityScore(localText || "");
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(localText || "");
+  const handleCopy = async () => {
+    let textToCopy = localText || "";
+    if (currentPost.suggestedComment) {
+      textToCopy += `\n\n--- Suggested Comment ---\n${currentPost.suggestedComment}`;
+    }
+    await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
     showToast(isAr ? "تم نسخ منشورك بنجاح!" : "Post copied to clipboard!");
@@ -307,6 +311,17 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           className={`w-full text-xs md:text-[13.5px] text-slate-100 leading-relaxed p-5 focus:outline-none resize-none bg-transparent custom-scrollbar min-h-[220px] pb-12 ${isAr ? 'text-right' : 'text-left'}`}
           dir={isAr ? "rtl" : "ltr"}
         />
+
+        {currentPost?.suggestedComment && (
+          <div className="mx-5 mb-14 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
+            <h4 className={`text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-1 ${isAr ? 'text-right' : 'text-left'}`}>
+              {isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}
+            </h4>
+            <p className={`text-xs text-indigo-200/80 whitespace-pre-wrap ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? "rtl" : "ltr"}>
+              {currentPost.suggestedComment}
+            </p>
+          </div>
+        )}
 
         {/* Quality indicator and progress bar in the editor footer */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">

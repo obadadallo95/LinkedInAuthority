@@ -63,6 +63,7 @@ export interface GenerateRequest {
 
 export interface GenerateResponse {
   post: string;
+  suggestedComment?: string;
   evidence: Evidence[];
   usedEvidenceIds: string[];
   warnings: string[];
