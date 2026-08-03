@@ -79,16 +79,18 @@ CRITICAL LINKEDIN ALGORITHM RULES:
 1. NO URLs IN THE POST: You are STRICTLY FORBIDDEN from generating or placing any URLs/Links inside the post body.
 2. FIRST COMMENT RULE: You MUST end the post by telling the audience to find the link in the first comment (e.g., "الرابط في التعليق الأول 👇" or "Link in the first comment 👇").
 3. WHITE SPACE: Use single-sentence paragraphs. Leave an empty line between every block. Highly scannable.
-4. TONE: Human, conversational, and sharp. ZERO AI clichés ("يسرني", "متحمس", "في عالمنا").`;
+4. TONE: Human, conversational, and sharp. ZERO AI clichés ("يسرني", "متحمس", "في عالمنا").
+5. HASHTAGS: You MUST include 3 to 5 highly relevant technical hashtags at the very bottom of the post (e.g., #TechStack #ProblemSolved). Do not overdo it. Place them just before or just after the "Link in first comment" text.`;
 }
 
 export function getGenerateLanguageInstruction(lang: string): string {
   if (lang === 'ar') {
     return `ARABIC WRITING RULES:
 - Write in conversational, professional Arabic (Fusha mixed with natural tech phrasing).
-- ZERO AI CLICHÉS. If you write "يسعدني أن", "متحمس", or "نقدم لكم", the generation will be rejected.
+- THE TRANSITION: Never use PR language to introduce the tool. Instead of "نقدم لكم", use personal/indie-hacker transitions like: "لهذا السبب قمت ببناء [Project Name]" or "هنا يأتي دور [Project Name]".
+- BULLET POINTS ARE MANDATORY: When listing the value or features (Privacy, Offline, Zero-latency), you MUST use bullet points (• or *). Do not write them as separate full sentences.
 - Keep technical terms (Offline, React, Local processing, Zero-latency) in English.
-- Start directly with the problem. Example hook: "كم مرة أخطأت في كتابة نص لأن لوحة المفاتيح باللغة الخاطئة؟"`;
+- HUMILITY: Do not praise the tool exaggeratedly (e.g., avoid "هذا إنجاز كبير"). Speak humbly like a developer sharing a solution.`;
   }
   return 'Write the post in natural, modern, and professional English. Avoid typical AI introductory fluff.';
 }
