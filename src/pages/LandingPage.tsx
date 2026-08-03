@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Bot, Globe, Check, Sparkles, Lock, ArrowLeft,
-  User, RefreshCw, Zap, Target, AlertTriangle, BrainCircuit, ShieldCheck, Workflow, Activity
+  User, RefreshCw, Zap, Target, AlertTriangle, BrainCircuit, ShieldCheck, Workflow, Activity,
+  ThumbsUp, MessageSquare, Repeat2, Send, Copy
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -145,7 +146,8 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
         selectedIntent: selectedMainIntent,
         evidence: genData.evidence,
         conflicts: genData.conflicts,
-        post: genData.post
+        post: genData.post,
+        suggestedComment: genData.suggestedComment
       });
       setPhase('result');
       trackEvent('post_generation_succeeded');
@@ -468,56 +470,111 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     {/* Right: The Post */}
                     <div className="lg:col-span-7">
                       <motion.div 
-                        initial={{ boxShadow: "0 0 0 rgba(99,102,241,0)" }}
-                        animate={{ boxShadow: ["0 0 0 rgba(99,102,241,0)", "0 0 40px rgba(99,102,241,0.3)", "0 0 0 rgba(99,102,241,0)"] }}
+                        initial={{ boxShadow: "0 0 0 rgba(99,102,241,0)", opacity: 0, y: 20 }}
+                        animate={{ boxShadow: ["0 0 0 rgba(99,102,241,0)", "0 20px 40px rgba(0,0,0,0.1)", "0 0 0 rgba(99,102,241,0)"], opacity: 1, y: 0 }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)] relative group"
+                        className="bg-white border border-slate-200 rounded-2xl shadow-xl relative group overflow-hidden font-sans"
+                        dir={lang === 'ar' ? 'rtl' : 'ltr'}
                       >
-                        <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
-                          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
-                            <User size={20} className="text-slate-400" />
+                        {/* Fake LinkedIn Header */}
+                        <div className="p-4 md:p-5 pb-2">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                                <span className="text-white font-bold text-lg">UD</span>
+                              </div>
+                              <div>
+                                <h4 className="text-[15px] font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors cursor-pointer">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
+                                <p className="text-[12px] text-slate-500 mt-0.5">Software Engineer • 1st</p>
+                                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
+                                  <span>1m •</span>
+                                  <Globe size={10} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-slate-400 self-start">
+                              <LinkedinIcon size={24} className="text-[#0a66c2]" />
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-white leading-tight">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
-                            <p className="text-[11px] text-slate-500">Software Engineer • 1st</p>
-                          </div>
-                          <div className="ms-auto text-slate-600">
-                            <LinkedinIcon size={20} />
+                          
+                          <div className="relative group/post">
+                            <textarea
+                              value={demoResult.post || demoResult.generatedPost || ''}
+                              onChange={(e) => handlePostChange(e.target.value)}
+                              className="w-full min-h-[200px] bg-transparent text-[14px] leading-relaxed text-slate-800 mb-2 whitespace-pre-wrap resize-y focus:outline-none border-2 border-transparent focus:border-indigo-100 p-2 rounded-lg transition-colors hover:bg-slate-50"
+                            />
+                            <div className={`absolute top-2 ${lang === 'ar' ? 'left-2' : 'right-2'} opacity-0 group-hover/post:opacity-100 transition-opacity`}>
+                                <button
+                                  onClick={handleCopy}
+                                  className="p-2 bg-slate-800 text-white rounded-md shadow-md hover:bg-slate-700 flex items-center gap-1.5 text-xs font-bold"
+                                >
+                                  {hasCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                                  {hasCopied ? (lang === 'ar' ? 'تم النسخ' : 'Copied') : T.demoCopyBtn}
+                                </button>
+                            </div>
                           </div>
                         </div>
-                        
-                        <textarea
-                          value={demoResult.post || demoResult.generatedPost || ''}
-                          onChange={(e) => handlePostChange(e.target.value)}
-                          className="w-full min-h-[250px] bg-transparent text-sm leading-relaxed text-slate-200 mb-6 whitespace-pre-wrap font-sans resize-y focus:outline-none border border-transparent focus:border-indigo-500/30 p-2 rounded-xl transition-colors"
-                        />
 
-                        <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                        {/* Suggested Comment Block */}
+                        {demoResult.suggestedComment ? (
+                          <div className="px-4 md:px-5 pb-4">
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 relative group/comment">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] text-white font-bold">UD</div>
+                                <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</span>
+                              </div>
+                              <p className={`text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap ${lang === 'ar' ? 'pr-8 pl-8' : 'pl-8 pr-8'}`}>{demoResult.suggestedComment}</p>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(demoResult.suggestedComment);
+                                  alert(lang === 'ar' ? "تم نسخ التعليق!" : "Comment copied!");
+                                }}
+                                className={`absolute top-4 ${lang === 'ar' ? 'left-4' : 'right-4'} p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors opacity-0 group-hover/comment:opacity-100`}
+                                title={lang === 'ar' ? 'نسخ التعليق' : 'Copy comment'}
+                              >
+                                <Copy size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="px-4 md:px-5 pb-4">
+                            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 border-dashed relative">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-slate-500">{lang === 'ar' ? 'لا يوجد روابط' : 'No Links Discovered'}</span>
+                              </div>
+                              <p className="text-[12px] text-slate-400">{lang === 'ar' ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.'}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fake Actions Bar */}
+                        <div className="px-4 md:px-5 py-2 border-t border-slate-100 flex items-center justify-between text-slate-500" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <ThumbsUp size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'أعجبني' : 'Like'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <MessageSquare size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'تعليق' : 'Comment'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <Repeat2 size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'إعادة نشر' : 'Repost'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <Send size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'إرسال' : 'Send'}</span>
+                          </button>
+                        </div>
+
+                        {/* Action Footer for generator */}
+                        <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-between items-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                           <button
                             onClick={() => { setDemoStep(1); setDemoUrl(''); }}
-                            className="text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors"
+                            className="text-xs text-slate-500 hover:text-indigo-600 font-bold transition-colors flex items-center gap-1.5"
                           >
-                            <RefreshCw size={14} className="inline me-1" />
-                            {lang === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
-                          </button>
-                          <button
-                            onClick={handleCopy}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all relative overflow-hidden ${
-                              hasCopied 
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
-                                : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
-                            }`}
-                          >
-                            {hasCopied ? (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
-                                <Check size={16} />
-                                {T.demoCopiedBtn}
-                              </motion.div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                {T.demoCopyBtn}
-                              </div>
-                            )}
+                            <RefreshCw size={14} />
+                            {lang === 'ar' ? 'إنشاء منشور جديد' : 'Generate New Post'}
                           </button>
                         </div>
                       </motion.div>
