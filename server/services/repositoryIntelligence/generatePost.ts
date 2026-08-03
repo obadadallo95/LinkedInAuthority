@@ -57,7 +57,7 @@ export async function generatePostFromAngle(
     throw new Error("This angle requires human context, but none was provided.");
   }
 
-  const systemPrompt = getGenerateSystemPrompt();
+  const systemPrompt = getGenerateSystemPrompt(chosenAngle.intent || 'auto');
   const languageInstruction = getGenerateLanguageInstruction(lang);
 
   const prompt = `
