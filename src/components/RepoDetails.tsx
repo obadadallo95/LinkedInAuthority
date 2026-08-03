@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap, Lock, BookOpen, CircleDot, PlayCircle, Shield, LineChart, FileCode2, Folder, Clock, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap, Lock, BookOpen, CircleDot, PlayCircle, Shield, LineChart, FileCode2, Folder, Clock, CheckCircle2, GitBranch, List, Star, Code2, ChevronDown, Search } from 'lucide-react';
 import { fetchReadme } from '../services/githubService';
 import { useAuth } from '../application/AuthContext';
 import { firestoreService, DraftData } from '../services/firestoreService';
