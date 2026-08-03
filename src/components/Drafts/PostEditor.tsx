@@ -312,8 +312,8 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           dir={isAr ? "rtl" : "ltr"}
         />
 
-        {currentPost?.suggestedComment && (
-          <div className="mx-5 mb-14 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl group relative">
+        <div className="mx-5 mb-14 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl group relative">
+          {currentPost?.suggestedComment && (
             <button
               onClick={() => {
                 navigator.clipboard.writeText(currentPost.suggestedComment!);
@@ -324,14 +324,14 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
-            <h4 className={`text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-1 ${isAr ? 'text-right' : 'text-left'}`}>
-              {isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}
-            </h4>
-            <p className={`text-xs text-indigo-200/80 whitespace-pre-wrap ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? "rtl" : "ltr"}>
-              {currentPost.suggestedComment}
-            </p>
-          </div>
-        )}
+          )}
+          <h4 className={`text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-1 ${isAr ? 'text-right' : 'text-left'}`}>
+            {isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}
+          </h4>
+          <p className={`text-xs text-indigo-200/80 whitespace-pre-wrap ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? "rtl" : "ltr"}>
+            {currentPost?.suggestedComment || (isAr ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.')}
+          </p>
+        </div>
 
         {/* Quality indicator and progress bar in the editor footer */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">

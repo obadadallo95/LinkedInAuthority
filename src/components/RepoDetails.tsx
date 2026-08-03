@@ -347,10 +347,10 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                         {analysisResult.post}
                       </div>
                     </div>
-                    {analysisResult.suggestedComment && (
-                      <div className="mt-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="text-sm font-bold text-white">{isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</h3>
+                    <div className="mt-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-sm font-bold text-white">{isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</h3>
+                        {analysisResult.suggestedComment && (
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(analysisResult.suggestedComment);
@@ -361,12 +361,12 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                             <Copy size={12} />
                             {isAr ? 'نسخ' : 'Copy'}
                           </button>
-                        </div>
-                        <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/30 text-sm text-indigo-200 whitespace-pre-wrap leading-relaxed">
-                          {analysisResult.suggestedComment}
-                        </div>
+                        )}
                       </div>
-                    )}
+                      <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/30 text-sm text-indigo-200 whitespace-pre-wrap leading-relaxed">
+                        {analysisResult.suggestedComment || (isAr ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.')}
+                      </div>
+                    </div>
                     {analysisResult.evidence?.length > 0 && (
                       <div>
                         <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{isAr ? 'الأدلة المستخدمة' : 'Used Evidence'}</h3>
