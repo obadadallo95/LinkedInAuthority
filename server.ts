@@ -5,6 +5,7 @@ import "dotenv/config";
 
 import aiRoutes from "./server/routes/ai";
 import demoRoutes from "./server/routes/demo";
+import cronRoutes from "./server/routes/cron";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import rateLimit from "express-rate-limit";
@@ -48,6 +49,9 @@ async function startServer() {
 
   // Public unauthenticated demo routes
   app.use("/api/demo", demoRoutes);
+
+  // Unauthenticated cron endpoints (secured via CRON_SECRET inside)
+  app.use("/api/cron", cronRoutes);
 
   // Health check endpoint (unauthenticated)
   app.get("/api/health", (req, res) => {

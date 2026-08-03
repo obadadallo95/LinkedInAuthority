@@ -27,6 +27,10 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
   const [scheduleDay, setScheduleDay] = useState('Friday');
   const [scheduleTime, setScheduleTime] = useState('09:00');
   const [postType, setPostType] = useState('weekly_progress');
+  const [targetAudience, setTargetAudience] = useState('tech_community');
+  const [monitorCommits, setMonitorCommits] = useState(true);
+  const [monitorIssues, setMonitorIssues] = useState(false);
+  const [monitorPullRequests, setMonitorPullRequests] = useState(false);
   const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
@@ -37,8 +41,14 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
     setSaving(true);
     await onSave({
       repo: selectedRepo,
-      schedule: { day: scheduleDay, time: scheduleTime },
-      type: postType,
+      owner: repos.find(r => r.name === selectedRepo)?.owner?.login || '',
+      scheduleDay,
+      scheduleTime,
+      intent: postType,
+      targetAudience,
+      monitorCommits,
+      monitorIssues,
+      monitorPullRequests,
       active: true,
       createdAt: new Date().toISOString()
     });
@@ -155,10 +165,45 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
               </div>
             </div>
 
-            {/* Step 3: Schedule */}
+            {/* Step 3: Audience & Tracking */}
             <div className={`space-y-4 transition-opacity duration-300 ${!selectedRepo ? 'opacity-30 pointer-events-none' : ''}`}>
               <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
                 <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">3</span>
+                {isAr ? 'الجمهور المستهدف والمراقبة' : 'Audience & Tracking'}
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <select
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                  className={`w-full bg-slate-950 border border-white/5 text-sm rounded-xl py-3.5 px-4 text-slate-200 focus:outline-none focus:border-indigo-500/50`}
+                >
+                  <option value="tech_community">{isAr ? 'المجتمع التقني' : 'Tech Community'}</option>
+                  <option value="recruiters">{isAr ? 'مدراء التوظيف' : 'Recruiters'}</option>
+                  <option value="beginners">{isAr ? 'المبتدئين' : 'Beginners'}</option>
+                </select>
+
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={monitorCommits} onChange={(e) => setMonitorCommits(e.target.checked)} className="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500" />
+                    {isAr ? 'الالتزامات (Commits)' : 'Commits'}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={monitorIssues} onChange={(e) => setMonitorIssues(e.target.checked)} className="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500" />
+                    {isAr ? 'المشاكل (Issues)' : 'Issues'}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={monitorPullRequests} onChange={(e) => setMonitorPullRequests(e.target.checked)} className="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500" />
+                    {isAr ? 'طلبات السحب (PRs)' : 'PRs'}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 4: Schedule */}
+            <div className={`space-y-4 transition-opacity duration-300 ${!selectedRepo ? 'opacity-30 pointer-events-none' : ''}`}>
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">4</span>
                 {isAr ? 'الجدولة والتوقيت' : 'Schedule & Timing'}
               </div>
               

@@ -16,6 +16,9 @@ export interface ProjectData {
     monitorCommits?: boolean;
     monitorIssues?: boolean;
     monitorPullRequests?: boolean;
+    scheduleDay?: string;
+    scheduleTime?: string;
+    postType?: string;
   };
 }
 
