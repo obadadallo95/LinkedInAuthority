@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, GitBranch, RefreshCw, FolderGit2, Star, Calendar, Database, ChevronDown, X } from 'lucide-react';
+import { Search, GitBranch, RefreshCw, FolderGit2, Star, Calendar, Database, ChevronDown, X, LayoutGrid, List, Zap, Code2, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RepoSparkline } from './RepoSparkline';
 import { DataBridgeIllustration } from './Illustrations/DataBridgeIllustration';
@@ -23,6 +23,7 @@ export const RepositoriesDashboard = ({
   const navigate = useNavigate();
   
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'stars'>('date');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showTooltip, setShowTooltip] = useState(() => localStorage.getItem('hide_repo_tooltip') !== 'true');
   const [recentRepos, setRecentRepos] = useState<string[]>(() => {
     try {
@@ -54,6 +55,43 @@ export const RepositoriesDashboard = ({
     });
   }, [repos, repoSearch, sortBy]);
 
+  // KPI Calculations
+  const topLanguage = useMemo(() => {
+    if (!repos || repos.length === 0) return null;
+    const counts: Record<string, number> = {};
+    repos.forEach((r: any) => {
+      if (r.language) {
+        counts[r.language] = (counts[r.language] || 0) + 1;
+      }
+    });
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : null;
+  }, [repos]);
+
+  const mostRecentRepo = useMemo(() => {
+    if (!repos || repos.length === 0) return null;
+    const valid = repos.filter((r: any) => !r.isFallback);
+    return valid.length > 0 ? [...valid].sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0] : null;
+  }, [repos]);
+
+  const getLanguageColor = (lang: string) => {
+    const colors: Record<string, string> = {
+      'TypeScript': 'bg-blue-500',
+      'JavaScript': 'bg-yellow-400',
+      'Python': 'bg-blue-600',
+      'Java': 'bg-orange-500',
+      'C++': 'bg-pink-500',
+      'C#': 'bg-green-600',
+      'PHP': 'bg-indigo-400',
+      'Ruby': 'bg-red-500',
+      'Go': 'bg-cyan-500',
+      'Rust': 'bg-orange-600',
+      'HTML': 'bg-orange-500',
+      'CSS': 'bg-blue-400'
+    };
+    return colors[lang] || 'bg-slate-400';
+  };
+
   const handleRepoClick = (repo: any) => {
     // Add to recent
     const updated = [repo.name, ...recentRepos.filter(r => r !== repo.name)].slice(0, 5);
@@ -65,8 +103,8 @@ export const RepositoriesDashboard = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 md:gap-7">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-5 md:gap-7">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2 font-heading tracking-tight">
@@ -80,7 +118,7 @@ export const RepositoriesDashboard = ({
                     setRepoSearch('');
                   }}
                   disabled={loadingRepos}
-                  className="p-1.5 bg-slate-900 border border-white/10 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white transition-colors"
+                  className="p-1.5 bg-slate-900 border border-white/10 hover:bg-slate-800 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
                   title={isAr ? 'تحديث البيانات' : 'Refresh Data'}
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingRepos ? 'animate-spin' : ''}`} />
@@ -91,6 +129,31 @@ export const RepositoriesDashboard = ({
               {isAr ? 'اختر مستودعاً لتحليله وتوليد المحتوى.' : 'Select repositories to analyze and generate content.'}
             </p>
           </div>
+          
+          {(settings.githubUsername || demoMode) && !loadingRepos && (
+            <div className="flex flex-wrap gap-3 items-center mb-3">
+              <div className="glass-panel px-4 py-2 rounded-xl flex flex-col">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">{isAr ? 'إجمالي المستودعات' : 'Total Repos'}</span>
+                <span className="text-lg font-black text-white">{repos.length}</span>
+              </div>
+              {topLanguage && (
+                <div className="glass-panel px-4 py-2 rounded-xl flex flex-col">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">{isAr ? 'اللغة الأساسية' : 'Top Language'}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${getLanguageColor(topLanguage)}`}></span>
+                    <span className="text-lg font-black text-white">{topLanguage}</span>
+                  </div>
+                </div>
+              )}
+              <div className="glass-panel px-4 py-2 rounded-xl flex flex-col">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">{isAr ? 'حالة الحساب' : 'AI Readiness'}</span>
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                  <Activity className="w-4 h-4" />
+                  <span className="text-sm font-black mt-0.5">PRO Active</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="glass-panel rounded-2xl flex flex-col overflow-hidden relative">
@@ -129,11 +192,36 @@ export const RepositoriesDashboard = ({
           ) : (
             <div className="flex flex-col">
               <div className="relative">
+                {mostRecentRepo && !repoSearch && (
+                  <div className="mx-3 md:mx-4 mt-4 p-4 glass-panel border border-indigo-500/30 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative z-10 flex gap-3 items-center">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5 text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white mb-0.5 font-heading">
+                          {isAr ? `نلاحظ نشاطاً جديداً في ${mostRecentRepo.name}!` : `Recent activity in ${mostRecentRepo.name}!`}
+                        </h4>
+                        <p className="text-xs text-slate-300">
+                          {isAr ? 'هل ترغب بتوليد منشور احترافي عن آخر تحديثاتك؟' : 'Would you like to generate a professional post about your latest updates?'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRepoClick(mostRecentRepo)}
+                      className="glow-button shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all relative z-10 w-full md:w-auto text-center cursor-pointer"
+                    >
+                      {isAr ? 'توليد منشور الآن ⚡' : 'Generate Post Now ⚡'}
+                    </button>
+                  </div>
+                )}
+                
                 {showTooltip && (
                   <div className="absolute -top-10 end-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-indigo-500/20 z-10 flex items-center gap-2">
                     <Search className="w-3 h-3" />
                     {isAr ? 'استخدم البحث والفلترة لايجاد مستودعاتك' : 'Use search and filters to find repos'}
-                    <button onClick={() => { setShowTooltip(false); localStorage.setItem('hide_repo_tooltip', 'true'); }} className="ms-1 opacity-70 hover:opacity-100">
+                    <button onClick={() => { setShowTooltip(false); localStorage.setItem('hide_repo_tooltip', 'true'); }} className="ms-1 opacity-70 hover:opacity-100 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                     <div className="absolute -bottom-1 end-4 w-2 h-2 bg-indigo-500 rotate-45" />
@@ -152,7 +240,7 @@ export const RepositoriesDashboard = ({
                       }`}
                     />
                     {repoSearch && (
-                      <button onClick={() => setRepoSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                      <button onClick={() => setRepoSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer">
                          <X className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -199,6 +287,21 @@ export const RepositoriesDashboard = ({
                         <ChevronDown className={`absolute end-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${orgFilter !== 'Personal' ? 'text-indigo-400' : 'text-slate-500'}`} />
                       </div>
                     )}
+
+                    <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-full border border-white/5 shrink-0">
+                      <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-1.5 rounded-full transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-1.5 rounded-full transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                      >
+                        <List className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-2 bg-slate-950/60 px-3.5 py-1.5 rounded-full border border-white/5 select-none text-[10px] font-bold">
                       <span className="text-slate-400 uppercase tracking-wider">
@@ -280,7 +383,7 @@ export const RepositoriesDashboard = ({
                               <button
                                 key={repoName}
                                 onClick={() => handleRepoClick(repo)}
-                                className="px-3 py-1.5 glass-panel hover:bg-slate-700 border border-white/5 rounded-lg text-xs text-slate-300 font-medium transition-colors flex items-center gap-1.5"
+                                className="px-3 py-1.5 glass-panel hover:bg-slate-700 border border-white/5 rounded-lg text-xs text-slate-300 font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                               >
                                 <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
                                 {repoName}
@@ -294,40 +397,52 @@ export const RepositoriesDashboard = ({
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-1 mt-2">
                       {isAr ? 'جميع المستودعات' : 'All Repositories'}
                     </h4>
-                    <div className="grid grid-cols-1 gap-2.5">
+                    <div className={`grid gap-3 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                       {sortedRepos.map((repo: any) => {
                         return (
                           <div 
                             key={repo.id}
                             onClick={() => handleRepoClick(repo)}
-                            className="glass-panel glass-panel-hover hover:border-indigo-500/50 rounded-xl overflow-hidden cursor-pointer group"
+                            className={`glass-panel glass-panel-hover hover:border-indigo-500/50 rounded-xl overflow-hidden cursor-pointer group flex flex-col ${viewMode === 'list' ? 'md:flex-row md:items-center' : ''}`}
                           >
-                            <div className="p-3 md:p-4 flex items-center gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <GitBranch className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                                  <h3 className="text-sm font-bold text-white truncate font-heading tracking-tight group-hover:text-indigo-300 transition-colors flex items-center gap-1.5">
-                                    {repo.name}
+                            <div className={`p-4 flex-1 flex flex-col min-w-0 ${viewMode === 'list' ? 'md:flex-row md:items-center md:gap-4' : 'gap-3'}`}>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <h3 className="text-base font-bold text-white truncate font-heading tracking-tight group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                                    <GitBranch className="w-4 h-4 text-indigo-400/70 shrink-0" />
+                                    <span className="truncate">{repo.name}</span>
                                     <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(repo.updated_at)} shrink-0`} title="Activity Status" />
                                   </h3>
+                                  {repo.language && (
+                                    <span className="flex items-center gap-1.5 text-[10px] font-bold bg-slate-900/50 px-2 py-1 rounded-md border border-white/5 shrink-0">
+                                      <span className={`w-1.5 h-1.5 rounded-full ${getLanguageColor(repo.language)}`}></span>
+                                      {repo.language}
+                                    </span>
+                                  )}
                                 </div>
-                                <p className="text-xs text-slate-400 line-clamp-1 mb-2">
+                                <p className={`text-xs text-slate-400 mb-3 ${viewMode === 'list' ? 'md:mb-0 line-clamp-1' : 'line-clamp-2 min-h-[32px]'}`}>
                                   {repo.description || (isAr ? 'لا يوجد وصف' : 'No description provided')}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-x-4 text-[10px] font-medium text-slate-500">
                                   <span className="flex items-center gap-1">
-                                    <Star className="w-3 h-3" /> {repo.stargazers_count}
+                                    <Star className="w-3 h-3 text-amber-400" /> {repo.stargazers_count}
                                   </span>
                                   <span className="flex items-center gap-1">
-                                    <Database className="w-3 h-3" /> {Math.round(repo.size / 1024)}MB
+                                    <Code2 className="w-3 h-3" /> {Math.round(repo.size / 1024)}MB
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" /> {new Date(repo.updated_at).toLocaleDateString()}
                                   </span>
                                 </div>
                               </div>
-                              <div className="shrink-0 hidden sm:block opacity-60 group-hover:opacity-100 transition-opacity">
-                                <RepoSparkline username={repo.owner?.login || settings.githubUsername} repo={repo.name} token={settings.githubToken} />
+                              
+                              <div className={`shrink-0 flex items-center gap-4 ${viewMode === 'list' ? 'mt-3 md:mt-0 md:ms-auto' : 'mt-4 justify-between border-t border-white/5 pt-3'}`}>
+                                <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                                  <RepoSparkline username={repo.owner?.login || settings.githubUsername} repo={repo.name} token={settings.githubToken} />
+                                </div>
+                                <button className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                                  {isAr ? 'فحص عميق' : 'Analyze'} <Zap className="w-3 h-3" />
+                                </button>
                               </div>
                             </div>
                           </div>

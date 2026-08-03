@@ -64,14 +64,58 @@ export const RepoSparkline = ({ username, repo, token }: { username: string; rep
   const max = Math.max(...data, 1);
   const min = 0;
   
+  // Create points for SVG path
+  const width = 64;
+  const height = 24;
+  const step = width / (data.length - 1 || 1);
+  
+  const points = data.map((val, i) => {
+    const x = i * step;
+    const y = height - Math.max(((val - min) / (max - min)) * height, 2);
+    return `${x},${y}`;
+  });
+  
+  // Create a smooth curve string
+  const pathData = `M ${points[0]} ` + points.slice(1).map((p, i) => {
+    // Simple line for now, or bezier if we had more points
+    return `L ${p}`;
+  }).join(' ');
+
   return (
-    <div ref={containerRef} className="h-6 w-16 flex items-end gap-[2px]" title="Commit activity (last 30 days)">
-      {data.map((val, i) => {
-        const height = Math.max(((val - min) / (max - min)) * 100, 10);
-        return (
-          <div key={i} className="flex-1 bg-indigo-500 hover:bg-indigo-400 rounded-t-[1px] transition-all opacity-80 hover:opacity-100" style={{ height: `${height}%` }} />
-        );
-      })}
+    <div ref={containerRef} className="h-6 w-16 relative" title="Commit activity (last 30 days)">
+      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
+        {/* Glow effect */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke="rgba(99, 102, 241, 0.4)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="blur-[2px]"
+        />
+        {/* Main line */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#818cf8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Area fill under curve */}
+        <path
+          d={`${pathData} L ${width},${height} L 0,${height} Z`}
+          fill="url(#sparkline-gradient)"
+          opacity="0.2"
+        />
+        <defs>
+          <linearGradient id="sparkline-gradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#818cf8" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+      </svg>
     </div>
   );
 };
