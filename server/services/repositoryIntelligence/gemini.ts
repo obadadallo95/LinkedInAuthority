@@ -41,7 +41,8 @@ export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, s
         throw e;
       }
       console.warn(`Gemini is busy (503). Retrying in 3 seconds... (${retries} left)`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const delay = Math.min(10000, 1000 * Math.pow(2, 2 - retries)) + Math.random() * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
       retries--;
     }
   }

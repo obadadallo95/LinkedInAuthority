@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../application/AuthContext';
 import { db } from '../infrastructure/firebase/config';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
 
 export interface Post {
   id: string;
@@ -43,7 +43,8 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
 
     setLoadingPosts(true);
     const postsRef = collection(db, "users", user.uid, "posts");
-    const unsubscribe = onSnapshot(postsRef, (querySnap) => {
+    const postsQuery = query(postsRef, orderBy('createdAt', 'desc'), limit(25));
+    const unsubscribe = onSnapshot(postsQuery, (querySnap) => {
       const list: Post[] = [];
       querySnap.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as Post);

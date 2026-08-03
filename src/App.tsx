@@ -134,28 +134,12 @@ function App() {
     let pagePath = `/${activeTab}`;
 
     if (activeTab === 'home') {
-      pageTitle = isAr 
-        ? "المستودعات | LinkedIn Authority Engine — أتمتة المحتوى المهني"
-        : isDe
-        ? "Repositories | LinkedIn Authority Engine — B2B Content-Automatisierung"
-        : "Repositories | LinkedIn Authority Engine — Professional B2B Content Automation";
-      pageDesc = isAr
-        ? "تصفح مستودعات GitHub الخاصة بك وقم بتحليل الشيفرات البرمجية لتوليد منشورات LinkedIn مهنية غنية بالمعلومات."
-        : isDe
-        ? "Durchsuchen Sie Ihre GitHub-Repositories und analysieren Sie Codebasen, um professionelle LinkedIn-Beiträge zu generieren."
-        : "Browse your GitHub repositories and analyze codebase structures to synthesize top-tier professional LinkedIn status updates.";
+      pageTitle = t[lang].metaTitleHome;
+      pageDesc = t[lang].metaDescHome;
     } else if (activeTab === 'templates') {
-      pageTitle = isAr
-        ? "قوالب منشورات LinkedIn الاحترافية | LinkedIn Authority Engine"
-        : isDe
-        ? "Beitragsvorlagen | LinkedIn Authority Engine"
-        : "LinkedIn B2B Post Templates | LinkedIn Authority Engine";
+      pageTitle = t[lang].metaTitleTemplates;
     } else if (activeTab === 'settings') {
-      pageTitle = isAr
-        ? "الإعدادات ومنطقة الخصوصية | Authority Engine"
-        : isDe
-        ? "Einstellungen & Datenschutzbereich | Authority Engine"
-        : "Settings & GDPR Enclave | Authority Engine";
+      pageTitle = t[lang].metaTitleSettings;
     }
 
     updatePageMetadata({
@@ -206,10 +190,10 @@ function App() {
     e.preventDefault();
     try {
       await saveSettings(inputs.ghUsernameInput, inputs.ghTokenInput, inputs.liTokenInput);
-      showToast(lang === 'ar' ? "تم حفظ الإعدادات وربط القنوات بنجاح! ✓" : "Settings saved and channels linked! ✓");
+      showToast(t[lang].toastSettingsSaved);
     } catch(err) {
       console.error(err);
-      showToast(lang === 'ar' ? "حدث خطأ أثناء حفظ الإعدادات" : "Failed to save settings");
+      showToast(t[lang].toastSettingsError);
     }
   };
 
@@ -217,9 +201,9 @@ function App() {
   const handleDisconnect = async (platform: 'github' | 'linkedin') => {
     try {
       await disconnectChannel(platform);
-      showToast(lang === 'ar' ? "تم فصل القناة المحددة بنجاح ✓" : "Channel disconnected successfully ✓");
+      showToast(t[lang].toastDisconnectSuccess);
     } catch(e) {
-      showToast(lang === 'ar' ? "حدث خطأ" : "An error occurred");
+      showToast(t[lang].toastDisconnectError);
     }
   };
 
@@ -248,14 +232,14 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         setSuggestedTags(data.hashtags || []);
-        showToast(lang === 'ar' ? "تم توليد الهاشتاغات الذكية المقترحة بنجاح! ✨" : "Smart hashtags optimized successfully! ✨");
+        showToast(t[lang].toastTagsGenerated);
       } else {
         const err = await res.json();
         throw new Error(err.error || "AI hashtag generation failed");
       }
     } catch (e) {
       console.error(e);
-      showToast(lang === 'ar' ? "حدث خطأ" : "An error occurred");
+      showToast(t[lang].toastTagsGenerationError);
     } finally {
       setIsGeneratingTags(false);
     }
@@ -269,7 +253,7 @@ function App() {
     const tagsStr = "\n\n" + tags.join(" ");
     const newText = currentPost.text + tagsStr;
     await updatePostText(activePostId, newText);
-    showToast(lang === 'ar' ? "تمت إضافة الهاشتاغات المقترحة للبوست الحالي ✓" : "Hashtags appended to active post ✓");
+    showToast(t[lang].toastTagsAppendedCurrent);
   };
 
   // Append tags to all available drafts helper
@@ -283,10 +267,10 @@ function App() {
         const newText = d.text + tagsStr;
         await updateDoc(postRef, { text: newText });
       }
-      showToast(lang === 'ar' ? "تمت إضافة الهاشتاغات المقترحة لجميع المسودات ✓" : "Hashtags appended to all drafts ✓");
+      showToast(t[lang].toastTagsAppendedAll);
     } catch (e) {
       console.error(e);
-      showToast(lang === 'ar' ? "حدث خطأ" : "Error appending tags");
+      showToast(t[lang].toastTagsAppendError);
     }
   };
 
@@ -300,11 +284,7 @@ function App() {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    const confirmMsg = lang === 'ar' 
-      ? 'هل أنت متأكد من حذف حسابك بشكل نهائي؟ سيتم مسح جميع منشوراتك وإعداداتك نهائياً ولن تتمكن من التراجع عن هذا الإجراء.' 
-      : lang === 'de'
-      ? 'Sind Sie sicher, dass Sie Ihr Konto dauerhaft löschen möchten? Alle Daten gehen verloren.'
-      : 'Are you sure you want to permanently delete your account? All your data will be lost.';
+    const confirmMsg = t[lang].confirmDeleteAccount;
       
     if (!window.confirm(confirmMsg)) return;
 
@@ -322,14 +302,14 @@ function App() {
 
       // 3. Delete auth account
       await user.delete();
-      showToast(lang === 'ar' ? 'تم حذف حسابك بنجاح.' : 'Account deleted successfully.');
+      showToast(t[lang].toastAccountDeleted);
       // After user.delete() onAuthStateChanged will fire and set user to null
     } catch (e: any) {
       console.error("Failed to delete account", e);
       if (e.code === 'auth/requires-recent-login') {
-        alert(lang === 'ar' ? 'يرجى تسجيل الخروج وتسجيل الدخول مرة أخرى لإتمام عملية الحذف.' : 'Please sign out and sign in again to delete your account.');
+        alert(t[lang].toastAccountDeleteRelogin);
       } else {
-        showToast(lang === 'ar' ? 'حدث خطأ أثناء الحذف.' : 'Failed to delete account.');
+        showToast(t[lang].toastAccountDeleteError);
       }
     }
   };
@@ -354,7 +334,7 @@ function App() {
           <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
         </div>
         <p className="text-sm text-slate-400 font-bold tracking-wider animate-pulse uppercase">
-          {lang === 'ar' ? 'جاري تحميل البوابة...' : 'Initializing Authority Engine...'}
+          {t[lang].loadingEngine}
         </p>
       </div>
     );
@@ -502,13 +482,13 @@ function App() {
       />
       <footer className="h-10 bg-slate-950 border-t border-white/5 text-[9px] px-4 md:px-6 flex items-center justify-between text-slate-500 shrink-0 z-10 select-none">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <button onClick={() => setIsAboutModalOpen(true)} className="hover:text-indigo-400 font-bold text-indigo-500/80 transition-colors">{isAr ? 'عن المنصة' : 'About'}</button>
+          <button onClick={() => setIsAboutModalOpen(true)} className="hover:text-indigo-400 font-bold text-indigo-500/80 transition-colors">{t[lang].footerAbout}</button>
           <span>•</span>
-          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('privacy'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'سياسة الخصوصية' : 'Privacy'}</button>
+          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('privacy'); }} className="hover:text-indigo-400 transition-colors">{t[lang].footerPrivacy}</button>
           <span>•</span>
-          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('terms'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'شروط الاستخدام' : 'Terms'}</button>
+          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('terms'); }} className="hover:text-indigo-400 transition-colors">{t[lang].footerTerms}</button>
           <span>•</span>
-          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('developer'); }} className="hover:text-indigo-400 transition-colors">{isAr ? 'المطور' : 'Developer'}</button>
+          <button onClick={() => { setIsLegalModalOpen(true); setLegalModalTab('developer'); }} className="hover:text-indigo-400 transition-colors">{t[lang].footerDeveloper}</button>
         </div>
         <div className="hidden sm:block">LinkedIn Authority Engine • v2.1</div>
       </footer>

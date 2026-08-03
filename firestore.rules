@@ -37,7 +37,7 @@ service cloud.firestore {
         allow read, delete: if request.auth != null && request.auth.uid == userId;
         allow create, update: if request.auth != null && request.auth.uid == userId
           // Prevent arbitrary field types
-          && (!('text' in request.resource.data) || request.resource.data.text is string)
+          && (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 5000))
           && (!('status' in request.resource.data) || request.resource.data.status in ['draft', 'published', 'scheduled', 'failed', 'template'])
           && (!('repoName' in request.resource.data) || request.resource.data.repoName is string)
           // Ensure nested map is a map

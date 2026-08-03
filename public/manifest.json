@@ -1,7 +1,7 @@
 {
-  "name": "The Agent Control Tower",
-  "short_name": "Agent Control",
-  "description": "Human-in-the-Loop central governance ledger and cockpit for autonomous AI agent workforces.",
+  "name": "LinkedIn Authority",
+  "short_name": "LinkedIn Authority",
+  "description": "Enterprise-grade AI-powered content automation platform for engineering leaders.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

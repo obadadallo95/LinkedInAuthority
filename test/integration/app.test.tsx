@@ -13,6 +13,9 @@ vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(),
   collection: vi.fn(),
   doc: vi.fn(),
+  query: vi.fn((ref) => ref),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
   onSnapshot: vi.fn((ref, cb) => {
     // Call the callback immediately with a mocked document/query snapshot
     cb({

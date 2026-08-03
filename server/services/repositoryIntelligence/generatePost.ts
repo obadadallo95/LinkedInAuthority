@@ -67,12 +67,6 @@ export async function generatePostFromAngle(
     
     User Project Description (Context): ${projectDescription || "None."}
     
-    Manifest Snippets:
-    ${ghContext.manifestData || "None found."}
-
-    README Snippet:
-    ${ghContext.readmeText || "None found."}
-    
     Verified Atomic Facts from Analysis:
     ${tokenPayload.atomicFacts.map(f => `- [${f.id}] ${f.fact}`).join("\n")}
     

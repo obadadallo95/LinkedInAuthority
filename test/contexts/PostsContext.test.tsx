@@ -15,6 +15,9 @@ vi.mock('../../src/application/AuthContext', () => ({
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   doc: vi.fn(),
+  query: vi.fn((ref) => ref),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
   onSnapshot: vi.fn(),
   addDoc: vi.fn(),
   updateDoc: vi.fn(),
