@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
     <aside
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`hidden md:flex flex-col bg-slate-900/60 border-white/5 z-30 transition-all duration-300 relative h-full w-16 hover:w-64 backdrop-blur-md shadow-2xl
+      className={`hidden md:flex flex-col glass-panel border-white/5 z-30 transition-all duration-300 relative h-full w-16 hover:w-64 shadow-2xl
         ${isAr ? 'border-l' : 'border-r'}
       `}
     >
@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-3.5 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 ease-in-out w-full relative group hover:scale-[1.02] active:scale-[0.98]
                 ${isActive 
-                  ? 'bg-gradient-to-r from-indigo-600/20 to-purple-600/20 text-indigo-400 border border-indigo-500/30 shadow-lg shadow-indigo-500/5' 
+                  ? 'bg-gradient-to-r from-indigo-600/20 to-purple-600/20 text-indigo-400 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
                   : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent'
                 }
                 ${isHovered ? 'justify-start' : 'justify-center items-center'}

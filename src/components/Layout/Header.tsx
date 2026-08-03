@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
   const liConnected = !!settings?.githubToken;
 
   return (
-    <header className="h-20 sm:h-20 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 bg-slate-900/95 backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
+    <header className="h-20 sm:h-20 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 glass-panel backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
       
       {/* Brand logo (Elegant custom CSS-crafted Logo) */}
       <div className="flex items-center gap-2 sm:gap-3 group/logo cursor-pointer select-none">

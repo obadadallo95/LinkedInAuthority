@@ -69,7 +69,7 @@ export const RepositoriesDashboard = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+              <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2 font-heading tracking-tight">
                 <FolderGit2 className="w-6 h-6 md:w-7 md:h-7 text-indigo-400" />
                 <span>{isAr ? 'مستودعات جيتهاب' : 'GitHub Repositories'}</span>
               </h2>
@@ -93,11 +93,15 @@ export const RepositoriesDashboard = ({
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-white/5 rounded-2xl shadow-xl shadow-slate-900/50 flex flex-col overflow-hidden">
+        <div className="glass-panel rounded-2xl flex flex-col overflow-hidden relative">
+          {/* Subtle gradient accent line at the top */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-50"></div>
+          
           {!settings.githubUsername && !demoMode ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
-              <DataBridgeIllustration className="mb-6" />
-              <h3 className="text-xl font-bold text-white mb-3">
+            <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px] relative z-10">
+              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
+              <DataBridgeIllustration className="mb-6 relative z-10" />
+              <h3 className="text-2xl font-black text-white mb-3 font-heading tracking-tight">
                 {isAr ? 'اربط حسابك لتبدأ' : 'Connect to get started'}
               </h3>
               <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-sm mb-8">
@@ -276,7 +280,7 @@ export const RepositoriesDashboard = ({
                               <button
                                 key={repoName}
                                 onClick={() => handleRepoClick(repo)}
-                                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-white/5 rounded-lg text-xs text-slate-300 font-medium transition-colors flex items-center gap-1.5"
+                                className="px-3 py-1.5 glass-panel hover:bg-slate-700 border border-white/5 rounded-lg text-xs text-slate-300 font-medium transition-colors flex items-center gap-1.5"
                               >
                                 <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
                                 {repoName}
@@ -296,13 +300,13 @@ export const RepositoriesDashboard = ({
                           <div 
                             key={repo.id}
                             onClick={() => handleRepoClick(repo)}
-                            className="bg-slate-900 border border-white/5 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 rounded-xl overflow-hidden transition-all duration-200 cursor-pointer group"
+                            className="glass-panel glass-panel-hover hover:border-indigo-500/50 rounded-xl overflow-hidden cursor-pointer group"
                           >
                             <div className="p-3 md:p-4 flex items-center gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 mb-1">
-                                  <GitBranch className="w-3.5 h-3.5 text-slate-500" />
-                                  <h3 className="text-sm font-bold text-white truncate tracking-tight group-hover:text-indigo-300 transition-colors flex items-center gap-1.5">
+                                  <GitBranch className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                                  <h3 className="text-sm font-bold text-white truncate font-heading tracking-tight group-hover:text-indigo-300 transition-colors flex items-center gap-1.5">
                                     {repo.name}
                                     <div className={`w-1.5 h-1.5 rounded-full ${getStatusDot(repo.updated_at)} shrink-0`} title="Activity Status" />
                                   </h3>

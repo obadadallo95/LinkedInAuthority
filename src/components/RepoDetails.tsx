@@ -116,11 +116,14 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
         <span className="text-white font-bold">{repo}</span>
       </div>
 
-      <div className="bg-slate-900 border border-white/5 rounded-2xl p-6 shadow-xl shadow-slate-900/50">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
+        {/* Subtle accent gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500/50 via-purple-500/50 to-indigo-500/50"></div>
+        
+        <div className="flex items-center gap-3 mb-6 relative z-10">
           <FolderGit2 className="w-8 h-8 text-indigo-400" />
           <div>
-            <h1 className="text-2xl font-black text-white">{repo}</h1>
+            <h1 className="text-2xl font-black text-white font-heading tracking-tight">{repo}</h1>
             <p className="text-slate-400 text-sm">{owner}</p>
           </div>
         </div>
@@ -143,7 +146,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                     <select 
                       value={intent}
                       onChange={(e) => setIntent(e.target.value)}
-                      className="bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors text-xs appearance-none cursor-pointer"
+                      className="glass-panel px-3 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors text-xs appearance-none cursor-pointer hover:bg-slate-800/80"
                       disabled={analyzing || repoPhase === 'generating'}
                     >
                       <option value="auto">{isAr ? "أفضل زاوية تلقائياً" : "Auto (Recommended)"}</option>
@@ -248,9 +251,10 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                         }
                       }}
                       disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
-                      className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 whitespace-nowrap"
+                      className="glow-button flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 whitespace-nowrap"
                     >
-                      {analyzing && repoPhase !== 'deep_scanning' ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحليل المستودع' : 'Analyze Repository')}
+                      {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                      {isAr ? 'تحليل المستودع' : 'Analyze Repo'}
                     </button>
                   </div>
                 </div>
