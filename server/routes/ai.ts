@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getGeminiClient } from "../services/repositoryIntelligence/gemini";
+import { getGeminiClient, handleGeminiError } from "../services/repositoryIntelligence/gemini";
 import { fetchGithubContext } from "../services/github";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
 import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
@@ -75,12 +75,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
     });
   } catch (err: any) {
     console.error("AI Analyze Error:", err);
-    let errorMessage = err.message || "Failed to analyze repository";
-    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
-      errorMessage = lang === 'ar' 
-        ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
-        : "AI model free tier quota exceeded. Please try again in a moment.";
-    }
+    const errorMessage = handleGeminiError(err, lang || 'en');
     res.status(500).json({ error: errorMessage });
   }
 });
@@ -146,7 +141,7 @@ router.post("/generate-post", async (req: any, res: any) => {
     res.json(result);
   } catch (err: any) {
     console.error("AI Generate Error:", err);
-    let errorMessage = err.message || "Failed to generate post";
+    const errorMessage = handleGeminiError(err, lang || 'en');
     
     if (errorMessage.includes('token') || errorMessage.includes('signature') || errorMessage.includes('Missing')) {
       return res.status(403).json({ error: "Invalid or expired analysis session. Please analyze again." });
@@ -154,12 +149,7 @@ router.post("/generate-post", async (req: any, res: any) => {
     if (errorMessage.includes('Custom angle contradicts') || errorMessage.includes('Generated post contains a blocking claim')) {
       return res.status(422).json({ error: errorMessage });
     }
-    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
-      errorMessage = lang === 'ar' 
-        ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
-        : "AI model free tier quota exceeded. Please try again in a moment.";
-    }
-
+    
     res.status(500).json({ error: errorMessage });
   }
 });

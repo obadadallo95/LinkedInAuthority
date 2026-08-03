@@ -74,3 +74,32 @@ export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, s
   }
   return JSON.parse(response.text);
 }
+
+export function handleGeminiError(error: any, lang: string = 'en'): string {
+  let errStr = '';
+  if (error && typeof error.message === 'string') {
+    errStr = error.message;
+  } else if (error && typeof error.message === 'object') {
+    errStr = JSON.stringify(error.message);
+  } else {
+    errStr = String(error);
+  }
+  
+  if (errStr.includes('503') || errStr.includes('high demand') || errStr.includes('unavailable')) {
+    return "The AI model is currently experiencing high demand. Please wait a moment and try again.";
+  }
+  if (errStr.includes('429') || errStr.includes('Quota exceeded') || errStr.includes('RESOURCE_EXHAUSTED')) {
+    return lang === 'ar' 
+      ? "تم تجاوز الحد المسموح للاستخدام للذكاء الاصطناعي حالياً. يرجى المحاولة مرة أخرى بعد قليل." 
+      : "AI model quota exceeded. Please try again in a moment.";
+  }
+  if (errStr.includes('Custom angle contradicts') || errStr.includes('Generated post contains a blocking claim')) {
+    return errStr; // pass through business logic errors
+  }
+  
+  if (errStr.length > 200 || errStr.includes('{')) {
+    return "An unexpected error occurred while communicating with the AI service.";
+  }
+  
+  return errStr || "Unknown error";
+}

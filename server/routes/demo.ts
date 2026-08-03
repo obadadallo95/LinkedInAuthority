@@ -1,5 +1,6 @@
 import express from "express";
 import { fetchGithubContext } from "../services/github";
+import { handleGeminiError } from "../services/repositoryIntelligence/gemini";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
 import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
 
@@ -77,11 +78,8 @@ router.post("/analyze", async (req, res) => {
       analysisToken: token
     });
   } catch (error: any) {
-    console.error("Demo Analyze Error:", error);
-    let errMsg = error.message || "Failed to analyze repository";
-    if (typeof errMsg === 'string' && (errMsg.includes('503') || errMsg.includes('high demand'))) {
-      errMsg = "The AI model is currently experiencing high demand. Please wait a moment and try again.";
-    }
+    console.error("AI Analyze Error:", error);
+    const errMsg = handleGeminiError(error, req.body.lang || 'en');
     res.status(500).json({ error: errMsg });
   }
 });
@@ -153,8 +151,14 @@ router.post("/generate", async (req, res) => {
       return res.status(422).json({ error: error.message });
     }
     let errMsg = error.message || "Failed to generate post";
-    if (typeof errMsg === 'string' && (errMsg.includes('503') || errMsg.includes('high demand'))) {
-      errMsg = "The AI model is currently experiencing high demand. Please try again.";
+    if (typeof errMsg === 'string') {
+      if (errMsg.includes('503') || errMsg.includes('high demand')) {
+        errMsg = "The AI model is currently experiencing high demand. Please try again.";
+      } else if (errMsg.includes('429') || errMsg.includes('Quota exceeded') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        errMsg = req.body.lang === 'ar' 
+          ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي حالياً. يرجى المحاولة مرة أخرى بعد قليل." 
+          : "AI model free tier quota exceeded. Please try again in a moment.";
+      }
     }
     res.status(500).json({ error: errMsg });
   }
