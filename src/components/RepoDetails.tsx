@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save } from 'lucide-react';
+import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy } from 'lucide-react';
 import { fetchReadme } from '../services/githubService';
 import { useAuth } from '../application/AuthContext';
 import { firestoreService, DraftData } from '../services/firestoreService';
