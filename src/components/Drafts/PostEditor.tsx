@@ -313,7 +313,17 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
         />
 
         {currentPost?.suggestedComment && (
-          <div className="mx-5 mb-14 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
+          <div className="mx-5 mb-14 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl group relative">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(currentPost.suggestedComment!);
+                showToast(isAr ? "تم نسخ التعليق بنجاح!" : "Comment copied!");
+              }}
+              className="absolute top-2 right-2 p-1.5 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              title={isAr ? "نسخ التعليق" : "Copy comment"}
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
             <h4 className={`text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-1 ${isAr ? 'text-right' : 'text-left'}`}>
               {isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}
             </h4>

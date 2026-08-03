@@ -330,14 +330,38 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                 {repoPhase === 'result' && analysisResult ? (
                   <div className="space-y-4 mt-4">
                     <div>
-                      <h3 className="text-sm font-bold text-white mb-2">{isAr ? 'مسودة المنشور' : 'Draft Content'}</h3>
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-sm font-bold text-white">{isAr ? 'مسودة المنشور' : 'Draft Content'}</h3>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(analysisResult.post);
+                            alert(isAr ? "تم نسخ المنشور!" : "Post copied!");
+                          }}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors"
+                        >
+                          <Copy size={12} />
+                          {isAr ? 'نسخ' : 'Copy'}
+                        </button>
+                      </div>
                       <div className="bg-slate-900 p-4 rounded-xl border border-white/10 text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
                         {analysisResult.post}
                       </div>
                     </div>
                     {analysisResult.suggestedComment && (
                       <div className="mt-4">
-                        <h3 className="text-sm font-bold text-white mb-2">{isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</h3>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-sm font-bold text-white">{isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</h3>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(analysisResult.suggestedComment);
+                              alert(isAr ? "تم نسخ التعليق!" : "Comment copied!");
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 rounded text-xs font-bold transition-colors"
+                          >
+                            <Copy size={12} />
+                            {isAr ? 'نسخ' : 'Copy'}
+                          </button>
+                        </div>
                         <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/30 text-sm text-indigo-200 whitespace-pre-wrap leading-relaxed">
                           {analysisResult.suggestedComment}
                         </div>
