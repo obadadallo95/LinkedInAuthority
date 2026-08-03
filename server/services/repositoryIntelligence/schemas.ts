@@ -100,5 +100,5 @@ export const generateSchema: Schema = {
       description: "Any warnings or deviations from the requested angle" 
     }
   },
-  required: ["post", "usedEvidenceIds", "warnings"]
+  required: ["post", "suggestedComment", "usedEvidenceIds", "warnings"]
 };
