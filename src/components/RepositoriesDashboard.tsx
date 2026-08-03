@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, GitBranch, RefreshCw, FolderGit2, Star, Calendar, Database, ChevronDown, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RepoSparkline } from './RepoSparkline';
+import { DataBridgeIllustration } from './Illustrations/DataBridgeIllustration';
 
 export const RepositoriesDashboard = ({
   lang,
@@ -94,8 +95,12 @@ export const RepositoriesDashboard = ({
 
         <div className="bg-slate-900 border border-white/5 rounded-2xl shadow-xl shadow-slate-900/50 flex flex-col overflow-hidden">
           {!settings.githubUsername && !demoMode ? (
-            <div className="m-auto text-center p-6 max-w-sm space-y-4">
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">
+            <div className="flex flex-col items-center justify-center p-8 text-center min-h-[400px]">
+              <DataBridgeIllustration className="mb-6" />
+              <h3 className="text-xl font-bold text-white mb-3">
+                {isAr ? 'اربط حسابك لتبدأ' : 'Connect to get started'}
+              </h3>
+              <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-sm mb-8">
                 {isAr 
                   ? 'يرجى ربط حساب GitHub أولاً من الإعدادات لاستعراض مستودعاتك، أو تفعيل الوضع التجريبي لاستكشاف عينات جاهزة.' 
                   : 'Please connect your GitHub account in Settings to browse repositories, or enable Demo Mode to explore sandbox repositories.'}
@@ -121,29 +126,29 @@ export const RepositoriesDashboard = ({
             <div className="flex flex-col">
               <div className="relative">
                 {showTooltip && (
-                  <div className="absolute -top-10 right-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-indigo-500/20 z-10 flex items-center gap-2">
+                  <div className="absolute -top-10 end-4 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg shadow-indigo-500/20 z-10 flex items-center gap-2">
                     <Search className="w-3 h-3" />
                     {isAr ? 'استخدم البحث والفلترة لايجاد مستودعاتك' : 'Use search and filters to find repos'}
-                    <button onClick={() => { setShowTooltip(false); localStorage.setItem('hide_repo_tooltip', 'true'); }} className="ml-1 opacity-70 hover:opacity-100">
+                    <button onClick={() => { setShowTooltip(false); localStorage.setItem('hide_repo_tooltip', 'true'); }} className="ms-1 opacity-70 hover:opacity-100">
                       <X className="w-3 h-3" />
                     </button>
-                    <div className="absolute -bottom-1 right-4 w-2 h-2 bg-indigo-500 rotate-45" />
+                    <div className="absolute -bottom-1 end-4 w-2 h-2 bg-indigo-500 rotate-45" />
                   </div>
                 )}
                 <div className="p-3 md:p-4 border-b border-white/5 bg-slate-900/50 flex flex-col gap-3">
                   <div className="relative w-full">
-                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${repoSearch ? 'text-indigo-400' : 'text-slate-500'}`} />
+                    <Search className={`absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${repoSearch ? 'text-indigo-400' : 'text-slate-500'}`} />
                     <input
                       type="text"
                       value={repoSearch}
                       onChange={(e) => setRepoSearch(e.target.value)}
                       placeholder={isAr ? 'البحث في المستودعات...' : 'Search repositories...'}
-                      className={`w-full bg-slate-950 border rounded-lg py-2.5 text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                      className={`w-full bg-slate-950 border rounded-lg py-2.5 text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ps-9 pe-3 ${
                         repoSearch ? 'border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.1)]' : 'border-white/5 focus:border-indigo-500'
-                      } ${isAr ? 'pr-3 pl-9' : 'pl-9 pr-3'}`}
+                      }`}
                     />
                     {repoSearch && (
-                      <button onClick={() => setRepoSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                      <button onClick={() => setRepoSearch('')} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
                          <X className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -154,7 +159,7 @@ export const RepositoriesDashboard = ({
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
-                        className={`bg-slate-950/80 border rounded-full py-1.5 pl-3.5 pr-8 text-xs font-semibold tracking-wide transition-all cursor-pointer outline-none appearance-none ${
+                        className={`bg-slate-950/80 border rounded-full py-1.5 ps-3.5 pe-8 text-xs font-semibold tracking-wide transition-all cursor-pointer outline-none appearance-none ${
                           sortBy !== 'date'
                             ? 'border-indigo-500/40 text-indigo-300'
                             : 'border-white/10 text-slate-300 hover:border-white/20'
@@ -164,7 +169,7 @@ export const RepositoriesDashboard = ({
                         <option value="stars">{isAr ? 'النجوم' : 'Sort: Stars'}</option>
                         <option value="name">{isAr ? 'الاسم' : 'Sort: Name'}</option>
                       </select>
-                      <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${sortBy !== 'date' ? 'text-indigo-400' : 'text-slate-500'}`} />
+                      <ChevronDown className={`absolute end-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${sortBy !== 'date' ? 'text-indigo-400' : 'text-slate-500'}`} />
                     </div>
 
                     {(settings.githubUsername || demoMode) && orgs && orgs.length > 0 && (
@@ -174,7 +179,7 @@ export const RepositoriesDashboard = ({
                           onChange={(e) => {
                             if (setOrgFilter) setOrgFilter(e.target.value);
                           }}
-                          className={`bg-slate-950/80 border rounded-full py-1.5 pl-3.5 pr-8 text-xs font-semibold tracking-wide transition-all cursor-pointer outline-none appearance-none ${
+                          className={`bg-slate-950/80 border rounded-full py-1.5 ps-3.5 pe-8 text-xs font-semibold tracking-wide transition-all cursor-pointer outline-none appearance-none ${
                             orgFilter !== 'Personal'
                               ? 'border-indigo-500/40 text-indigo-300'
                               : 'border-white/10 text-slate-300 hover:border-white/20'
@@ -187,7 +192,7 @@ export const RepositoriesDashboard = ({
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${orgFilter !== 'Personal' ? 'text-indigo-400' : 'text-slate-500'}`} />
+                        <ChevronDown className={`absolute end-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none transition-colors ${orgFilter !== 'Personal' ? 'text-indigo-400' : 'text-slate-500'}`} />
                       </div>
                     )}
 
@@ -206,7 +211,7 @@ export const RepositoriesDashboard = ({
                       >
                         <span
                           className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            demoMode ? (isAr ? '-translate-x-4' : 'translate-x-4') : 'translate-x-0'
+                            demoMode ? 'rtl:-translate-x-4 ltr:translate-x-4' : 'translate-x-0'
                           }`}
                         />
                       </button>
@@ -245,9 +250,16 @@ export const RepositoriesDashboard = ({
                     <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
                   </div>
                 ) : sortedRepos.length === 0 ? (
-                  <div className="h-48 flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center">
-                    <Search className="w-8 h-8 text-slate-700 mb-3" />
-                    <p className="font-medium text-slate-400">{isAr ? 'لم يتم العثور على مستودعات.' : 'No repositories found.'}</p>
+                  <div className="flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
+                    <DataBridgeIllustration className="mb-8" />
+                    <h3 className="text-lg font-bold text-white mb-2">
+                      {isAr ? 'لم يتم العثور على مستودعات' : 'No repositories found'}
+                    </h3>
+                    <p className="font-medium text-slate-400 max-w-sm text-sm">
+                      {isAr 
+                        ? 'تأكد من اختيار الحساب الصحيح، أو حاول تغيير كلمات البحث الخاصة بك.' 
+                        : 'Make sure you selected the right account, or try changing your search terms.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">

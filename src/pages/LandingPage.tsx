@@ -263,8 +263,8 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             </div>
 
             {/* DEMO SECTION */}
-            <div ref={demoRef} className="w-full max-w-4xl mb-32 bg-slate-900/60 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-md relative shadow-2xl overflow-hidden min-h-[400px]">
-              <div className="absolute top-0 right-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-l border-white/10 rounded-bl-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
+            <motion.div ref={demoRef} variants={itemVariants} className="w-full max-w-4xl mb-32 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden group shadow-xl">
+              <div className="absolute top-0 end-0 p-2 bg-gradient-to-l from-indigo-500/20 to-purple-500/20 border-b border-s border-white/10 rounded-es-xl text-[10px] uppercase font-bold text-indigo-300 flex items-center gap-1.5">
                 <Sparkles size={12} className="animate-pulse" />
                 Live Demo
               </div>
@@ -453,7 +453,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
                     {/* Right: The Post */}
                     <div className="lg:col-span-7">
-                      <div className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)] relative group">
+                      <motion.div 
+                        initial={{ boxShadow: "0 0 0 rgba(99,102,241,0)" }}
+                        animate={{ boxShadow: ["0 0 0 rgba(99,102,241,0)", "0 0 40px rgba(99,102,241,0.3)", "0 0 0 rgba(99,102,241,0)"] }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="bg-slate-950 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)] relative group"
+                      >
                         <div className="flex items-center gap-3 mb-5 border-b border-white/5 pb-4">
                           <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">
                             <User size={20} className="text-slate-400" />
@@ -462,7 +467,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                             <h4 className="text-sm font-bold text-white leading-tight">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
                             <p className="text-[11px] text-slate-500">Software Engineer • 1st</p>
                           </div>
-                          <div className="ml-auto text-slate-600">
+                          <div className="ms-auto text-slate-600">
                             <LinkedinIcon size={20} />
                           </div>
                         </div>
@@ -478,22 +483,30 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                             onClick={() => { setDemoStep(1); setDemoUrl(''); }}
                             className="text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors"
                           >
-                            <RefreshCw size={14} className="inline mr-1" />
-                            {T.demoWizardStartOverBtn}
+                            <RefreshCw size={14} className="inline me-1" />
+                            {lang === 'ar' ? 'إعادة المحاولة' : 'Try Again'}
                           </button>
                           <button
                             onClick={handleCopy}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all relative overflow-hidden ${
                               hasCopied 
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
                                 : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
                             }`}
                           >
-                            {hasCopied ? <Check size={16} /> : null}
-                            {hasCopied ? T.demoCopiedBtn : T.demoCopyBtn}
+                            {hasCopied ? (
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
+                                <Check size={16} />
+                                {T.demoCopiedBtn}
+                              </motion.div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {T.demoCopyBtn}
+                              </div>
+                            )}
                           </button>
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
                   </motion.div>
                 )}
@@ -526,7 +539,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                   </p>
                 </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* SECTIONS */}
             <div className="w-full max-w-5xl space-y-32 mb-32">
@@ -553,9 +566,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     </ul>
                   </div>
                   {/* Us */}
-                  <div className="bg-indigo-900/10 border border-indigo-500/30 rounded-3xl p-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
-                    <h3 className="text-xl font-bold text-indigo-400 mb-6 pb-4 border-b border-white/5">{T.sectionCompareUsTitle}</h3>
+                  <div className="bg-slate-900/80 backdrop-blur-sm border border-indigo-500/20 rounded-2xl p-6 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 end-0 w-32 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
+                  
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <h3 className="text-xl font-bold text-indigo-400 pb-4 border-b border-white/5">{T.sectionCompareUsTitle}</h3>
+                  </div>
                     <ul className="space-y-4 text-slate-200">
                       {[T.sectionCompareUs1, T.sectionCompareUs2, T.sectionCompareUs3, T.sectionCompareUs4].map((item, i) => (
                         <li key={i} className="flex gap-3">
@@ -639,10 +655,10 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
             transition={{ duration: 0.3 }}
             className="relative z-10 min-h-[80vh] flex items-center justify-center px-6 py-12"
           >
-            <div className="w-full max-w-md bg-slate-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-md relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
+            <motion.div variants={itemVariants} className="bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 relative overflow-hidden w-full max-w-md shadow-2xl">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
               
-              <div className="text-center mb-8">
+              <div className="flex flex-col items-center justify-center text-center py-4">
                 <div className="w-16 h-16 mx-auto bg-slate-950 border border-white/5 rounded-2xl flex items-center justify-center mb-4 relative shadow-inner">
                   <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/10 to-indigo-600/10 rounded-2xl" />
                   <Lock className="w-6 h-6 text-indigo-400 relative z-10" />
