@@ -229,148 +229,142 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
               // -----------------------------------------------------------
               // LINKEDIN AUTHORITY ENGINE - MASSIVE SAAS VIEW
               // -----------------------------------------------------------
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Hero section for AI Generation */}
-                <div className="bg-gradient-to-br from-[#0d1117] via-slate-900 to-[#0d1117] border border-indigo-500/20 rounded-2xl p-6 md:p-10 relative overflow-hidden shadow-2xl">
-                  {/* Decorative Elements */}
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
-                  
-                  <div className="relative z-10 max-w-3xl mx-auto text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30 mb-6">
-                      <Zap className="w-8 h-8 text-white" />
-                    </div>
-                    <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4">
-                      {isAr ? 'مولد محتوى لينكد إن' : 'LinkedIn Content Engine'}
-                    </h2>
-                    <p className="text-slate-400 text-base md:text-lg">
-                      {isAr 
-                        ? 'قم بتحويل الكود، والتحديثات، والالتزامات البرمجية إلى منشورات احترافية تبرز خبرتك وتجذب فرصاً جديدة.' 
-                        : 'Transform your code, commits, and updates into professional posts that showcase your expertise and attract opportunities.'}
-                    </p>
+              <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 py-8">
+                {/* Header Section */}
+                <div className="relative max-w-4xl mx-auto text-center mb-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30 mb-6">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+                    {isAr ? 'مولد محتوى لينكد إن' : 'LinkedIn Content Engine'}
+                  </h2>
+                  <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                    {isAr 
+                      ? 'قم بتحويل الكود، والتحديثات، والالتزامات البرمجية إلى منشورات احترافية تبرز خبرتك وتجذب فرصاً جديدة.' 
+                      : 'Transform your code, commits, and updates into professional posts that showcase your expertise and attract opportunities.'}
+                  </p>
+                </div>
+
+                {/* Configuration Area */}
+                <div className="max-w-5xl mx-auto space-y-10">
+                  <div className="space-y-6">
+                    <label className="flex items-center gap-3 text-xl font-bold text-white">
+                       <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                         <Zap size={20} />
+                       </div>
+                       {isAr ? 'اختر زاوية النشر' : 'Select Narrative Angle'}
+                    </label>
+                    <IntentCards selectedIntent={intent} onSelectIntent={setIntent} lang={lang} />
                   </div>
 
-                  <div className="relative z-10 max-w-2xl mx-auto bg-slate-950/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
-                    <div className="space-y-6">
-                      <div className="bg-[#0a0a0a] p-6 md:p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                        <label className="block text-lg font-bold text-white flex items-center gap-3 mb-6">
-                           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                             <Zap size={16} />
-                           </div>
-                           {isAr ? 'اختر زاوية النشر' : 'Select Narrative Angle'}
-                        </label>
-                        <IntentCards selectedIntent={intent} onSelectIntent={setIntent} lang={lang} />
-                      </div>
-
-                      <div className="bg-[#0a0a0a] p-6 md:p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] mt-6">
-                        <label className="block text-sm font-bold text-slate-300 mb-4">{isAr ? 'الجمهور المستهدف' : 'Target Audience'}</label>
-                        <div className="flex flex-wrap gap-3">
-                          {[
-                            { id: 'Software Engineers', label: isAr ? 'المهندسون' : 'Software Engineers' },
-                            { id: 'CTOs/Tech Leads', label: isAr ? 'المدراء التقنيون' : 'CTOs/Tech Leads' },
-                            { id: 'Recruiters/HR', label: isAr ? 'التوظيف / الموارد البشرية' : 'Recruiters/HR' },
-                            { id: 'General Public', label: isAr ? 'الجمهور العام' : 'General Public' }
-                          ].map(audience => (
-                            <button
-                              key={audience.id}
-                              onClick={() => setTargetAudience(audience.id)}
-                              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border ${
-                                targetAudience === audience.id 
-                                  ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-inner' 
-                                  : 'bg-[#111] text-slate-400 border-white/5 hover:border-white/10 hover:text-slate-300 hover:bg-[#161616]'
-                              }`}
-                            >
-                              {audience.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                        <button 
-                          onClick={async () => {
-                            setAnalyzing(true);
-                            setRepoPhase('deep_scanning');
-                            try {
-                              const idToken = await user?.getIdToken();
-                              const res = await fetch("/api/deep-scan", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
-                                body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, lang: lang })
-                              });
-                              const data = await res.json();
-                              if(res.ok) {
-                                setAnalysisResult({
-                                  post: data.post,
-                                  suggestedComment: data.suggestedComment,
-                                  synthesizedContext: data.synthesizedContext,
-                                  repository: data.repository
-                                });
-                                setRepoPhase('result');
-                              } else {
-                                alert(data.error || 'Failed to perform deep scan');
-                                setRepoPhase('idle');
-                              }
-                            } catch (err) {
-                              console.error(err);
-                              alert('Error performing deep scan');
-                              setRepoPhase('idle');
-                            } finally {
-                              setAnalyzing(false);
-                            }
-                          }}
-                          disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
-                          className="w-full glow-button bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] disabled:opacity-50 flex items-center justify-center gap-2"
+                  <div className="space-y-4 pt-4">
+                    <label className="block text-sm font-bold text-slate-300">{isAr ? 'الجمهور المستهدف' : 'Target Audience'}</label>
+                    <div className="flex flex-wrap gap-3">
+                      {[
+                        { id: 'Software Engineers', label: isAr ? 'المهندسون' : 'Software Engineers' },
+                        { id: 'CTOs/Tech Leads', label: isAr ? 'المدراء التقنيون' : 'CTOs/Tech Leads' },
+                        { id: 'Recruiters/HR', label: isAr ? 'التوظيف / الموارد البشرية' : 'Recruiters/HR' },
+                        { id: 'General Public', label: isAr ? 'الجمهور العام' : 'General Public' }
+                      ].map(audience => (
+                        <button
+                          key={audience.id}
+                          onClick={() => setTargetAudience(audience.id)}
+                          className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 border ${
+                            targetAudience === audience.id 
+                              ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-inner' 
+                              : 'bg-transparent text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200'
+                          }`}
                         >
-                          {analyzing && repoPhase === 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-                          {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
+                          {audience.label}
                         </button>
-                        
-                        <button 
-                          onClick={async () => {
-                            setAnalyzing(true);
-                            try {
-                              const idToken = await user?.getIdToken();
-                              const res = await fetch("/api/analyze-repo", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
-                                body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, humanContext: targetAudience, lang: lang })
-                              });
-                              const data = await res.json();
-                              if(res.ok) {
-                                if (data.needsUserContext) {
-                                  setNeedsContext(true);
-                                  setRepoPhase('idle');
-                                } else {
-                                  if (data.angles) {
-                                    setAngles(data.angles);
-                                    setAnalysisToken(data.analysisToken || '');
-                                    setAnalyzeConflicts(data.conflicts || []);
-                                    setRepoPhase('angles');
-                                    setNeedsContext(false);
-                                  } else {
-                                    setAngles([]);
-                                    setRepoPhase('angles');
-                                  }
-                                }
-                              } else {
-                                alert(data.error || 'Failed to analyze repository');
-                              }
-                            } catch (err) {
-                              console.error(err);
-                              alert('Error analyzing repository');
-                            } finally {
-                              setAnalyzing(false);
-                            }
-                          }}
-                          disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
-                          className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white py-4 rounded-xl text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                          {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin text-slate-400" /> : <Search className="w-5 h-5 text-slate-400" />}
-                          {isAr ? 'تحليل سريع' : 'Quick Analyze'}
-                        </button>
-                      </div>
+                      ))}
                     </div>
+                  </div>
+
+                  {/* Actions Area */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-slate-800">
+                    <button 
+                      onClick={async () => {
+                        setAnalyzing(true);
+                        setRepoPhase('deep_scanning');
+                        try {
+                          const idToken = await user?.getIdToken();
+                          const res = await fetch("/api/deep-scan", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                            body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, lang: lang })
+                          });
+                          const data = await res.json();
+                          if(res.ok) {
+                            setAnalysisResult({
+                              post: data.post,
+                              suggestedComment: data.suggestedComment,
+                              synthesizedContext: data.synthesizedContext,
+                              repository: data.repository
+                            });
+                            setRepoPhase('result');
+                          } else {
+                            alert(data.error || 'Failed to perform deep scan');
+                            setRepoPhase('idle');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error performing deep scan');
+                          setRepoPhase('idle');
+                        } finally {
+                          setAnalyzing(false);
+                        }
+                      }}
+                      disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
+                      className="w-full glow-button bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl text-base font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {analyzing && repoPhase === 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                      {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
+                    </button>
+                    
+                    <button 
+                      onClick={async () => {
+                        setAnalyzing(true);
+                        try {
+                          const idToken = await user?.getIdToken();
+                          const res = await fetch("/api/analyze-repo", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                            body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, humanContext: targetAudience, lang: lang })
+                          });
+                          const data = await res.json();
+                          if(res.ok) {
+                            if (data.needsUserContext) {
+                              setNeedsContext(true);
+                              setRepoPhase('idle');
+                            } else {
+                              if (data.angles) {
+                                setAngles(data.angles);
+                                setAnalysisToken(data.analysisToken || '');
+                                setAnalyzeConflicts(data.conflicts || []);
+                                setRepoPhase('angles');
+                                setNeedsContext(false);
+                              } else {
+                                setAngles([]);
+                                setRepoPhase('angles');
+                              }
+                            }
+                          } else {
+                            alert(data.error || 'Failed to analyze repository');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error analyzing repository');
+                        } finally {
+                          setAnalyzing(false);
+                        }
+                      }}
+                      disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
+                      className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white py-4 rounded-xl text-base font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin text-slate-400" /> : <Search className="w-5 h-5 text-slate-400" />}
+                      {isAr ? 'تحليل سريع' : 'Quick Analyze'}
+                    </button>
                   </div>
                 </div>
 
