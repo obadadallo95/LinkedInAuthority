@@ -13,17 +13,17 @@ export const IntentCards = ({ selectedIntent, onSelectIntent, lang }: IntentCard
   const T = t[lang] || t['ar'];
 
   const intentsList = [
-    { id: 'auto', title: T.demoIntentAuto, icon: Sparkles, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', glow: 'shadow-[0_0_15px_rgba(232,121,249,0.2)]' },
-    { id: 'project', title: T.demoIntentAnnouncement, icon: Rocket, color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30', glow: 'shadow-[0_0_15px_rgba(56,189,248,0.2)]' },
-    { id: 'technical_decision', title: T.demoIntentDecision, icon: BrainCircuit, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30', glow: 'shadow-[0_0_15px_rgba(129,140,248,0.2)]' },
-    { id: 'challenge_lesson', title: T.demoIntentLesson, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.2)]' },
-    { id: 'progress_update', title: T.demoIntentUpdate, icon: Target, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30', glow: 'shadow-[0_0_15px_rgba(251,191,36,0.2)]' },
-    { id: 'feedback', title: T.demoIntentFeedback, icon: RadioTower, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', glow: 'shadow-[0_0_15px_rgba(34,211,238,0.2)]' },
-    { id: 'problem', title: T.demoIntentProblem, icon: ShieldAlert, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30', glow: 'shadow-[0_0_15px_rgba(251,113,133,0.2)]' },
+    { id: 'auto', title: T.demoIntentAuto, icon: Sparkles },
+    { id: 'project', title: T.demoIntentAnnouncement, icon: Rocket },
+    { id: 'technical_decision', title: T.demoIntentDecision, icon: BrainCircuit },
+    { id: 'challenge_lesson', title: T.demoIntentLesson, icon: TrendingUp },
+    { id: 'progress_update', title: T.demoIntentUpdate, icon: Target },
+    { id: 'feedback', title: T.demoIntentFeedback, icon: RadioTower },
+    { id: 'problem', title: T.demoIntentProblem, icon: ShieldAlert },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
       {intentsList.map((intent) => {
         const isSelected = selectedIntent === intent.id;
         const Icon = intent.icon;
@@ -32,39 +32,42 @@ export const IntentCards = ({ selectedIntent, onSelectIntent, lang }: IntentCard
           <motion.div
             key={intent.id}
             onClick={() => onSelectIntent(intent.id)}
-            whileHover={{ y: -4, scale: 1.02 }}
+            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             className={`
-              relative cursor-pointer p-5 rounded-2xl border transition-all duration-300
-              flex flex-col items-center justify-center gap-4 text-center min-h-[140px] overflow-hidden
+              relative cursor-pointer p-4 rounded-xl border transition-all duration-300
+              flex flex-col items-center justify-center gap-3 text-center min-h-[120px] overflow-hidden group
               ${isSelected 
-                ? `bg-slate-900 border-white/20 ${intent.glow}` 
-                : 'bg-slate-950/50 border-white/5 hover:border-white/10 hover:bg-slate-900/80'}
+                ? 'bg-[#0a0a0a] border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.15)]' 
+                : 'bg-[#111] border-white/5 hover:border-white/15 hover:bg-[#161616]'}
             `}
           >
-            {/* Background Glow when selected */}
-            {isSelected && (
-              <div className={`absolute inset-0 ${intent.bg} blur-2xl opacity-50 pointer-events-none`} />
+            {/* Subtle highlight gradient on hover for non-selected */}
+            {!isSelected && (
+               <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
             )}
 
-            <div className={`relative z-10 p-3.5 rounded-xl transition-all duration-300 ${isSelected ? intent.bg + ' ' + intent.border + ' border' : 'bg-slate-900 border border-white/5'}`}>
-              <motion.div
-                animate={isSelected ? { scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] } : {}}
-                transition={{ repeat: isSelected ? Infinity : 0, duration: 3, ease: 'easeInOut' }}
-              >
-                <Icon size={24} className={`${isSelected ? intent.color : 'text-slate-400'}`} />
-              </motion.div>
+            {/* Glowing background for selected */}
+            {isSelected && (
+              <div className="absolute inset-0 bg-indigo-500/10 blur-[20px] opacity-60 pointer-events-none" />
+            )}
+
+            <div className={`
+              relative z-10 w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300
+              ${isSelected ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-slate-900 border border-white/5 text-slate-400 group-hover:text-slate-300'}
+            `}>
+              <Icon size={18} />
             </div>
             
-            <span className={`relative z-10 text-xs font-bold leading-snug ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+            <span className={`relative z-10 text-xs font-semibold leading-relaxed tracking-wide ${isSelected ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>
               {intent.title}
             </span>
             
-            {/* Selection indicator */}
+            {/* Selection indicator line */}
             {isSelected && (
               <motion.div 
-                layoutId="active-intent-border"
-                className="absolute inset-0 rounded-2xl border-2 border-indigo-500/50 pointer-events-none"
+                layoutId="active-intent-line"
+                className="absolute top-0 inset-x-0 h-[2px] bg-indigo-500"
                 initial={false}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />

@@ -334,28 +334,42 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="space-y-6 max-w-4xl mx-auto"
+                    className="space-y-8 max-w-4xl mx-auto"
                   >
-                    <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 shadow-2xl">
-                      <label className="block text-base font-bold text-white mb-6 flex items-center gap-2">
-                        <Sparkles size={18} className="text-indigo-400" />
-                        {T.demoStep2Title}
-                      </label>
+                    <div className="bg-[#0a0a0a] p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                      <div className="flex items-center justify-between mb-8">
+                         <label className="block text-lg font-bold text-white flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                             <Sparkles size={16} />
+                           </div>
+                           {T.demoStep2Title}
+                         </label>
+                      </div>
                       <IntentCards selectedIntent={selectedMainIntent} onSelectIntent={setSelectedMainIntent} lang={lang} />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoAudienceLabel}</label>
-                      <select 
-                        value={targetAudience}
-                        onChange={(e) => setTargetAudience(e.target.value)}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors text-sm appearance-none cursor-pointer"
-                      >
-                        <option value="Software Engineers">{T.demoAudienceSoftwareEngineers}</option>
-                        <option value="CTOs/Tech Leads">{T.demoAudienceCTOs}</option>
-                        <option value="Recruiters/HR">{T.demoAudienceRecruiters}</option>
-                        <option value="General Public">{T.demoAudienceGeneral}</option>
-                      </select>
+                    <div className="bg-[#0a0a0a] p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                      <label className="block text-sm font-bold text-slate-300 mb-4">{T.demoAudienceLabel}</label>
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { id: 'Software Engineers', label: T.demoAudienceSoftwareEngineers },
+                          { id: 'CTOs/Tech Leads', label: T.demoAudienceCTOs },
+                          { id: 'Recruiters/HR', label: T.demoAudienceRecruiters },
+                          { id: 'General Public', label: T.demoAudienceGeneral }
+                        ].map(audience => (
+                          <button
+                            key={audience.id}
+                            onClick={() => setTargetAudience(audience.id)}
+                            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border ${
+                              targetAudience === audience.id 
+                                ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-inner' 
+                                : 'bg-[#111] text-slate-400 border-white/5 hover:border-white/10 hover:text-slate-300 hover:bg-[#161616]'
+                            }`}
+                          >
+                            {audience.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="pt-4 flex gap-4">
