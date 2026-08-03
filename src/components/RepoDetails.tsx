@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap, Lock, BookOpen, CircleDot, PlayCircle, Shield, LineChart, FileCode2, Folder, Clock, CheckCircle2, GitBranch, List, Star, Code2, ChevronDown, Search } from 'lucide-react';
+import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap, Lock, BookOpen, CircleDot, PlayCircle, Shield, LineChart, FileCode2, Folder, Clock, CheckCircle2, GitBranch, List, Star, Code2, ChevronDown, Search, Target, AlertTriangle, MessageSquare, Repeat2, Send, ThumbsUp, Globe, Check, Activity, Bell, Settings2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { fetchReadme } from '../services/githubService';
 import { useAuth } from '../application/AuthContext';
 import { firestoreService, DraftData } from '../services/firestoreService';
 import { DeepScanLoader } from './DeepScan/DeepScanLoader';
+import { IntentCards } from './IntentCards';
+import { TransformationLoader } from './TransformationLoader';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const GithubIcon = ({ className, size = 24 }: { className?: string, size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-6.5a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 5 3 6.2 6 6.5a4.8 4.8 0 0 0-1 3.2v4"/>
+  </svg>
+);
+
+const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+    <rect x="2" y="9" width="4" height="12"/>
+    <circle cx="4" cy="4" r="2"/>
+  </svg>
+);
 
 export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const { user } = useAuth();
@@ -35,12 +52,35 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [analyzeConflicts, setAnalyzeConflicts] = useState<any[]>([]);
   const [projectDescription, setProjectDescription] = useState('');
   const [needsContext, setNeedsContext] = useState(false);
+  const [targetAudience, setTargetAudience] = useState('Software Engineers');
+  const [hasCopied, setHasCopied] = useState(false);
+  const [hasCopiedComment, setHasCopiedComment] = useState(false);
 
   const [analyzingCommits, setAnalyzingCommits] = useState(false);
   const [commitAnalysis, setCommitAnalysis] = useState<any>(null);
   
   const [savingAnalysis, setSavingAnalysis] = useState(false);
   const [savingCommitAnalysis, setSavingCommitAnalysis] = useState(false);
+
+  // Monitoring State
+  const [monitoringEnabled, setMonitoringEnabled] = useState(false);
+  const [monitoringConfig, setMonitoringConfig] = useState({
+    monitorCommits: true,
+    monitorIssues: false,
+    monitorPullRequests: true
+  });
+  const [savingMonitoring, setSavingMonitoring] = useState(false);
+
+  useEffect(() => {
+    if (user && owner && repo) {
+      firestoreService.getProject(user.uid, owner, repo).then((proj) => {
+        if (proj) {
+           if (proj.monitoringEnabled !== undefined) setMonitoringEnabled(proj.monitoringEnabled);
+           if (proj.monitoringConfig) setMonitoringConfig({ ...monitoringConfig, ...proj.monitoringConfig });
+        }
+      });
+    }
+  }, [user, owner, repo]);
 
   const saveToFirestore = async (type: 'repo_analysis' | 'commit_update', data: any, setSavingState: (s: boolean) => void) => {
     if (!user) {
@@ -150,6 +190,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
           <div className="flex items-center gap-6 text-sm font-medium overflow-x-auto hide-scrollbar">
             {[
               { id: 'linkedin', icon: Zap, label: 'LinkedIn AI', highlight: true },
+              { id: 'monitoring', icon: Activity, label: isAr ? 'المراقبة الأسبوعية' : 'Monitoring', highlight: false },
               { id: 'code', icon: FileCode2, label: 'Code' },
               { id: 'issues', icon: CircleDot, label: 'Issues' },
               { id: 'pulls', icon: GitBranch, label: 'Pull requests' },
@@ -209,22 +250,37 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
 
                   <div className="relative z-10 max-w-2xl mx-auto bg-slate-950/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
                     <div className="space-y-6">
-                      <div>
-                        <label className="text-sm font-semibold text-slate-300 block mb-3">{isAr ? 'زاوية النشر (Narrative Angle)' : 'Narrative Angle'}</label>
-                        <div className="relative">
-                          <select 
-                            value={intent}
-                            onChange={(e) => setIntent(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-4 pr-10 text-sm text-white appearance-none focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                            disabled={analyzing || repoPhase === 'generating'}
-                          >
-                            <option value="auto">{isAr ? "أفضل زاوية تلقائياً (ينصح به)" : "Auto (Recommended)"}</option>
-                            <option value="project">{isAr ? "إعلان عن المشروع / ميزة جديدة" : "Project / Feature Announcement"}</option>
-                            <option value="technical_decision">{isAr ? "شرح قرار تقني" : "Technical Decision / Architecture"}</option>
-                            <option value="challenge_lesson">{isAr ? "تحدي ودرس مستفاد" : "Challenge / Lesson Learned"}</option>
-                            <option value="progress_update">{isAr ? "تحديث سير العمل" : "Progress Update"}</option>
-                          </select>
-                          <ChevronDown className="w-5 h-5 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <div className="bg-[#0a0a0a] p-6 md:p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                        <label className="block text-lg font-bold text-white flex items-center gap-3 mb-6">
+                           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                             <Zap size={16} />
+                           </div>
+                           {isAr ? 'اختر زاوية النشر' : 'Select Narrative Angle'}
+                        </label>
+                        <IntentCards selectedIntent={intent} onSelectIntent={setIntent} lang={lang} />
+                      </div>
+
+                      <div className="bg-[#0a0a0a] p-6 md:p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] mt-6">
+                        <label className="block text-sm font-bold text-slate-300 mb-4">{isAr ? 'الجمهور المستهدف' : 'Target Audience'}</label>
+                        <div className="flex flex-wrap gap-3">
+                          {[
+                            { id: 'Software Engineers', label: isAr ? 'المهندسون' : 'Software Engineers' },
+                            { id: 'CTOs/Tech Leads', label: isAr ? 'المدراء التقنيون' : 'CTOs/Tech Leads' },
+                            { id: 'Recruiters/HR', label: isAr ? 'التوظيف / الموارد البشرية' : 'Recruiters/HR' },
+                            { id: 'General Public', label: isAr ? 'الجمهور العام' : 'General Public' }
+                          ].map(audience => (
+                            <button
+                              key={audience.id}
+                              onClick={() => setTargetAudience(audience.id)}
+                              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border ${
+                                targetAudience === audience.id 
+                                  ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-inner' 
+                                  : 'bg-[#111] text-slate-400 border-white/5 hover:border-white/10 hover:text-slate-300 hover:bg-[#161616]'
+                              }`}
+                            >
+                              {audience.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -276,7 +332,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                               const res = await fetch("/api/analyze-repo", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
-                                body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, lang: lang })
+                                body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, humanContext: targetAudience, lang: lang })
                               });
                               const data = await res.json();
                               if(res.ok) {
@@ -409,10 +465,18 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                 )}
 
                 {repoPhase === 'generating' && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 flex flex-col items-center justify-center gap-4 max-w-2xl mx-auto shadow-xl">
-                    <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-                    <p className="text-sm font-medium text-slate-300">{isAr ? "جاري صياغة المحتوى..." : "Drafting content..."}</p>
-                  </div>
+                  <motion.div
+                    key="step-3-loading"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="max-w-xl mx-auto text-center"
+                  >
+                    <TransformationLoader 
+                      label={isAr ? "جاري صياغة المحتوى..." : "Drafting content..."}
+                    />
+                  </motion.div>
                 )}
 
                 {repoPhase === 'deep_scanning' && (
@@ -421,75 +485,308 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                   </div>
                 )}
                 
-                {/* FULL WIDTH RESULTS AREA */}
+                {/* FULL WIDTH RESULTS AREA (Demo Like) */}
                 {repoPhase === 'result' && analysisResult && (
-                  <div className="mt-8 border-t border-slate-800 pt-8 slide-down max-w-5xl mx-auto">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <CheckCircle2 className="w-6 h-6 text-white" />
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="mt-8 border-t border-slate-800 pt-8 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8"
+                  >
+                    {/* Left: Metadata & Evidence */}
+                    <div className="lg:col-span-5 space-y-4">
+                      {/* Repo info */}
+                      <div className="bg-slate-950/80 border border-white/10 rounded-2xl p-5">
+                        <div className="flex flex-col gap-1 mb-4 pb-4 border-b border-white/5">
+                          <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                            <GithubIcon size={18} className="text-indigo-400" />
+                            {analysisResult.repository?.name || repoMeta?.name || repo}
+                          </h4>
+                          <p className="text-sm text-slate-400">{analysisResult.repository?.description || repoMeta?.description || ''}</p>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-2 text-sm">
+                            <Target size={16} className="text-slate-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="text-slate-500 block text-xs">Intent</span>
+                              <span className="text-indigo-300 font-medium">{angles.find(a => a.id === selectedAngleId)?.title || intent}</span>
+                            </div>
+                          </div>
+                          
+                          {analysisResult.evidence && analysisResult.evidence.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm pt-2">
+                              <Zap size={16} className="text-slate-500 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="text-slate-500 block text-xs mb-1">{isAr ? 'الأدلة المستخرجة' : 'Evidence Discovered'}</span>
+                                <ul className="text-emerald-400 space-y-2">
+                                  {analysisResult.evidence.map((ev: any, idx: number) => (
+                                    <li key={idx} className="flex gap-1.5 items-start">
+                                      <span className="opacity-50 mt-1">•</span>
+                                      <span className="leading-snug text-[13px]">
+                                        {typeof ev === 'string' ? ev : ev.fact}
+                                        {ev.source && <span className="block mt-0.5 text-[10px] font-mono text-emerald-400/50 uppercase tracking-wider">Source: {ev.source}</span>}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white">{isAr ? 'المنشور جاهز للنشر' : 'Post Ready for Publication'}</h2>
-                        <p className="text-base text-slate-400">{isAr ? 'قم بمراجعة المسودة وتعديلها أو نشرها مباشرة.' : 'Review and edit your draft, or publish directly.'}</p>
+
+                      <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 shadow-lg">
+                        <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                        <p className="leading-relaxed">{isAr ? 'هذا المحتوى مولد بواسطة الذكاء الاصطناعي. يرجى مراجعته وتعديله ليناسب شخصيتك.' : 'This is AI-generated content. Please review and adjust it to fit your personal voice.'}</p>
                       </div>
+
+                      <button 
+                        onClick={() => saveToFirestore('repo_analysis', { 
+                          title: angles.find(a => a.id === selectedAngleId)?.title || 'LinkedIn Post Draft', 
+                          post: analysisResult.post, 
+                          suggestedComment: analysisResult.suggestedComment,
+                          evidence: analysisResult.evidence,
+                        }, setSavingAnalysis)}
+                        disabled={savingAnalysis}
+                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-4 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 shadow-lg"
+                      >
+                        <Save className="w-5 h-5 text-indigo-200" />
+                        {savingAnalysis ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ في مكتبة المحتوى' : 'Save to Content Library')}
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-[#0d1117] border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                          <div className="bg-slate-900/50 border-b border-slate-800 px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-indigo-400" /> {isAr ? 'مسودة المنشور' : 'Post Draft'}
-                            </h3>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(analysisResult.post);
-                                alert(isAr ? "تم نسخ المنشور!" : "Post copied!");
-                              }}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-bold transition-colors"
-                            >
-                              <Copy className="w-4 h-4" />
-                              {isAr ? 'نسخ' : 'Copy'}
-                            </button>
+                    {/* Right: The Post */}
+                    <div className="lg:col-span-7">
+                      <motion.div 
+                        initial={{ boxShadow: "0 0 0 rgba(99,102,241,0)", opacity: 0, y: 20 }}
+                        animate={{ boxShadow: ["0 0 0 rgba(99,102,241,0)", "0 20px 40px rgba(0,0,0,0.1)", "0 0 0 rgba(99,102,241,0)"], opacity: 1, y: 0 }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="bg-white border border-slate-200 rounded-2xl shadow-xl relative group overflow-hidden font-sans"
+                        dir={lang === 'ar' ? 'rtl' : 'ltr'}
+                      >
+                        {/* Fake LinkedIn Header */}
+                        <div className="p-4 md:p-5 pb-2">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                                <span className="text-white font-bold text-lg">
+                                  {user?.displayName ? user.displayName.substring(0,2).toUpperCase() : 'ME'}
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="text-[15px] font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors cursor-pointer">{user?.displayName || (isAr ? 'أنت (المستخدم)' : 'You')}</h4>
+                                <p className="text-[12px] text-slate-500 mt-0.5">{targetAudience}</p>
+                                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
+                                  <span>1m •</span>
+                                  <Globe size={10} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-slate-400 self-start">
+                              <LinkedinIcon size={24} className="text-[#0a66c2]" />
+                            </div>
                           </div>
-                          <div className="p-8 text-base text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">
-                            {analysisResult.post}
+                          
+                          <div className="relative group/post">
+                            <textarea
+                              value={analysisResult.post}
+                              onChange={(e) => setAnalysisResult({ ...analysisResult, post: e.target.value })}
+                              className="w-full min-h-[250px] bg-transparent text-[14px] leading-relaxed text-slate-800 mb-2 whitespace-pre-wrap resize-y focus:outline-none border-2 border-transparent focus:border-indigo-100 p-2 rounded-lg transition-colors hover:bg-slate-50"
+                            />
+                            <div className={`absolute top-2 ${lang === 'ar' ? 'left-2' : 'right-2'} opacity-0 group-hover/post:opacity-100 transition-opacity`}>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(analysisResult.post);
+                                    setHasCopied(true);
+                                    setTimeout(() => setHasCopied(false), 2000);
+                                  }}
+                                  className="p-2 bg-slate-800 text-white rounded-md shadow-md hover:bg-slate-700 flex items-center gap-1.5 text-xs font-bold"
+                                >
+                                  {hasCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                                  {hasCopied ? (lang === 'ar' ? 'تم النسخ' : 'Copied') : (isAr ? 'نسخ' : 'Copy')}
+                                </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-6">
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                           <div className="border-b border-slate-800 px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-sm font-semibold text-slate-400">{isAr ? 'التعليق الأول المقترح' : 'First Comment'}</h3>
-                             {analysisResult.suggestedComment && (
-                              <button onClick={() => { navigator.clipboard.writeText(analysisResult.suggestedComment); }} className="text-slate-500 hover:text-slate-300 transition-colors">
-                                <Copy className="w-4 h-4" />
+                        {/* Suggested Comment Block */}
+                        {analysisResult.suggestedComment ? (
+                          <div className="px-4 md:px-5 pb-4">
+                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 relative group/comment">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] text-white font-bold">
+                                  {user?.displayName ? user.displayName.substring(0,2).toUpperCase() : 'ME'}
+                                </div>
+                                <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</span>
+                              </div>
+                              <textarea
+                                value={analysisResult.suggestedComment}
+                                onChange={(e) => setAnalysisResult({ ...analysisResult, suggestedComment: e.target.value })}
+                                className="w-full min-h-[80px] bg-transparent text-[13px] leading-relaxed text-slate-600 mb-1 whitespace-pre-wrap resize-y focus:outline-none border-2 border-transparent focus:border-indigo-100 p-2 rounded-lg transition-colors hover:bg-slate-100"
+                              />
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(analysisResult.suggestedComment);
+                                  setHasCopiedComment(true);
+                                  setTimeout(() => setHasCopiedComment(false), 2000);
+                                }}
+                                className={`absolute top-4 ${lang === 'ar' ? 'left-4' : 'right-4'} p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors opacity-0 group-hover/comment:opacity-100`}
+                                title={lang === 'ar' ? 'نسخ التعليق' : 'Copy comment'}
+                              >
+                                {hasCopiedComment ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                               </button>
-                            )}
+                            </div>
                           </div>
-                          <div className="p-6 text-sm text-slate-400 whitespace-pre-wrap leading-relaxed">
-                            {analysisResult.suggestedComment || (isAr ? 'لا يوجد روابط لرفقها.' : 'No links to attach.')}
+                        ) : (
+                          <div className="px-4 md:px-5 pb-4">
+                            <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 border-dashed relative">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-slate-500">{lang === 'ar' ? 'لا يوجد روابط' : 'No Links Discovered'}</span>
+                              </div>
+                              <p className="text-[12px] text-slate-400">{lang === 'ar' ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.'}</p>
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        <button 
-                          onClick={() => saveToFirestore('repo_analysis', { 
-                            title: angles.find(a => a.id === selectedAngleId)?.title || 'LinkedIn Post Draft', 
-                            post: analysisResult.post, 
-                            suggestedComment: analysisResult.suggestedComment,
-                            evidence: analysisResult.evidence,
-                          }, setSavingAnalysis)}
-                          disabled={savingAnalysis}
-                          className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white px-4 py-4 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 shadow-lg"
-                        >
-                          <Save className="w-5 h-5 text-slate-400" />
-                          {savingAnalysis ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ في مكتبة المحتوى' : 'Save to Content Library')}
-                        </button>
-                      </div>
+                        {/* Fake Actions Bar */}
+                        <div className="px-4 md:px-5 py-2 border-t border-slate-100 flex items-center justify-between text-slate-500" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <ThumbsUp size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'أعجبني' : 'Like'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <MessageSquare size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'تعليق' : 'Comment'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <Repeat2 size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'إعادة نشر' : 'Repost'}</span>
+                          </button>
+                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
+                            <Send size={18} />
+                            <span className="hidden sm:inline">{lang === 'ar' ? 'إرسال' : 'Send'}</span>
+                          </button>
+                        </div>
+                        
+                        <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-between items-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                          <button
+                            onClick={() => { setRepoPhase('idle'); }}
+                            className="text-xs text-slate-500 hover:text-indigo-600 font-bold transition-colors flex items-center gap-1.5"
+                          >
+                            <RefreshCw size={14} />
+                            {lang === 'ar' ? 'إنشاء منشور جديد' : 'Generate New Post'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            ) : activeTab === 'monitoring' ? (
+              <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-gradient-to-br from-[#0d1117] via-slate-900 to-[#0d1117] border border-slate-800 rounded-2xl p-6 md:p-10 relative overflow-hidden shadow-2xl">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+                      <Activity className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+                        {isAr ? 'المراقبة الأسبوعية' : 'Weekly Monitoring'}
+                      </h2>
+                      <p className="text-slate-400">
+                        {isAr ? 'احصل على منشورات تلخص تقدمك أسبوعياً وتبرز التزامك بالعمل المستمر.' : 'Get weekly posts summarizing your progress and showcasing your consistent effort.'}
+                      </p>
                     </div>
                   </div>
-                )}
+
+                  <div className="bg-[#0a0a0a] p-6 md:p-8 rounded-[2rem] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] space-y-8">
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-white mb-1">{isAr ? 'تفعيل المراقبة' : 'Enable Monitoring'}</h3>
+                        <p className="text-sm text-slate-400">{isAr ? 'سيقوم النظام بجمع البيانات وتحليلها بشكل أسبوعي لإنشاء مسودة.' : 'The system will collect and analyze data weekly to create a draft.'}</p>
+                      </div>
+                      <button onClick={() => setMonitoringEnabled(!monitoringEnabled)} className="text-emerald-400 hover:text-emerald-300 transition-colors">
+                        {monitoringEnabled ? <ToggleRight size={40} /> : <ToggleLeft size={40} className="text-slate-600" />}
+                      </button>
+                    </div>
+
+                    {monitoringEnabled && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6 pt-4 border-t border-slate-800">
+                        <h4 className="text-slate-200 font-bold mb-4 flex items-center gap-2"><Settings2 size={18} /> {isAr ? 'ماذا نراقب؟' : 'What to monitor?'}</h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {[
+                            { id: 'monitorCommits', label: isAr ? 'الالتزامات (Commits)' : 'Commits' },
+                            { id: 'monitorIssues', label: isAr ? 'المشاكل (Issues)' : 'Issues' },
+                            { id: 'monitorPullRequests', label: isAr ? 'طلبات السحب (PRs)' : 'Pull Requests' }
+                          ].map(opt => (
+                            <label key={opt.id} className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${monitoringConfig[opt.id as keyof typeof monitoringConfig] ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                              <input 
+                                type="checkbox" 
+                                className="hidden" 
+                                checked={monitoringConfig[opt.id as keyof typeof monitoringConfig]} 
+                                onChange={(e) => setMonitoringConfig({ ...monitoringConfig, [opt.id]: e.target.checked })}
+                              />
+                              {monitoringConfig[opt.id as keyof typeof monitoringConfig] ? <CheckCircle2 size={20} /> : <div className="w-5 h-5 rounded-full border-2 border-slate-700" />}
+                              <span className="font-semibold text-sm">{opt.label}</span>
+                            </label>
+                          ))}
+                        </div>
+
+                        <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl mt-6">
+                          <p className="text-sm text-indigo-300">
+                            <Bell size={16} className="inline mr-2" />
+                            {isAr ? 'سيتم استخدام "زاوية النشر" و "الجمهور المستهدف" المحددة حالياً في تبويب LinkedIn AI لتوليد المنشورات المستقبلية.' : 'The currently selected "Narrative Angle" and "Target Audience" from the LinkedIn AI tab will be used for future generated posts.'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="mt-8 flex justify-end">
+                    <button 
+                      disabled={savingMonitoring}
+                      onClick={async () => {
+                        if (!user || !owner || !repo) return;
+                        setSavingMonitoring(true);
+                        try {
+                          const projectId = `${owner}_${repo}`;
+                          
+                          // Make sure the project exists first, or save it if it doesn't
+                          await firestoreService.saveProject(user.uid, {
+                            owner: owner,
+                            repo: repo,
+                            fullName: `${owner}/${repo}`,
+                            description: repoMeta?.description || '',
+                            language: repoMeta?.language || '',
+                          });
+
+                          await firestoreService.updateProject(user.uid, projectId, {
+                            monitoringEnabled,
+                            monitoringConfig: {
+                              ...monitoringConfig,
+                              intent,
+                              targetAudience
+                            }
+                          });
+                          alert(isAr ? 'تم حفظ إعدادات المراقبة بنجاح!' : 'Monitoring settings saved successfully!');
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error saving monitoring settings');
+                        } finally {
+                          setSavingMonitoring(false);
+                        }
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                    >
+                      {savingMonitoring ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                      {isAr ? 'حفظ الإعدادات' : 'Save Settings'}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               // -----------------------------------------------------------

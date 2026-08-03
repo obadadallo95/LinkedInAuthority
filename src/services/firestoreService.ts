@@ -1,5 +1,5 @@
 import { db } from '../infrastructure/firebase/config';
-import { collection, doc, setDoc, getDocs, query, where, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, query, where, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 export interface ProjectData {
   owner: string;
@@ -9,6 +9,14 @@ export interface ProjectData {
   language: string;
   createdAt?: any;
   lastAnalyzedAt?: any;
+  monitoringEnabled?: boolean;
+  monitoringConfig?: {
+    intent?: string;
+    targetAudience?: string;
+    monitorCommits?: boolean;
+    monitorIssues?: boolean;
+    monitorPullRequests?: boolean;
+  };
 }
 
 export interface DraftData {
@@ -38,6 +46,29 @@ export const firestoreService = {
     }, { merge: true });
 
     return projectId;
+  },
+
+  /**
+   * Updates specific fields of an existing project
+   */
+  async updateProject(userId: string, projectId: string, updates: Partial<ProjectData>) {
+    if (!userId || !projectId) return;
+    const projectRef = doc(db, `users/${userId}/projects`, projectId);
+    await updateDoc(projectRef, updates);
+  },
+
+  /**
+   * Retrieves a single project
+   */
+  async getProject(userId: string, owner: string, repo: string) {
+    if (!userId) return null;
+    const projectId = `${owner}_${repo}`;
+    const projectRef = doc(db, `users/${userId}/projects`, projectId);
+    const docSnap = await getDoc(projectRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as ProjectData & { id: string };
+    }
+    return null;
   },
 
   /**
