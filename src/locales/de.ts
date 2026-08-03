@@ -251,4 +251,14 @@ export const de = {
     footerPrivacy: "Datenschutz",
     footerTerms: "Nutzungsbedingungen",
     footerDeveloper: "Entwickler",
+  
+    navAutomations: "Automatisierungen",
+    automationsTitle: "Wöchentliche Automatisierungen",
+    automationsDesc: "Repositories überwachen und wöchentlich Inhalte generieren.",
+    automationEmptyTitle: "Keine aktiven Automatisierungen",
+    automationEmptyDesc: "Wählen Sie ein Repository, um wöchentliche Einblicke und Posts einzurichten.",
+    automationCreateBtn: "Neue Automatisierung erstellen",
+    automationStatusActive: "Aktiv",
+    automationStatusPaused: "Pausiert",
+    automationNextRun: "Nächster Lauf",
   };

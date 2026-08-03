@@ -280,35 +280,18 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                   </div>
                 </div>
 
-                {/* Right Panel: Execution Terminal */}
+                {/* Right Panel: Generation Options */}
                 <div className="lg:col-span-4">
-                  <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 sticky top-6 shadow-2xl backdrop-blur-md">
-                    <div className="flex items-center gap-2 mb-6 border-b border-slate-800/50 pb-4">
-                      <PlayCircle className="w-5 h-5 text-slate-400" />
+                  <div className="sticky top-6">
+                    <div className="flex items-center gap-3 mb-6 pb-2 border-b border-slate-800/50">
+                      <Zap className="w-5 h-5 text-indigo-400" />
                       <h3 className="text-base font-bold text-slate-200">
-                        {isAr ? 'محطة التنفيذ (Terminal)' : 'Execution Terminal'}
+                        {isAr ? 'خيارات التوليد' : 'Generation Options'}
                       </h3>
                     </div>
                     
-                    <div className="space-y-4 mb-8 bg-black/40 rounded-xl p-4 border border-white/5">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-500">{isAr ? 'المستودع' : 'Repository'}</span>
-                        <span className="text-slate-300 font-mono truncate max-w-[150px]">{repo}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-500">{isAr ? 'لغة البرمجة' : 'Language'}</span>
-                        <span className="text-slate-300 font-mono">TypeScript</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-500">{isAr ? 'الحالة' : 'Status'}</span>
-                        <span className="text-emerald-400 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                          <CircleDot className="w-3 h-3 animate-pulse" /> 
-                          {analyzing ? (isAr ? 'جاري...' : 'Processing...') : (isAr ? 'جاهز' : 'Ready')}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
+                    <div className="space-y-4">
+                      {/* Deep Scan Card */}
                       <button 
                         onClick={async () => {
                           setAnalyzing(true);
@@ -342,12 +325,74 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                           }
                         }}
                         disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
-                        className="w-full glow-button bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.2)] hover:shadow-[0_0_25px_rgba(79,70,229,0.4)] disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full text-left bg-gradient-to-br from-indigo-600/10 to-indigo-900/20 border border-indigo-500/30 hover:border-indigo-400 rounded-2xl p-5 transition-all shadow-[0_0_20px_rgba(79,70,229,0.05)] hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] group disabled:opacity-50"
                       >
-                        {analyzing && repoPhase === 'deep_scanning' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                        {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                            {analyzing && repoPhase === 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" /> : <FolderGit2 className="w-5 h-5 text-indigo-400" />}
+                          </div>
+                          <div>
+                            <h4 className="text-white font-bold mb-1 group-hover:text-indigo-300 transition-colors">{isAr ? 'تحليل عميق للمستودع (PRO)' : 'Deep Repository Scan (PRO)'}</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">{isAr ? 'تحليل شامل للكود، README، لاستخراج أفضل قصة لمشاركتها.' : 'Comprehensive analysis of code and README to extract the best story.'}</p>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Quick Analyze Card */}
+                      <button 
+                        onClick={async () => {
+                          setAnalyzing(true);
+                          setRepoPhase('deep_scanning'); // Reuse loader
+                          try {
+                            const idToken = await user?.getIdToken();
+                            
+                            // Map commits to a simpler format
+                            const commitSummary = commits.map(c => ({
+                              sha: c.sha,
+                              message: c.commit.message
+                            }));
+                            
+                            const res = await fetch("/api/analyze-commits", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                              body: JSON.stringify({ repo, commits: commitSummary, lang })
+                            });
+                            const data = await res.json();
+                            if(res.ok) {
+                              setAnalysisResult({
+                                post: `🚀 **${data.title}**\n\n${data.technicalUpdate}\n\n${data.changelog}`,
+                                suggestedComment: `What do you think of these new updates? Let me know in the comments!`,
+                                synthesizedContext: "Analyzed recent commits for updates.",
+                                repository: { owner, name: repo }
+                              });
+                              setRepoPhase('result');
+                            } else {
+                              alert(data.error || 'Failed to analyze commits');
+                              setRepoPhase('idle');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('Error analyzing commits');
+                            setRepoPhase('idle');
+                          } finally {
+                            setAnalyzing(false);
+                          }
+                        }}
+                        disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
+                        className="w-full text-left bg-slate-900/60 border border-white/10 hover:border-slate-500 rounded-2xl p-5 transition-all hover:bg-slate-800/80 group disabled:opacity-50"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                            {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-5 h-5 animate-spin text-slate-400" /> : <GitCommit className="w-5 h-5 text-slate-400" />}
+                          </div>
+                          <div>
+                            <h4 className="text-white font-bold mb-1 group-hover:text-slate-200 transition-colors">{isAr ? 'توليد بناءً على التحديثات الأخيرة' : 'Generate from Recent Commits'}</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">{isAr ? 'التركيز على آخر التغييرات والإضافات البرمجية.' : 'Focus on the latest code changes and additions.'}</p>
+                          </div>
+                        </div>
                       </button>
                       
+                      {/* Custom Content Card */}
                       <button 
                         onClick={async () => {
                           setAnalyzing(true);
@@ -356,7 +401,15 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                             const res = await fetch("/api/analyze-repo", {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
-                              body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, humanContext: targetAudience, lang: lang })
+                              body: JSON.stringify({ 
+                                username: owner, 
+                                token: settings.githubToken, 
+                                repo: repo, 
+                                projectDescription: projectDescription || 'A repository', 
+                                intent: "Write a comprehensive tutorial based on this repository.", 
+                                humanContext: "Technical Developers", 
+                                lang: lang 
+                              })
                             });
                             const data = await res.json();
                             if(res.ok) {
@@ -385,11 +438,18 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                             setAnalyzing(false);
                           }
                         }}
-                        disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
-                        className="w-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-200 py-3.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
+                        className="w-full text-left bg-slate-900/60 border border-white/10 hover:border-slate-500 rounded-2xl p-5 transition-all hover:bg-slate-800/80 group disabled:opacity-50"
                       >
-                        {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-4 h-4 animate-spin text-slate-400" /> : <Search className="w-4 h-4 text-slate-400" />}
-                        {isAr ? 'تحليل سريع' : 'Quick Analyze'}
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                            <BookOpen className="w-5 h-5 text-slate-400" />
+                          </div>
+                          <div>
+                            <h4 className="text-white font-bold mb-1 group-hover:text-slate-200 transition-colors">{isAr ? 'كتابة درس تعليمي / إعلان' : 'Write Tutorial or Announcement'}</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">{isAr ? 'استخدام المستودع كمرجع لدرس تعليمي أو مقال.' : 'Use repository as a reference for a tutorial or article.'}</p>
+                          </div>
+                        </div>
                       </button>
                     </div>
                   </div>

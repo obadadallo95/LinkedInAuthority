@@ -22,6 +22,7 @@ import { RepositoriesDashboard } from './components/RepositoriesDashboard';
 import { RepoDetails } from './components/RepoDetails';
 import { DraftsDashboard } from './components/DraftsDashboard';
 import { SettingsPanel } from './components/SettingsPanel';
+import { AutomationsDashboard } from './components/AutomationsDashboard';
 import { GeneratorModal } from './components/GeneratorModal';
 import { LegalModal } from './components/Layout/LegalModal';
 import { FloatingHelpWidget } from './components/FloatingHelpWidget';
@@ -372,6 +373,7 @@ function App() {
             else if (tab === 'settings') navigate('/settings');
             else if (tab === 'templates') navigate('/templates');
             else if (tab === 'drafts') navigate('/drafts');
+            else if (tab === 'automations') navigate('/automations');
             
             if (!['draft', 'scheduled', 'published'].includes(tab)) {
               setActivePostId(null);
@@ -439,6 +441,12 @@ function App() {
               </div>
             } />
 
+            <Route path="/automations" element={
+              <div className="fade-in-element flex-1 flex flex-col w-full h-full">
+                <AutomationsDashboard lang={lang} repos={repos} />
+              </div>
+            } />
+
             <Route path="/repositories/:owner/:repo" element={
               <div className="fade-in-element flex-1 flex flex-col w-full h-full">
                 <RepoDetails 
@@ -459,6 +467,7 @@ function App() {
           else if (tab === 'settings') navigate('/settings');
           else if (tab === 'templates') navigate('/templates');
           else if (tab === 'drafts') navigate('/drafts');
+          else if (tab === 'automations') navigate('/automations');
         }}
         posts={posts}
       />

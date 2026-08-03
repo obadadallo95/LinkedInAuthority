@@ -251,4 +251,14 @@ export const ar = {
     footerPrivacy: "سياسة الخصوصية",
     footerTerms: "شروط الاستخدام",
     footerDeveloper: "المطور",
+  
+    navAutomations: "الأتمتة",
+    automationsTitle: "السلسلة الأسبوعية",
+    automationsDesc: "مراقبة المستودعات وتوليد محتوى أسبوعي آلياً.",
+    automationEmptyTitle: "لا توجد أتمتة نشطة",
+    automationEmptyDesc: "اختر مستودعاً لإعداد رؤى أسبوعية وتحديثات وتوليد منشورات تلقائياً.",
+    automationCreateBtn: "إنشاء أتمتة جديدة",
+    automationStatusActive: "نشط",
+    automationStatusPaused: "متوقف",
+    automationNextRun: "التشغيل القادم",
   };

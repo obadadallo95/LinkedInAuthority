@@ -251,4 +251,14 @@ export const en = {
     footerPrivacy: "Privacy",
     footerTerms: "Terms",
     footerDeveloper: "Developer",
+  
+    navAutomations: "Automations",
+    automationsTitle: "Weekly Automations",
+    automationsDesc: "Monitor repositories and automatically generate weekly content.",
+    automationEmptyTitle: "No Active Automations",
+    automationEmptyDesc: "Select a repository to set up automated weekly insights, updates, and post generation.",
+    automationCreateBtn: "Create New Automation",
+    automationStatusActive: "Active",
+    automationStatusPaused: "Paused",
+    automationNextRun: "Next Run",
   };

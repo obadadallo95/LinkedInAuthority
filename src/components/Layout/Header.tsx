@@ -46,117 +46,60 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
   const liConnected = !!settings?.githubToken;
 
   return (
-    <header className="h-20 sm:h-20 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 glass-panel backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
+    <header className="h-16 sm:h-16 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 glass-panel backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
       
       {/* Brand logo (Elegant custom CSS-crafted Logo) */}
       <div className="flex items-center gap-2 sm:gap-3 group/logo cursor-pointer select-none">
-        <div className="relative w-11 h-11 sm:w-11 sm:h-11 shrink-0 flex items-center justify-center">
-          {/* Pulsing Backlight outer bloom */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-sky-400 rounded-2xl blur-md opacity-40 group-hover/logo:opacity-75 transition-opacity duration-500" />
+        <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-sky-400 rounded-xl blur-md opacity-30 group-hover/logo:opacity-50 transition-opacity duration-500" />
           
-          {/* Outer rotating orbit dotted ring */}
-          <div className="absolute inset-0.5 border border-dashed border-indigo-400/30 rounded-2xl animate-[spin_40s_linear_infinite] group-hover/logo:border-indigo-400/60 transition-colors" />
-
-          {/* Active core container holding the logo image with smooth CSS fallback */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-inner group-hover/logo:border-indigo-500/30 transition-all duration-300 overflow-hidden">
-            {/* Try loading the logo image from Assets */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 border border-white/10 rounded-xl flex items-center justify-center shadow-inner overflow-hidden">
             <img 
               src="/logo.png" 
-              className="w-full h-full object-contain p-1 rounded-2xl"
+              className="w-full h-full object-contain p-1 rounded-xl"
               alt="LinkedIn Authority Logo"
               onError={(e) => {
-                // If logo load fails, hide the image and show the fallback CSS block
                 e.currentTarget.style.display = 'none';
                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                 if (fallback) fallback.classList.remove('hidden');
               }}
             />
             
-            {/* Elegant Vector/CSS Fallback (hidden by default, shown if image fails to load) */}
             <div className="hidden absolute inset-0 flex flex-col items-center justify-center -space-y-0.5">
-              {/* Embedded neon network matrix background glow */}
-              <div className="absolute top-0 right-0 w-6 h-6 bg-purple-500/20 rounded-full blur-sm" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 bg-teal-400/15 rounded-full blur-sm" />
-              
-              {/* The structural crown representation built with pure styled vector parts */}
+              <div className="absolute top-0 right-0 w-4 h-4 bg-purple-500/20 rounded-full blur-sm" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 bg-teal-400/15 rounded-full blur-sm" />
               <div className="relative flex flex-col items-center justify-center -space-y-0.5">
-                {/* Crown peaks */}
                 <div className="flex items-end gap-0.5 h-3">
-                  <div className="w-1 h-1.5 bg-indigo-400 rounded-sm group-hover/logo:h-2.5 transition-all duration-200" />
-                  <div className="w-1 h-3.5 bg-gradient-to-t from-indigo-500 to-purple-400 rounded-sm shadow-indigo-500/50 group-hover/logo:-translate-y-0.5 transition-all duration-200" />
-                  <div className="w-1 h-1.5 bg-indigo-400 rounded-sm group-hover/logo:h-2.5 transition-all duration-200" />
+                  <div className="w-1 h-1.5 bg-indigo-400 rounded-sm" />
+                  <div className="w-1 h-3 bg-gradient-to-t from-indigo-500 to-purple-400 rounded-sm" />
+                  <div className="w-1 h-1.5 bg-indigo-400 rounded-sm" />
                 </div>
-
-                {/* Crown Base block */}
-                <div className="w-4.5 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-sm flex items-center justify-between px-0.5">
-                  <div className="w-0.5 h-0.5 bg-white rounded-full animate-ping" />
-                  <div className="w-0.5 h-0.5 bg-white rounded-full" />
+                <div className="w-4 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-sm flex items-center justify-between px-0.5">
+                  <div className="w-0.5 h-0.5 bg-white rounded-full opacity-75" />
                 </div>
-
-                {/* Tiny connecting spark/star dot under */}
-                <Sparkles className="w-2.5 h-2.5 text-sky-300 absolute -top-1.5 -right-1 animate-pulse" />
               </div>
             </div>
           </div>
         </div>
 
         <div className={isAr ? "text-right" : "text-left"}>
-          <h1 className="text-[10px] min-[350px]:text-xs min-[400px]:text-sm sm:text-base md:text-lg font-black tracking-tight text-white flex items-center gap-1 sm:gap-1.5 leading-none group-hover/logo:text-indigo-200 transition-colors">
+          <h1 className="text-[11px] sm:text-sm md:text-base font-black tracking-tight text-white flex items-center gap-1.5 leading-none group-hover/logo:text-indigo-200 transition-colors">
             <span>LinkedIn Authority</span>
-            <span className="relative flex h-1.5 w-1.5 sm:h-2.5 sm:w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2.5 sm:w-2.5 bg-indigo-500"></span>
+            <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-50"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-indigo-500"></span>
             </span>
             {settings?.isPaidSubscription && (
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400/25 text-[7px] sm:text-[8.5px] px-1 sm:px-1.5 py-0.5 rounded-full font-black tracking-wider shadow-sm shadow-indigo-500/10 shrink-0">
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400/25 text-[7px] sm:text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider shadow-sm shadow-indigo-500/10 shrink-0">
                 PRO
               </span>
             )}
           </h1>
-          <p className="text-[9.5px] text-slate-500 uppercase tracking-widest mt-0.5 font-extrabold group-hover/logo:text-slate-400 transition-colors hidden md:block">
-            {t[lang].appSubTitle}
-          </p>
-        </div>
-      </div>
-
-      {/* SEO Connectivity Badges (Slack, LinkedIn, GitHub statuses) */}
-      <div className="hidden lg:flex items-center gap-2.5 bg-slate-950/40 px-3.5 py-1.5 rounded-full border border-white/5">
-        <div className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider mr-1">SEO Hub:</div>
-        
-        {/* GitHub Badge */}
-        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border
-          ${ghConnected 
-            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-            : 'bg-slate-800/50 text-slate-500 border-white/5'
-          }
-        `}>
-          <GitBranch className="w-3 h-3" />
-          <span>GitHub</span>
-          <span className={`w-1.5 h-1.5 rounded-full ${ghConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
-        </div>
-
-        {/* LinkedIn Badge */}
-        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border
-          ${liConnected 
-            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
-            : 'bg-slate-800/50 text-slate-500 border-white/5'
-          }
-        `}>
-          <Share2 className="w-3 h-3" />
-          <span>LinkedIn</span>
-          <span className={`w-1.5 h-1.5 rounded-full ${liConnected ? 'bg-blue-400 animate-pulse' : 'bg-slate-600'}`} />
-        </div>
-
-        {/* Slack Status - Watermark/Notification Node */}
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/5 text-purple-400 border border-purple-500/10">
-          <MessageSquare className="w-3 h-3" />
-          <span>Slack</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
         </div>
       </div>
 
       {/* Action panel (Language + User Dropdown) */}
-      <div className="flex items-center gap-1.5 sm:gap-4">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         
         {/* GitHub API Rate Limit display */}
         {rateLimit && (

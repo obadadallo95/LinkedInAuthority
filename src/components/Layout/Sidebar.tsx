@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  Home, BarChart3, Settings, Terminal, Sparkles, FileText, HelpCircle
+  Home, BarChart3, Settings, Terminal, Sparkles, FileText, HelpCircle, Activity
 } from 'lucide-react';
 import { t } from '../../constants';
 
 interface SidebarProps {
   lang: 'ar' | 'en' | 'de';
-  activeTab: 'home' | 'templates' | 'settings' | 'faq' | 'drafts';
+  activeTab: 'home' | 'templates' | 'settings' | 'faq' | 'drafts' | 'automations';
   setActiveTab: (tab: any) => void;
   posts: any[];
 }
@@ -25,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
     { id: 'home', label: isAr ? 'المستودعات' : 'Repositories', count: 0, icon: Home },
     { id: 'drafts', label: isAr ? 'المسودات' : 'Drafts', count: 0, icon: FileText },
     { id: 'templates', label: lang === 'ar' ? 'القوالب' : lang === 'en' ? 'Templates' : 'Vorlagen', count: 0, icon: Sparkles },
+    { id: 'automations', label: (t[lang] as any).navAutomations || 'Automations', count: 0, icon: Activity },
     { id: 'settings', label: lang === 'ar' ? 'الإعدادات' : lang === 'en' ? 'Settings' : 'Einstellungen', count: 0, icon: Settings }
   ];
 
@@ -32,22 +33,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
     <aside
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`hidden md:flex flex-col glass-panel border-white/5 z-30 transition-all duration-300 relative h-full w-16 hover:w-64 shadow-2xl
+      className={`hidden md:flex flex-col bg-slate-950/50 backdrop-blur-md border-white/5 z-30 transition-all duration-300 relative h-full w-16 hover:w-56
         ${isAr ? 'border-l' : 'border-r'}
       `}
     >
-      {/* Brand logo in Sidebar (Desktop only) */}
-      <div className="flex h-20 items-center justify-start px-5 border-b border-white/5 gap-3 shrink-0 overflow-hidden">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
-          <Sparkles className="w-4 h-4 text-white animate-pulse" />
-        </div>
-        <span className={`text-sm font-black text-white transition-opacity duration-200 uppercase tracking-tight whitespace-nowrap ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-          Authority
-        </span>
-      </div>
-
       {/* Menu Options */}
-      <nav className="sidebar-nav-container flex-1 flex flex-col justify-start py-4 gap-2 overflow-y-auto custom-scrollbar px-2 w-full">
+      <nav className="sidebar-nav-container flex-1 flex flex-col justify-start py-6 gap-2 overflow-y-auto custom-scrollbar px-2 w-full">
         {menuItems.map((item) => {
           const IconComponent = item.icon;
           const isActive = activeTab === item.id;
@@ -55,17 +46,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-3.5 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 ease-in-out w-full relative group hover:scale-[1.02] active:scale-[0.98]
+              className={`flex items-center gap-3.5 px-3 py-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out w-full relative group hover:scale-[1.02] active:scale-[0.98]
                 ${isActive 
-                  ? 'bg-gradient-to-r from-indigo-600/20 to-purple-600/20 text-indigo-400 border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                  ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
                   : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent'
                 }
                 ${isHovered ? 'justify-start' : 'justify-center items-center'}
               `}
             >
-              <IconComponent className={`w-5 h-5 shrink-0 transition-all ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] text-indigo-400' : 'group-hover:text-white'}`} />
+              <IconComponent className={`w-5 h-5 shrink-0 transition-all ${isActive ? 'scale-110 text-indigo-400' : 'group-hover:text-white'}`} />
 
-              <span className={`text-xs font-bold whitespace-nowrap transition-all duration-200 uppercase tracking-widest ${isHovered ? 'opacity-100 block' : 'opacity-0 hidden'}`}>
+              <span className={`text-xs font-bold whitespace-nowrap transition-all duration-200 tracking-wide ${isHovered ? 'opacity-100 block' : 'opacity-0 hidden'}`}>
                 {item.label}
               </span>
 
