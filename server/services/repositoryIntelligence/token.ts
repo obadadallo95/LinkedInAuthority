@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { AnalysisTokenPayload } from './types';
 
 export function getAnalysisSigningSecret(): string {
-  const secret = process.env.ANALYSIS_SIGNING_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
+  const secret = process.env.ANALYSIS_SIGNING_SECRET || (process.env.NODE_ENV === 'production' ? undefined : 'dev_signing_secret_key_fallback');
   if (!secret) {
     throw new Error("Configuration Error: ANALYSIS_SIGNING_SECRET is not set in the environment.");
   }
