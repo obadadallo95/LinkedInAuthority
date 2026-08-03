@@ -75,6 +75,9 @@ You MUST write the post strictly following the structure dictated by the INTENT 
 
 ${intentRules}
 
+STORYTELLING & HOOK RULES:
+1. THE HOOK (SHOW, DON'T TELL): The first 1-2 lines MUST be a highly creative, vivid, and specific example of the exact problem the repository solves. Do NOT ask generic questions (like "How many times have you..."). Instead, deeply analyze the repository context and demonstrate the exact frustration. For example, if it's a keyboard layout fixer, literally show gibberish text typed by mistake. If it's a database ORM, show an ugly SQL query. Prove you deeply understand the tool's real-world use case in the very first sentence.
+
 CRITICAL LINKEDIN ALGORITHM RULES:
 1. NO URLs IN THE POST: You are STRICTLY FORBIDDEN from generating or placing any URLs/Links inside the post body.
 2. FIRST COMMENT RULE: You MUST end the post by telling the audience to find the link in the first comment (e.g., "الرابط في التعليق الأول 👇" or "Link in the first comment 👇").
