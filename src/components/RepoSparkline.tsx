@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export const RepoSparkline = ({ username, repo, token }: { username: string; repo: string; token: string }) => {
+export const RepoSparkline = ({ username, repo, token, className = "h-6 w-16" }: { username: string; repo: string; token: string; className?: string }) => {
   const [data, setData] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,8 +26,6 @@ export const RepoSparkline = ({ username, repo, token }: { username: string; rep
             setData(stats.all.slice(-4));
           }
         } else if (res.status === 202) {
-          // GitHub is computing the stats, just set some dummy or retry later
-          // We'll just show no activity for now instead of complex retry logic
           if (isMounted) setData([1,2,1,0]); // mock data if computing
         }
       } catch (e) {
@@ -54,19 +52,19 @@ export const RepoSparkline = ({ username, repo, token }: { username: string; rep
   }, [username, repo, token]);
 
   if (loading) {
-    return <div ref={containerRef} className="h-6 w-16 bg-slate-800/50 animate-pulse rounded-md"></div>;
+    return <div ref={containerRef} className={`${className} bg-slate-800/50 animate-pulse rounded-md`}></div>;
   }
 
   if (data.length === 0 || data.every(d => d === 0)) {
-    return <div ref={containerRef} className="h-6 w-16 text-[9px] text-slate-500 font-medium flex items-center justify-center">No activity</div>;
+    return <div ref={containerRef} className={`${className} text-[9px] text-slate-500 font-medium flex items-center justify-center`}>No activity</div>;
   }
 
   const max = Math.max(...data, 1);
   const min = 0;
   
   // Create points for SVG path
-  const width = 64;
-  const height = 24;
+  const width = 100; // use percentage mapping internally
+  const height = 40;
   const step = width / (data.length - 1 || 1);
   
   const points = data.map((val, i) => {
@@ -75,14 +73,10 @@ export const RepoSparkline = ({ username, repo, token }: { username: string; rep
     return `${x},${y}`;
   });
   
-  // Create a smooth curve string
-  const pathData = `M ${points[0]} ` + points.slice(1).map((p, i) => {
-    // Simple line for now, or bezier if we had more points
-    return `L ${p}`;
-  }).join(' ');
+  const pathData = `M ${points[0]} ` + points.slice(1).map((p, i) => `L ${p}`).join(' ');
 
   return (
-    <div ref={containerRef} className="h-6 w-16 relative" title="Commit activity (last 30 days)">
+    <div ref={containerRef} className={`${className} relative`} title="Commit activity (last 30 days)">
       <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
         {/* Glow effect */}
         <path
@@ -99,7 +93,7 @@ export const RepoSparkline = ({ username, repo, token }: { username: string; rep
           d={pathData}
           fill="none"
           stroke="#818cf8"
-          strokeWidth="1.5"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
