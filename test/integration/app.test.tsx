@@ -147,20 +147,12 @@ describe('LinkedIn Authority - End-to-End Integration', () => {
 
     fireEvent.change(githubInput, { target: { value: 'https://github.com/obadadallo/KeyFixer' } });
 
-    // Click Analyze button
-    const analyzeBtn = screen.getByText(/Analyze project and suggest stories/i);
-    fireEvent.click(analyzeBtn);
+    // Click Next button
+    const nextBtn = screen.getByText(/^Next$/i);
+    fireEvent.click(nextBtn);
 
-    // Wait for the angles to appear
-    const angleOption = await screen.findByText(/Test Angle/i);
-    expect(angleOption).toBeInTheDocument();
-    
-    // Select the angle by clicking it (or its parent button)
-    fireEvent.click(angleOption);
-
-    // Click Generate Post button (we need to find the text for T.demoGenerateBtn)
-    // T.demoGenerateBtn in English is "Write the post with this angle"
-    const generateBtn = screen.getByText(/Write the post with this angle/i);
+    // Click Generate Post button
+    const generateBtn = await screen.findByText(/^Generate Post$/i);
     fireEvent.click(generateBtn);
 
     // Wait for the mock post to appear

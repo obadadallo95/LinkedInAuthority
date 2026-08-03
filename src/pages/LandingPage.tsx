@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Bot, Globe, Check, Sparkles, Lock, ArrowLeft,
-  User, RefreshCw, Zap, Target
+  User, RefreshCw, Zap, Target, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
 import { trackEvent } from '../utils/analytics';
 import { LegalModal } from '../components/Layout/LegalModal';
 import { AboutUsModal } from '../components/Layout/AboutUsModal';
+import { TransformationLoader } from '../components/TransformationLoader';
+import { IntentCards } from '../components/IntentCards';
 
 const GithubIcon = ({ className, size = 24 }: { className?: string, size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -30,19 +32,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const { signInWithGoogle, signInWithGithub } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   
-  // Interactive Demo States
+  const [demoStep, setDemoStep] = useState<1 | 2 | 3>(1);
+  const [targetAudience, setTargetAudience] = useState('Software Engineers');
   const [demoUrl, setDemoUrl] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
   const [phase, setPhase] = useState<DemoPhase>('idle');
   
-  const [angles, setAngles] = useState<any[]>([]);
-  const [analyzeConflicts, setAnalyzeConflicts] = useState<any[]>([]);
-  const [selectedAngleId, setSelectedAngleId] = useState<string>('');
-  const [customAngle, setCustomAngle] = useState('');
-  
-  const [humanContext, setHumanContext] = useState('');
   const [selectedMainIntent, setSelectedMainIntent] = useState('auto');
-  const [analysisToken, setAnalysisToken] = useState('');
   
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
@@ -93,137 +88,71 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     setTimeout(() => setHasCopied(false), 2000);
   };
 
-  const handleAnalyze = async () => {
+  const handleWizardGenerate = async () => {
     if (!demoUrl) return;
     
     if (demoUrl.length > 5) trackEvent('repository_url_entered', { url: demoUrl });
     trackEvent('repository_analysis_started');
 
+    setDemoStep(3);
     setPhase('analyzing');
     setDemoError('');
     setDemoResult(null);
-    setAnalyzeConflicts([]);
 
     try {
+      // 1. Analyze
       const res = await fetch("/api/demo/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           repoUrl: demoUrl, 
-          projectDescription: projectDescription.slice(0, 200),
+          projectDescription: "", 
           intent: selectedMainIntent,
           lang 
         })
       });
       
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to analyze repository');
       
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to analyze repository');
-      }
+      const analysisToken = data.analysisToken || '';
+      const angles = data.angles || [];
+      const angle = angles[0];
       
-      if (data.needsUserContext) {
-        setPhase('needs_context');
-        trackEvent('generation_needs_context');
-        return;
-      }
+      if (!angle) throw new Error("No angles generated");
       
-      if (data.angles) {
-        setAngles(data.angles);
-        setAnalysisToken(data.analysisToken || '');
-        setAnalyzeConflicts(data.conflicts || []);
-      }
-      setDemoResult({ repository: data.repository }); // Save repo metadata early
-      setPhase('angles');
-      trackEvent('repository_analysis_succeeded', { count: data.angles?.length });
-    } catch (e: any) {
-      setDemoError(e.message);
-      setPhase('idle');
-      trackEvent('repository_analysis_failed', { error: e.message });
-    }
-  };
-
-  const handleAngleSelection = () => {
-    if (!selectedAngleId) return;
-    
-    if (selectedAngleId === 'custom') {
-      if (!customAngle) return;
-      trackEvent('custom_angle_entered', { length: customAngle.length });
       setPhase('generating');
-      handleGenerate('custom', customAngle, false);
-      return;
-    }
-
-    const angle = angles.find(a => a.id === selectedAngleId);
-    if (!angle) return;
-
-    trackEvent('candidate_angle_selected', { angleId: angle.id });
-
-    if (angle.requiresHumanContext) {
-      setPhase('adaptive_question');
-    } else {
-      setPhase('generating');
-      handleGenerate(angle.id, angle.title, false);
-    }
-  };
-
-  const submitAdaptiveQuestion = () => {
-    if (!humanContext) return;
-    trackEvent('adaptive_question_answered', { length: humanContext.length });
-    
-    const angle = angles.find(a => a.id === selectedAngleId);
-    if (!angle) return;
-
-    setPhase('generating');
-    handleGenerate(angle.id, angle.title, true);
-  };
-
-  const handleGenerate = async (intentId: string, intentLabel: string, requiresContext: boolean) => {
-    trackEvent('post_generation_started');
-    setDemoError('');
-    
-    try {
-      const payload: any = {
-        repoUrl: demoUrl,
-        projectDescription: projectDescription.slice(0, 200),
-        analysisToken,
-        humanContext: humanContext.slice(0, 200),
-        lang
-      };
-
-      if (intentId === 'custom') {
-        payload.customAngle = customAngle.slice(0, 200);
-      } else {
-        payload.angleId = intentId;
-      }
-
-      const res = await fetch("/api/demo/generate", {
+      
+      // 2. Generate
+      const genRes = await fetch("/api/demo/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          repoUrl: demoUrl,
+          projectDescription: "",
+          analysisToken,
+          humanContext: targetAudience,
+          angleId: angle.id,
+          lang
+        })
       });
       
-      const data = await res.json();
+      const genData = await genRes.json();
+      if (!genRes.ok) throw new Error(genData.error || 'Failed to generate post');
       
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to generate post');
-      }
-      
-      setDemoResult(prev => ({
-        ...prev,
-        selectedIntent: intentId === 'custom' ? customAngle : intentLabel,
-        evidence: data.evidence,
-        conflicts: data.conflicts,
-        post: data.post
-      }));
+      setDemoResult({
+        repository: data.repository,
+        selectedIntent: selectedMainIntent,
+        evidence: genData.evidence,
+        conflicts: genData.conflicts,
+        post: genData.post
+      });
       setPhase('result');
       trackEvent('post_generation_succeeded');
     } catch (e: any) {
       setDemoError(e.message);
-      // Revert phase based on intent type
-      if (intentId === 'custom') setPhase('angles');
-      else if (requiresContext) setPhase('adaptive_question');
-      else setPhase('angles');
+      setDemoStep(2);
+      setPhase('idle');
       trackEvent('post_generation_failed', { error: e.message });
     }
   };
@@ -360,13 +289,14 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
               {/* Dynamic Phases */}
               <AnimatePresence mode="wait">
-                {/* Phase 1: Idle & Needs Context */}
-                {(phase === 'idle' || phase === 'analyzing' || phase === 'needs_context') && (
+                {/* Step 1: Input URL */}
+                {demoStep === 1 && (
                   <motion.div
-                    key="phase-idle"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                    key="step-1"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className="space-y-6 max-w-2xl mx-auto"
                   >
                     <div>
@@ -380,231 +310,96 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                           onChange={(e) => setDemoUrl(e.target.value)}
                           className="w-full bg-transparent border-none text-white focus:outline-none placeholder:text-slate-600 font-mono text-sm py-3"
                           dir="ltr"
-                          disabled={phase === 'analyzing'}
                         />
                       </div>
                     </div>
-
-                    <AnimatePresence>
-                      {phase === 'needs_context' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mb-3 mt-2 p-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm rounded-xl flex items-start gap-3">
-                            <span className="shrink-0 mt-0.5 text-lg">⚠️</span>
-                            <div>
-                              <p className="font-bold text-base">{T.demoNeedsContextTitle}</p>
-                              <p className="text-amber-200/80 mt-1">{T.demoNeedsContextDesc}</p>
-                            </div>
-                          </div>
-                          <textarea 
-                            value={projectDescription}
-                            onChange={(e) => setProjectDescription(e.target.value)}
-                            placeholder={T.demoContextInputPlaceholder}
-                            maxLength={200}
-                            rows={3}
-                            className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm mt-2"
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoStep2Title}</label>
-                      <select 
-                        value={selectedMainIntent}
-                        onChange={(e) => setSelectedMainIntent(e.target.value)}
-                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors text-sm appearance-none cursor-pointer"
-                        disabled={phase === 'analyzing'}
-                      >
-                        <option value="auto">{T.demoIntentAuto || "Suggest best stories (Recommended)"}</option>
-                        <option value="project">{T.demoIntentAnnouncement || "Present project or feature"}</option>
-                        <option value="technical_decision">{T.demoIntentDecision || "Explain technical decision"}</option>
-                        <option value="challenge_lesson">{T.demoIntentLesson || "Share a challenge or lesson"}</option>
-                        <option value="progress_update">{"Share progress or update"}</option>
-                      </select>
-                    </div>
-
                     <div className="pt-4">
                       <button 
-                        onClick={handleAnalyze}
-                        disabled={phase === 'analyzing' || !demoUrl || (phase === 'needs_context' && !projectDescription)}
-                        className="w-full overflow-hidden relative flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                        onClick={() => setDemoStep(2)}
+                        disabled={!demoUrl}
+                        className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {phase === 'analyzing' ? (
-                          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1 }}>
-                            <RefreshCw size={18} />
-                          </motion.div>
-                        ) : (
-                          <Sparkles size={18} className="group-hover/btn:scale-110 transition-transform" />
-                        )}
-                        <span>{phase === 'analyzing' ? T.demoAnalyzingState : T.demoAnalyzeBtn}</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Phase 2: Angles Selection */}
-                {phase === 'angles' && (
-                  <motion.div
-                    key="phase-angles"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className="max-w-2xl mx-auto"
-                  >
-                    <div className="text-center mb-6">
-                      <h4 className="text-xl font-bold text-white mb-2">{T.demoAnglesTitle}</h4>
-                      <p className="text-sm text-slate-400">{T.demoAnglesSubtitle}</p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {analyzeConflicts.map((conflict, idx) => (
-                        <div key={idx} className="mb-4 text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 shadow-lg">
-                          <div className="shrink-0 mt-0.5">⚠️</div>
-                          <div>
-                            <p className="font-bold text-amber-500">{T.demoConflictWarning || 'Analysis Warning'}</p>
-                            <p className="mt-1">{conflict.safeAlternative || conflict.claim}</p>
-                          </div>
-                        </div>
-                      ))}
-
-                      {angles.map((angle, idx) => (
-                        <button
-                          key={angle.id}
-                          onClick={() => setSelectedAngleId(angle.id)}
-                          className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-2 ${
-                            selectedAngleId === angle.id 
-                              ? 'bg-indigo-500/20 border-indigo-500/50' 
-                              : 'bg-slate-950 border-white/10 hover:border-white/20'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className={`font-bold ${selectedAngleId === angle.id ? 'text-indigo-300' : 'text-slate-200'}`}>
-                              {angle.title}
-                            </span>
-                            {angle.recommended && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">{T.demoAngleRecommended}</span>}
-                          </div>
-                          <span className="text-sm text-slate-400 leading-relaxed">{angle.angleSummary}</span>
-                          
-                          {angle.audienceValue && (
-                            <div className="mt-2 text-xs bg-white/5 p-2 rounded-lg border border-white/5 flex gap-2 items-start">
-                              <Target size={14} className="text-emerald-400 mt-0.5 shrink-0" />
-                              <div>
-                                <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wide">{T.demoAudienceValue || 'Value'}</span>
-                                <span className="text-slate-300">{angle.audienceValue}</span>
-                              </div>
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                      
-                      <button
-                        onClick={() => setSelectedAngleId('custom')}
-                        className={`w-full text-left px-5 py-4 rounded-xl border transition-all flex flex-col gap-2 ${
-                          selectedAngleId === 'custom' 
-                            ? 'bg-indigo-500/20 border-indigo-500/50' 
-                            : 'bg-slate-950 border-white/10 hover:border-white/20'
-                        }`}
-                      >
-                        <span className={`font-bold ${selectedAngleId === 'custom' ? 'text-indigo-300' : 'text-slate-200'}`}>
-                          {T.demoAngleCustom}
-                        </span>
-                        {selectedAngleId === 'custom' && (
-                          <textarea
-                            value={customAngle}
-                            onChange={(e) => setCustomAngle(e.target.value)}
-                            placeholder={T.demoAngleCustomPlaceholder}
-                            className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 resize-none mt-1"
-                            rows={2}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="pt-8">
-                      <button 
-                        onClick={handleAngleSelection}
-                        disabled={!selectedAngleId || (selectedAngleId === 'custom' && !customAngle)}
-                        className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {T.demoGenerateBtn}
+                        {T.demoWizardNextBtn}
                         <ArrowRight size={18} className={isRtl ? "rotate-180" : ""} />
                       </button>
                     </div>
                   </motion.div>
                 )}
 
-                {/* Phase 3: Adaptive Question */}
-                {phase === 'adaptive_question' && (
+                {/* Step 2: Configuration */}
+                {demoStep === 2 && (
                   <motion.div
-                    key="phase-adaptive"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                    key="step-2"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="space-y-6 max-w-4xl mx-auto"
+                  >
+                    <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 shadow-2xl">
+                      <label className="block text-base font-bold text-white mb-6 flex items-center gap-2">
+                        <Sparkles size={18} className="text-indigo-400" />
+                        {T.demoStep2Title}
+                      </label>
+                      <IntentCards selectedIntent={selectedMainIntent} onSelectIntent={setSelectedMainIntent} lang={lang} />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-300 mb-2">{T.demoAudienceLabel}</label>
+                      <select 
+                        value={targetAudience}
+                        onChange={(e) => setTargetAudience(e.target.value)}
+                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors text-sm appearance-none cursor-pointer"
+                      >
+                        <option value="Software Engineers">{T.demoAudienceSoftwareEngineers}</option>
+                        <option value="CTOs/Tech Leads">{T.demoAudienceCTOs}</option>
+                        <option value="Recruiters/HR">{T.demoAudienceRecruiters}</option>
+                        <option value="General Public">{T.demoAudienceGeneral}</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-4 flex gap-4">
+                      <button 
+                        onClick={() => setDemoStep(1)}
+                        className="flex-[1] py-4 bg-slate-900 border border-white/10 hover:bg-slate-800 text-white font-bold rounded-xl transition-all"
+                      >
+                        {T.demoWizardBackBtn}
+                      </button>
+                      <button 
+                        onClick={handleWizardGenerate}
+                        className="flex-[2] flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg"
+                      >
+                        {T.demoWizardGenerateBtn}
+                        <ArrowRight size={18} className={isRtl ? "rotate-180" : ""} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Step 3: Loading */}
+                {demoStep === 3 && phase !== 'result' && (
+                  <motion.div
+                    key="step-3-loading"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className="max-w-xl mx-auto text-center"
                   >
-                    <div className="w-16 h-16 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <Bot size={32} />
-                    </div>
-                    <h4 className="text-2xl font-bold text-white mb-2">{T.demoAdaptiveQuestionTitle}</h4>
-                    <p className="text-slate-400 mb-8">{angles.find(a => a.id === selectedAngleId)?.adaptiveQuestion || T.demoContextHelp}</p>
-                    
-                    <textarea 
-                      value={humanContext}
-                      onChange={(e) => setHumanContext(e.target.value)}
-                      placeholder="..."
-                      maxLength={200}
-                      rows={3}
-                      className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm text-left mb-6"
-                      dir="auto"
+                    <TransformationLoader 
+                      label={phase === 'analyzing' ? T.demoLoadingAnalyzing : T.demoLoadingDrafting} 
                     />
-
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={() => setPhase('angles')}
-                        className="flex-1 py-4 bg-slate-900 border border-white/10 hover:bg-slate-800 text-white font-bold rounded-xl transition-all"
-                      >
-                        {T.cancelScheduleBtn}
-                      </button>
-                      <button 
-                        onClick={submitAdaptiveQuestion}
-                        disabled={!humanContext}
-                        className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all disabled:opacity-50"
-                      >
-                        {T.demoGenerateBtn}
-                      </button>
-                    </div>
                   </motion.div>
                 )}
 
-                {/* Phase 4: Generating */}
-                {phase === 'generating' && (
-                  <motion.div
-                    key="phase-generating"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="max-w-xl mx-auto text-center py-12"
-                  >
-                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, ease: "linear", duration: 1.5 }} className="inline-block mb-6 text-indigo-400">
-                      <RefreshCw size={48} />
-                    </motion.div>
-                    <h4 className="text-xl font-bold text-white mb-2">{T.demoGeneratingState}</h4>
-                    <p className="text-slate-400">This takes a few seconds...</p>
-                  </motion.div>
-                )}
-
-                {/* Phase 5: Result */}
-                {phase === 'result' && demoResult && (
+                {/* Step 3: Result */}
+                {demoStep === 3 && phase === 'result' && demoResult && (
                   <motion.div 
-                    key="phase-result"
-                    initial={{ opacity: 0, y: 20 }} 
+                    key="step-3-result"
+                    initial={{ opacity: 0, y: 15 }} 
                     animate={{ opacity: 1, y: 0 }} 
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className="grid grid-cols-1 lg:grid-cols-12 gap-8"
                   >
                     {/* Left: Metadata & Evidence */}
@@ -651,7 +446,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                       </div>
 
                       <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex gap-3 shadow-lg">
-                        <div className="shrink-0 mt-0.5">⚠️</div>
+                        <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                         <p className="leading-relaxed">{T.demoResultWarning}</p>
                       </div>
                     </div>
@@ -680,11 +475,11 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
                         <div className="flex justify-between items-center pt-4 border-t border-white/5">
                           <button
-                            onClick={() => setPhase('idle')}
+                            onClick={() => { setDemoStep(1); setDemoUrl(''); }}
                             className="text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors"
                           >
                             <RefreshCw size={14} className="inline mr-1" />
-                            Start Over
+                            {T.demoWizardStartOverBtn}
                           </button>
                           <button
                             onClick={handleCopy}
