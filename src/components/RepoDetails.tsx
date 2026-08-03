@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap } from 'lucide-react';
+import { ChevronRight, FolderGit2, GitCommit, FileText, RefreshCw, Save, Copy, Zap, Lock, BookOpen, CircleDot, PlayCircle, Shield, LineChart, FileCode2, Folder, Clock, CheckCircle2 } from 'lucide-react';
 import { fetchReadme } from '../services/githubService';
 import { useAuth } from '../application/AuthContext';
 import { firestoreService, DraftData } from '../services/firestoreService';
@@ -15,8 +15,13 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [loading, setLoading] = useState(true);
   const [commits, setCommits] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [repoFiles, setRepoFiles] = useState<any[]>([]);
+  const [repoMeta, setRepoMeta] = useState<any>(null);
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [readme, setReadme] = useState('');
+  
+  const [activeTab, setActiveTab] = useState('linkedin'); // Default to our special tab
+
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null); // For the generated post
 
@@ -49,7 +54,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
         repo: repo as string,
         fullName: `${owner}/${repo}`,
         description: data.summary || data.title || '',
-        language: '',
+        language: repoMeta?.language || '',
       });
 
       const draft: DraftData = {
@@ -72,10 +77,15 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   useEffect(() => {
     if (!owner || !repo) return;
     if (demoMode) {
-      setCommits([
-        { commit: { message: "refactor: optimize rendering pipeline", author: { date: new Date().toISOString() } } }
-      ]);
+      setCommits([{ commit: { message: "refactor: optimize rendering pipeline", author: { date: new Date().toISOString() } } }]);
       setBranches([{ name: 'main' }]);
+      setRepoFiles([
+        { name: 'src', type: 'dir' },
+        { name: 'public', type: 'dir' },
+        { name: 'package.json', type: 'file' },
+        { name: 'README.md', type: 'file' }
+      ]);
+      setRepoMeta({ description: 'A demo repository for showcasing features.', stargazers_count: 42, language: 'TypeScript', private: false });
       setReadme('# Demo Repository\nThis is a demo repository.');
       setLoading(false);
       return;
@@ -93,115 +103,245 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
     Promise.all([
       fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`, { headers }).then(r => r.ok ? r.json() : []),
       fetch(`https://api.github.com/repos/${owner}/${repo}/branches`, { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`https://api.github.com/repos/${owner}/${repo}/contents`, { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers }).then(r => r.ok ? r.json() : null),
       fetchReadme(owner, repo, settings.githubToken, false).catch(() => '')
-    ]).then(([commitsData, branchesData, readmeData]) => {
+    ]).then(([commitsData, branchesData, contentsData, metaData, readmeData]) => {
       setCommits(Array.isArray(commitsData) ? commitsData : []);
       setBranches(Array.isArray(branchesData) ? branchesData : []);
       if (Array.isArray(branchesData) && branchesData.length > 0) {
         setSelectedBranch(branchesData.find(b => b.name === 'main' || b.name === 'master')?.name || branchesData[0].name);
       }
+      
+      let files = Array.isArray(contentsData) ? contentsData : [];
+      // Sort: dirs first, then files, alphabetically
+      files.sort((a, b) => {
+        if (a.type === b.type) return a.name.localeCompare(b.name);
+        return a.type === 'dir' ? -1 : 1;
+      });
+      setRepoFiles(files);
+      setRepoMeta(metaData);
       setReadme(readmeData);
       setLoading(false);
     });
   }, [owner, repo, settings, demoMode]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col gap-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <button onClick={() => navigate('/repositories')} className="hover:text-white transition-colors">
-          {isAr ? 'المستودعات' : 'Repositories'}
-        </button>
-        <ChevronRight className="w-4 h-4" />
-        <span className="text-white font-bold">{repo}</span>
-      </div>
+    <div className="w-full h-full flex flex-col bg-slate-950">
+      
+      {/* GITHUB STYLE HEADER */}
+      <div className="bg-slate-900 border-b border-slate-800 pt-6 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col gap-6">
+          
+          {/* Title Area */}
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5 text-slate-400" />
+            <h1 className="text-xl flex items-center gap-1.5 flex-wrap">
+              <span className="text-indigo-400 hover:underline cursor-pointer">{owner}</span>
+              <span className="text-slate-500">/</span>
+              <span className="text-slate-200 font-bold hover:underline cursor-pointer">{repo}</span>
+            </h1>
+            <span className="px-2 py-0.5 rounded-full border border-slate-700 text-slate-400 text-[11px] font-medium ml-2">
+              {repoMeta?.private ? 'Private' : 'Public'}
+            </span>
+          </div>
 
-      <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-        {/* Subtle accent gradient */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500/50 via-purple-500/50 to-indigo-500/50"></div>
-        
-        <div className="flex items-center gap-3 mb-6 relative z-10">
-          <FolderGit2 className="w-8 h-8 text-indigo-400" />
-          <div>
-            <h1 className="text-2xl font-black text-white font-heading tracking-tight">{repo}</h1>
-            <p className="text-slate-400 text-sm">{owner}</p>
+          {/* GitHub Tabs */}
+          <div className="flex items-center gap-6 text-sm font-medium overflow-x-auto hide-scrollbar">
+            {[
+              { id: 'code', icon: FileCode2, label: 'Code' },
+              { id: 'issues', icon: CircleDot, label: 'Issues' },
+              { id: 'pulls', icon: GitBranch, label: 'Pull requests' },
+              { id: 'actions', icon: PlayCircle, label: 'Actions' },
+              { id: 'security', icon: Shield, label: 'Security' },
+              { id: 'insights', icon: LineChart, label: 'Insights' },
+              { id: 'linkedin', icon: Zap, label: 'LinkedIn AI', highlight: true }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 pb-3 border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? (tab.highlight ? 'border-indigo-500 text-white' : 'border-[#f78166] text-white')
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <tab.icon className={`w-4 h-4 ${tab.highlight && activeTab === tab.id ? 'text-indigo-400' : ''}`} />
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="py-12 flex justify-center">
-            <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
+      {loading ? (
+        <div className="flex-1 flex justify-center pt-20">
+          <RefreshCw className="w-8 h-8 text-slate-600 animate-spin" />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               
-              <div className="bg-slate-950/50 rounded-xl p-4 border border-white/5">
-                <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-                  <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-indigo-400" /> README
-                  </h2>
+              {/* LEFT COLUMN: GITHUB FILE EXPLORER (75%) */}
+              <div className="lg:col-span-3 space-y-6">
+                
+                {/* File Explorer */}
+                <div className="border border-slate-800 rounded-lg overflow-hidden bg-[#0d1117]">
+                  {/* Latest Commit Header */}
+                  <div className="bg-slate-900/50 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+                        <GitCommit className="w-3.5 h-3.5 text-slate-400" />
+                      </div>
+                      <p className="text-sm text-slate-300 font-medium truncate max-w-md">
+                        {commits[0]?.commit.message || 'Initial commit'}
+                      </p>
+                    </div>
+                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                      <span>{commits[0] ? new Date(commits[0].commit.author.date).toLocaleDateString() : ''}</span>
+                      <strong className="text-slate-300">{commits.length}</strong> commits
+                    </div>
+                  </div>
                   
-                  <div className="flex gap-2 items-center">
-                    <select 
-                      value={intent}
-                      onChange={(e) => setIntent(e.target.value)}
-                      className="glass-panel px-3 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-colors text-xs appearance-none cursor-pointer hover:bg-slate-800/80"
-                      disabled={analyzing || repoPhase === 'generating'}
-                    >
-                      <option value="auto">{isAr ? "أفضل زاوية تلقائياً" : "Auto (Recommended)"}</option>
-                      <option value="project">{isAr ? "أعلن عن المشروع" : "Project / Feature"}</option>
-                      <option value="technical_decision">{isAr ? "قرار تقني" : "Technical Decision"}</option>
-                      <option value="challenge_lesson">{isAr ? "شارك درساً" : "Challenge / Lesson"}</option>
-                      <option value="progress_update">{isAr ? "تحديث أو تقدم" : "Progress Update"}</option>
-                    </select>
+                  {/* Files List */}
+                  <div className="divide-y divide-slate-800/50">
+                    {repoFiles.map((file, i) => (
+                      <div key={i} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/20 transition-colors cursor-pointer group">
+                        {file.type === 'dir' ? (
+                          <Folder className="w-4 h-4 text-[#79c0ff]" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-slate-500" />
+                        )}
+                        <span className="text-sm text-slate-300 group-hover:text-indigo-400 transition-colors truncate">
+                          {file.name}
+                        </span>
+                        <span className="ml-auto text-xs text-slate-600">Update {file.name}</span>
+                      </div>
+                    ))}
+                    {repoFiles.length === 0 && (
+                      <div className="p-4 text-sm text-slate-500 text-center">No files found.</div>
+                    )}
+                  </div>
+                </div>
 
-                    <button 
-                      onClick={async () => {
-                        setAnalyzing(true);
-                        setRepoPhase('deep_scanning');
-                        try {
-                          const idToken = await user?.getIdToken();
-                          const res = await fetch("/api/deep-scan", {
-                            method: "POST",
-                            headers: { 
-                              "Content-Type": "application/json",
-                              "Authorization": `Bearer ${idToken}`
-                            },
-                            body: JSON.stringify({
-                              username: owner,
-                              token: settings.githubToken,
-                              repo: repo,
-                              lang: lang
-                            })
-                          });
-                          const data = await res.json();
-                          if(res.ok) {
-                            setAnalysisResult({
-                              post: data.post,
-                              suggestedComment: data.suggestedComment,
-                              synthesizedContext: data.synthesizedContext,
-                              repository: data.repository
+                {/* README Box */}
+                {readme && (
+                  <div className="border border-slate-800 rounded-lg overflow-hidden bg-[#0d1117]">
+                    <div className="border-b border-slate-800 px-4 py-3 flex items-center gap-2 sticky top-0 bg-[#0d1117] z-10">
+                      <List className="w-4 h-4 text-slate-500" />
+                      <h3 className="text-sm font-semibold text-slate-200">README.md</h3>
+                    </div>
+                    <div className="p-8 prose prose-invert prose-sm md:prose-base max-w-none text-slate-300 font-sans">
+                      <pre className="whitespace-pre-wrap bg-transparent border-0 p-0 text-slate-300 font-sans">{readme}</pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: LINKEDIN AUTHORITY ENGINE (25%) */}
+              <div className="lg:col-span-1 space-y-6">
+                
+                {/* About Section (GitHub native look) */}
+                <div className="border-b border-slate-800 pb-6">
+                  <h3 className="text-slate-200 font-semibold mb-3">About</h3>
+                  <p className="text-slate-400 text-sm mb-4 leading-relaxed">
+                    {repoMeta?.description || 'No description, website, or topics provided.'}
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <Star className="w-4 h-4 text-slate-500" />
+                      <strong className="text-slate-300">{repoMeta?.stargazers_count || 0}</strong> stars
+                    </div>
+                    {repoMeta?.language && (
+                      <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <Code2 className="w-4 h-4 text-slate-500" />
+                        <strong className="text-slate-300">{repoMeta.language}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* THE LINKEDIN AI WIDGET */}
+                <div className="bg-gradient-to-b from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-xl p-5 shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                      <Zap className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white">LinkedIn Authority</h3>
+                  </div>
+
+                  <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                    {isAr ? 'حوّل تحديثات هذا المستودع إلى منشورات لينكد إن احترافية تبني علامتك التجارية بضغطة زر.' : 'Transform repository updates into professional LinkedIn posts to build your personal brand.'}
+                  </p>
+
+                  <div className="space-y-3">
+                    <label className="text-xs font-semibold text-slate-300 block">{isAr ? 'زاوية النشر' : 'Narrative Angle'}</label>
+                    <div className="relative">
+                      <select 
+                        value={intent}
+                        onChange={(e) => setIntent(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-3 pr-8 text-xs text-slate-300 appearance-none focus:outline-none focus:border-indigo-500"
+                        disabled={analyzing || repoPhase === 'generating'}
+                      >
+                        <option value="auto">{isAr ? "أفضل زاوية تلقائياً" : "Auto (Recommended)"}</option>
+                        <option value="project">{isAr ? "أعلن عن المشروع" : "Project / Feature"}</option>
+                        <option value="technical_decision">{isAr ? "قرار تقني" : "Technical Decision"}</option>
+                        <option value="challenge_lesson">{isAr ? "شارك درساً" : "Challenge / Lesson"}</option>
+                        <option value="progress_update">{isAr ? "تحديث أو تقدم" : "Progress Update"}</option>
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+
+                    <div className="pt-2">
+                      <button 
+                        onClick={async () => {
+                          setAnalyzing(true);
+                          setRepoPhase('deep_scanning');
+                          try {
+                            const idToken = await user?.getIdToken();
+                            const res = await fetch("/api/deep-scan", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                              body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, lang: lang })
                             });
-                            setRepoPhase('result');
-                          } else {
-                            alert(data.error || 'Failed to perform deep scan');
+                            const data = await res.json();
+                            if(res.ok) {
+                              setAnalysisResult({
+                                post: data.post,
+                                suggestedComment: data.suggestedComment,
+                                synthesizedContext: data.synthesizedContext,
+                                repository: data.repository
+                              });
+                              setRepoPhase('result');
+                            } else {
+                              alert(data.error || 'Failed to perform deep scan');
+                              setRepoPhase('idle');
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('Error performing deep scan');
                             setRepoPhase('idle');
+                          } finally {
+                            setAnalyzing(false);
                           }
-                        } catch (err) {
-                          console.error(err);
-                          alert('Error performing deep scan');
-                          setRepoPhase('idle');
-                        } finally {
-                          setAnalyzing(false);
-                        }
-                      }}
-                      disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
-                      className="flex items-center gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] disabled:opacity-50 whitespace-nowrap"
-                    >
-                      <Zap className="w-4 h-4" />
-                      {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
-                    </button>
+                        }}
+                        disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning'}
+                        className="w-full glow-button bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {analyzing && repoPhase === 'deep_scanning' ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        {isAr ? 'فحص عميق (PRO)' : 'Deep Scan (PRO)'}
+                      </button>
+                    </div>
+
+                    <div className="relative flex items-center py-2">
+                      <div className="flex-grow border-t border-slate-800"></div>
+                      <span className="flex-shrink-0 mx-4 text-slate-600 text-xs font-medium">OR</span>
+                      <div className="flex-grow border-t border-slate-800"></div>
+                    </div>
 
                     <button 
                       onClick={async () => {
@@ -210,18 +350,8 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                           const idToken = await user?.getIdToken();
                           const res = await fetch("/api/analyze-repo", {
                             method: "POST",
-                            headers: { 
-                              "Content-Type": "application/json",
-                              "Authorization": `Bearer ${idToken}`
-                            },
-                            body: JSON.stringify({
-                              username: owner,
-                              token: settings.githubToken,
-                              repo: repo,
-                              projectDescription,
-                              intent,
-                              lang: lang
-                            })
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                            body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, intent, lang: lang })
                           });
                           const data = await res.json();
                           if(res.ok) {
@@ -251,65 +381,58 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                         }
                       }}
                       disabled={analyzing || repoPhase === 'generating' || repoPhase === 'deep_scanning' || (needsContext && !projectDescription)}
-                      className="glow-button flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 whitespace-nowrap"
+                      className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 py-2.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                      {isAr ? 'تحليل المستودع' : 'Analyze Repo'}
+                      {analyzing && repoPhase !== 'deep_scanning' ? <RefreshCw className="w-4 h-4 animate-spin text-slate-400" /> : <Search className="w-4 h-4 text-slate-400" />}
+                      {isAr ? 'تحليل سريع' : 'Quick Analyze'}
                     </button>
                   </div>
                 </div>
+
+                {/* GENERATION RESULTS AREA */}
                 
                 {needsContext && repoPhase === 'idle' && (
-                  <div className="mb-4">
-                    <div className="mb-3 mt-2 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs rounded-xl">
-                      <p className="font-bold mb-1">{isAr ? "نحتاج لمزيد من السياق" : "More Context Needed"}</p>
-                      <p className="text-amber-200/80">{isAr ? "لم نجد README. صف مشروعك بجملة:" : "No README found. Describe your project:"}</p>
-                    </div>
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl slide-down">
+                    <p className="font-bold text-amber-400 text-xs mb-1">{isAr ? "نحتاج لمزيد من السياق" : "More Context Needed"}</p>
+                    <p className="text-amber-200/80 text-xs mb-3">{isAr ? "لم نجد README كافي. صف مشروعك:" : "No sufficient README found. Describe your project:"}</p>
                     <textarea 
                       value={projectDescription}
                       onChange={(e) => setProjectDescription(e.target.value)}
                       placeholder="..."
-                      maxLength={200}
-                      rows={2}
-                      className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none text-sm"
+                      rows={3}
+                      className="w-full bg-slate-900 border border-amber-500/20 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500/50 text-xs resize-none"
                     />
                   </div>
                 )}
 
                 {repoPhase === 'angles' && angles.length > 0 && (
-                  <div className="mt-4 space-y-3">
-                    <h3 className="text-sm font-bold text-white mb-2">{isAr ? "اختر الزاوية المناسبة:" : "Select a Narrative Angle:"}</h3>
-                    {angles.map((angle) => (
-                      <button
-                        key={angle.id}
-                        onClick={() => setSelectedAngleId(angle.id)}
-                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
-                          selectedAngleId === angle.id 
-                            ? 'bg-indigo-500/20 border-indigo-500/50' 
-                            : 'bg-slate-900 border-white/5 hover:border-white/10 hover:bg-slate-800'
-                        }`}
-                      >
-                        <h5 className="font-bold text-white text-sm">{angle.title}</h5>
-                        <p className="text-xs text-slate-400 mt-1">{angle.angleSummary}</p>
-                      </button>
-                    ))}
-                    
-                    {analyzeConflicts.length > 0 && (
-                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                        <h4 className="text-red-400 text-xs font-bold mb-2">{isAr ? 'تعارضات مكتشفة:' : 'Detected Conflicts:'}</h4>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {analyzeConflicts.map((c, i) => (
-                            <li key={i} className="text-xs text-red-300/80">
-                              <span className="font-semibold">{c.claim}</span> - {c.severity}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 slide-down">
+                    <h3 className="text-xs font-bold text-slate-300 mb-3">{isAr ? "اختر زاوية الطرح:" : "Select Narrative Angle:"}</h3>
+                    <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                      {angles.map((angle) => (
+                        <button
+                          key={angle.id}
+                          onClick={() => setSelectedAngleId(angle.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition-all ${
+                            selectedAngleId === angle.id 
+                              ? 'bg-indigo-500/20 border-indigo-500/50' 
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${selectedAngleId === angle.id ? 'text-indigo-400' : 'text-slate-600'}`} />
+                            <div>
+                              <h5 className={`font-bold text-xs ${selectedAngleId === angle.id ? 'text-white' : 'text-slate-300'}`}>{angle.title}</h5>
+                              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{angle.angleSummary}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
                     {selectedAngleId && angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && (
-                      <div className="mt-3">
-                        <label className="text-xs text-slate-400 mb-1 block">
+                      <div className="mt-4 pt-4 border-t border-slate-800">
+                        <label className="text-xs text-indigo-300 mb-2 block font-medium">
                           {angles.find(a => a.id === selectedAngleId)?.adaptiveQuestion}
                         </label>
                         <textarea 
@@ -317,264 +440,135 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                           onChange={(e) => setHumanContext(e.target.value)}
                           placeholder="..."
                           rows={2}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none text-sm"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:border-indigo-500 text-xs"
                         />
                       </div>
                     )}
 
-                    <div className="flex justify-end mt-4">
-                      <button 
-                        onClick={async () => {
-                          const angle = angles.find(a => a.id === selectedAngleId);
-                          if (!angle) return;
+                    <button 
+                      onClick={async () => {
+                        const angle = angles.find(a => a.id === selectedAngleId);
+                        if (!angle) return;
+                        
+                        setRepoPhase('generating');
+                        try {
+                          const idToken = await user?.getIdToken();
+                          const res = await fetch("/api/generate-post", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
+                            body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, projectDescription, analysisToken, angleId: angle.id, humanContext, lang })
+                          });
                           
-                          setRepoPhase('generating');
-                          try {
-                            const idToken = await user?.getIdToken();
-                            const res = await fetch("/api/generate-post", {
-                              method: "POST",
-                              headers: { 
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${idToken}`
-                              },
-                              body: JSON.stringify({
-                                username: owner,
-                                token: settings.githubToken,
-                                repo: repo,
-                                projectDescription,
-                                analysisToken,
-                                angleId: angle.id,
-                                humanContext,
-                                lang
-                              })
-                            });
-                            
-                            const data = await res.json();
-                            if(res.ok) {
-                              setAnalysisResult(data);
-                              setRepoPhase('result');
-                            } else {
-                              alert(data.error || 'Failed to generate post');
-                              setRepoPhase('angles');
-                            }
-                          } catch (err) {
-                            console.error(err);
-                            alert('Error generating post');
+                          const data = await res.json();
+                          if(res.ok) {
+                            setAnalysisResult(data);
+                            setRepoPhase('result');
+                          } else {
+                            alert(data.error || 'Failed to generate post');
                             setRepoPhase('angles');
                           }
-                        }}
-                        disabled={!selectedAngleId || !analysisToken || (angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && !humanContext)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                      >
-                        {isAr ? 'اكتب المنشور' : 'Generate Post'}
-                      </button>
-                    </div>
+                        } catch (err) {
+                          console.error(err);
+                          alert('Error generating post');
+                          setRepoPhase('angles');
+                        }
+                      }}
+                      disabled={!selectedAngleId || !analysisToken || (angles.find(a => a.id === selectedAngleId)?.requiresHumanContext && !humanContext)}
+                      className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {isAr ? 'إنشاء المنشور الآن' : 'Generate Post Now'}
+                    </button>
                   </div>
                 )}
-                
+
                 {repoPhase === 'generating' && (
-                  <div className="py-8 flex justify-center flex-col items-center gap-3">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
-                    <p className="text-sm text-slate-400">{isAr ? "جاري صياغة المنشور..." : "Generating Post..."}</p>
+                    <p className="text-xs font-medium text-slate-400">{isAr ? "جاري صياغة المحتوى..." : "Drafting content..."}</p>
                   </div>
                 )}
 
                 {repoPhase === 'deep_scanning' && (
-                  <DeepScanLoader repoName={`${owner}/${repo}`} isAr={isAr} />
+                  <div className="bg-slate-900 border border-indigo-500/30 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+                    <DeepScanLoader repoName={`${owner}/${repo}`} isAr={isAr} />
+                  </div>
                 )}
 
-                {repoPhase === 'result' && analysisResult ? (
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-sm font-bold text-white">{isAr ? 'مسودة المنشور' : 'Draft Content'}</h3>
+              </div>
+            </div>
+
+            {/* FULL WIDTH RESULTS AREA (Below Columns if needed, but for now we put it inline or overlay, actually let's put it as a wide panel here if results exist) */}
+            {repoPhase === 'result' && analysisResult && (
+              <div className="mt-8 border-t border-slate-800 pt-8 slide-down">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">{isAr ? 'المنشور جاهز للنشر' : 'Post Ready for Publication'}</h2>
+                    <p className="text-sm text-slate-400">{isAr ? 'قم بمراجعة المسودة وتعديلها أو نشرها مباشرة.' : 'Review and edit your draft, or publish directly.'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-[#0d1117] border border-slate-800 rounded-xl overflow-hidden">
+                      <div className="bg-slate-900/50 border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+                        <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-indigo-400" /> {isAr ? 'مسودة المنشور' : 'Post Draft'}
+                        </h3>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(analysisResult.post);
                             alert(isAr ? "تم نسخ المنشور!" : "Post copied!");
                           }}
-                          className="flex items-center gap-1.5 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded-md text-xs font-bold transition-colors"
                         >
-                          <Copy size={12} />
+                          <Copy className="w-3.5 h-3.5" />
                           {isAr ? 'نسخ' : 'Copy'}
                         </button>
                       </div>
-                      <div className="bg-slate-900 p-4 rounded-xl border border-white/10 text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      <div className="p-6 text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">
                         {analysisResult.post}
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-sm font-bold text-white">{isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</h3>
-                        {analysisResult.suggestedComment && (
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(analysisResult.suggestedComment);
-                              alert(isAr ? "تم نسخ التعليق!" : "Comment copied!");
-                            }}
-                            className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 rounded text-xs font-bold transition-colors"
-                          >
-                            <Copy size={12} />
-                            {isAr ? 'نسخ' : 'Copy'}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                       <div className="border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+                        <h3 className="text-xs font-semibold text-slate-400">{isAr ? 'التعليق الأول المقترح' : 'First Comment'}</h3>
+                         {analysisResult.suggestedComment && (
+                          <button onClick={() => { navigator.clipboard.writeText(analysisResult.suggestedComment); }} className="text-slate-500 hover:text-slate-300 transition-colors">
+                            <Copy className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
-                      <div className="bg-slate-900 p-4 rounded-xl border border-indigo-500/30 text-sm text-indigo-200 whitespace-pre-wrap leading-relaxed">
-                        {analysisResult.suggestedComment || (isAr ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.')}
+                      <div className="p-4 text-xs text-slate-400 whitespace-pre-wrap leading-relaxed">
+                        {analysisResult.suggestedComment || (isAr ? 'لا يوجد روابط لرفقها.' : 'No links to attach.')}
                       </div>
                     </div>
-                    {analysisResult.evidence?.length > 0 && (
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">{isAr ? 'الأدلة المستخرجة' : 'Extracted Evidence'}</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {analysisResult.evidence.map((ev: any, i: number) => (
-                            <span key={i} className="px-2 py-1 bg-slate-800 text-slate-300 text-[10px] rounded border border-white/5 truncate max-w-xs">
-                              {ev.fact}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {analysisResult.synthesizedContext && (
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                          <Zap className="w-3 h-3 inline-block mr-1 text-purple-400" />
-                          {isAr ? 'ملخص الاستكشاف العميق' : 'Deep Scan Synthesis'}
-                        </h3>
-                        <div className="bg-slate-900/50 p-4 rounded-xl border border-purple-500/20 text-xs text-slate-400 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                          {analysisResult.synthesizedContext}
-                        </div>
-                      </div>
-                    )}
-                    {analysisResult.warnings?.length > 0 && (
-                      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                        <h4 className="text-amber-400 text-xs font-bold mb-2">{isAr ? 'تحذيرات:' : 'Warnings:'}</h4>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {analysisResult.warnings.map((w: string, i: number) => (
-                            <li key={i} className="text-xs text-amber-300/80">{w}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div className="pt-2 flex justify-end">
-                      <button 
-                        onClick={() => saveToFirestore('repo_analysis', { 
-                          title: angles.find(a => a.id === selectedAngleId)?.title, 
-                          post: analysisResult.post, 
-                          suggestedComment: analysisResult.suggestedComment,
-                          evidence: analysisResult.evidence,
-                          warnings: analysisResult.warnings
-                        }, setSavingAnalysis)}
-                        disabled={savingAnalysis}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        {savingAnalysis ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ كمسودة' : 'Save Draft')}
-                      </button>
-                    </div>
-                  </div>
-                ) : repoPhase === 'idle' && !needsContext ? (
-                  <div className="prose prose-invert prose-sm max-w-none text-slate-400 max-h-64 overflow-y-auto custom-scrollbar pr-2 mt-4">
-                    <pre className="whitespace-pre-wrap font-sans text-xs">{readme || 'No README found.'}</pre>
-                  </div>
-                ) : null}
-              </div>
-            </div>
 
-            <div className="space-y-6">
-              <div className="bg-slate-950/50 rounded-xl p-4 border border-white/5">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                    <GitCommit className="w-4 h-4 text-indigo-400" /> Recent Commits
-                  </h2>
-                  <button 
-                    onClick={async () => {
-                      if (commits.length === 0) return;
-                      setAnalyzingCommits(true);
-                      try {
-                        const idToken = await user?.getIdToken();
-                        const res = await fetch("/api/analyze-commits", {
-                          method: "POST",
-                          headers: { 
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${idToken}`
-                          },
-                          body: JSON.stringify({
-                            commits: commits.map((c: any) => ({ sha: c.sha, message: c.commit.message })),
-                            repo: repo,
-                            lang: lang
-                          })
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          setCommitAnalysis(data);
-                        } else {
-                          alert('Failed to analyze commits');
-                        }
-                      } catch (err) {
-                        console.error(err);
-                        alert('Error analyzing commits');
-                      } finally {
-                        setAnalyzingCommits(false);
-                      }
-                    }}
-                    disabled={analyzingCommits || commits.length === 0}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                  >
-                    {analyzingCommits ? (isAr ? 'جاري التحليل...' : 'Analyzing...') : (isAr ? 'تحديث تقني' : 'Generate Update')}
-                  </button>
+                    <button 
+                      onClick={() => saveToFirestore('repo_analysis', { 
+                        title: angles.find(a => a.id === selectedAngleId)?.title || 'LinkedIn Post Draft', 
+                        post: analysisResult.post, 
+                        suggestedComment: analysisResult.suggestedComment,
+                        evidence: analysisResult.evidence,
+                      }, setSavingAnalysis)}
+                      disabled={savingAnalysis}
+                      className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white px-4 py-3 rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 text-slate-400" />
+                      {savingAnalysis ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ في مكتبة المحتوى' : 'Save to Content Library')}
+                    </button>
+                  </div>
                 </div>
-                
-                {commitAnalysis ? (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-white mb-1">{commitAnalysis.title}</h3>
-                      <div className="bg-slate-900 p-3 rounded-lg border border-white/10 text-sm text-slate-300 whitespace-pre-wrap">
-                        {commitAnalysis.technicalUpdate}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-400 mb-1">Changelog</h3>
-                      <div className="text-xs text-slate-400 whitespace-pre-wrap">
-                        {commitAnalysis.changelog}
-                      </div>
-                    </div>
-                    <div className="pt-2 flex justify-end">
-                      <button 
-                        onClick={() => saveToFirestore('commit_update', commitAnalysis, setSavingCommitAnalysis)}
-                        disabled={savingCommitAnalysis}
-                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        {savingCommitAnalysis ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ كمسودة' : 'Save Draft')}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {commits.map((c: any, i: number) => (
-                      <div key={i} className="flex gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-slate-300 text-xs truncate" title={c.commit.message}>
-                            {c.commit.message}
-                          </p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">
-                            {new Date(c.commit.author.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {commits.length === 0 && (
-                      <p className="text-xs text-slate-500">No commits found.</p>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
