@@ -78,6 +78,8 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
            if (proj.monitoringEnabled !== undefined) setMonitoringEnabled(proj.monitoringEnabled);
            if (proj.monitoringConfig) setMonitoringConfig({ ...monitoringConfig, ...proj.monitoringConfig });
         }
+      }).catch(err => {
+        console.error("Error fetching project:", err);
       });
     }
   }, [user, owner, repo]);

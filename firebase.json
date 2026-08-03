@@ -3,6 +3,7 @@
     "root": "./"
   },
   "firestore": {
+    "database": "ai-studio-linkedincontentg-ccdbb9f2-7653-4a9f-bb1d-558a296caa4e",
     "rules": "firestore.rules"
   }
 }
