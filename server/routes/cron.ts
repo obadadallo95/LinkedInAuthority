@@ -10,9 +10,10 @@ const router = express.Router();
 router.post("/process-weekly", async (req, res) => {
   // 1. Verify a secret token from headers to ensure only trusted schedulers can trigger this
   const authHeader = req.headers.authorization;
-  const CRON_SECRET = process.env.CRON_SECRET || 'dev-secret-key';
+  const CRON_SECRET = process.env.CRON_SECRET?.trim() || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-key');
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : authHeader?.trim();
   
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!CRON_SECRET || token !== CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized cron request" });
   }
 
