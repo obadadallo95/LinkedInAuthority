@@ -77,11 +77,11 @@ export const firestoreService = {
   /**
    * Retrieves all tracked projects for a user
    */
-  async getUserProjects(userId: string) {
+  async getUserProjects(userId: string): Promise<(ProjectData & { id: string })[]> {
     if (!userId) return [];
     const projectsRef = collection(db, `users/${userId}/projects`);
     const snapshot = await getDocs(projectsRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (ProjectData & { id: string })[];
   },
 
   /**
