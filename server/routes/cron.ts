@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAdminFirestore } from '../services/firestoreAdmin';
-import { performDeepScan } from '../services/deepIntelligence';
+import { performDeepScan, fetchLatestCommit } from '../services/deepIntelligence';
 import { generateDeepPost } from '../services/deepIntelligence/deepPostGenerator';
 
 const router = express.Router();
@@ -70,17 +70,27 @@ router.post("/process-weekly", async (req, res) => {
 
           const repoUrl = `https://github.com/${data.fullName}`;
           
-          // 2. Perform deep scan (or standard scan based on config)
+          // 2. Check lightweight GitHub activity metadata before running deep scan or Gemini
+          const latestCommit = await fetchLatestCommit(data.fullName, undefined, token);
+          if (!latestCommit) {
+            console.log(`No commits found or unable to fetch commits for ${data.fullName}, skipping.`);
+            continue;
+          }
+
+          // 3. Compare against checkpoint (lastProcessedCommit) to prevent duplicate generation
+          if (data.lastProcessedCommit && data.lastProcessedCommit === latestCommit.sha) {
+            console.log(`No new commits for ${data.fullName} since ${latestCommit.sha.slice(0, 7)}, skipping deep scan and Gemini.`);
+            continue;
+          }
+
+          // 4. Perform deep scan only when there is new meaningful activity
           const scanResult = await performDeepScan(repoUrl, token);
           
-          // 3. Generate the post using Gemini
-          // Map targetAudience/intent to the generated post language if needed, but for now we default to EN or AR based on user preference
-          // (Let's assume 'en' for now, or fetch from settings)
+          // 5. Generate the post using Gemini
           const lang = settings?.language || 'en';
-          
           const finalPost = await generateDeepPost(scanResult.synthesizedContext, repoUrl, lang);
           
-          // 4. Save the drafted post back to Firestore in the drafts collection for the user to review
+          // 6. Save the drafted post back to Firestore in the drafts collection for the user to review
           const projectId = doc.id || (data.owner && data.repo ? `${data.owner}_${data.repo}` : data.fullName);
           const draftContent = JSON.stringify({
             post: finalPost.post,
@@ -103,9 +113,16 @@ router.post("/process-weekly", async (req, res) => {
             updatedAt: new Date().toISOString(),
             isAutomated: true
           });
+
+          // 7. Persist checkpoint (latest processed commit SHA and timestamp)
+          await doc.ref.update({
+            lastProcessedCommit: latestCommit.sha,
+            lastProcessedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
           
           processedCount++;
-          console.log(`Successfully generated draft for ${data.fullName}`);
+          console.log(`Successfully generated draft and updated checkpoint for ${data.fullName}`);
           
         } catch (err: any) {
           console.error(`Error processing ${data.fullName}:`, err.message);

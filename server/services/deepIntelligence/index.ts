@@ -1,5 +1,7 @@
-import { fetchDeepGithubContext, DeepGithubContext } from './githubDeepFetcher';
+import { fetchDeepGithubContext, DeepGithubContext, fetchLatestCommit, LatestCommitInfo } from './githubDeepFetcher';
 import { synthesizeDeepContext, SynthesizedContext } from './synthesizer';
+
+export { fetchLatestCommit, LatestCommitInfo };
 
 export interface DeepScanResult {
   githubContext: DeepGithubContext;

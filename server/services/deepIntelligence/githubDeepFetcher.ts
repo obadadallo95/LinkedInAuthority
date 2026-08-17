@@ -1,10 +1,64 @@
 import { fetchWithTimeout } from '../github';
 
+export interface LatestCommitInfo {
+  sha: string;
+  date: string;
+  message: string;
+}
+
 export interface DeepGithubContext {
   owner: string;
   repo: string;
   commits: any[];
   pullRequests: any[];
+}
+
+export async function fetchLatestCommit(repoUrlOrFullName: string, repoName?: string, token?: string): Promise<LatestCommitInfo | null> {
+  let owner = repoUrlOrFullName;
+  let repo = repoName || '';
+
+  if (repoUrlOrFullName.includes('github.com')) {
+    const match = repoUrlOrFullName.match(/github\.com\/([^/]+)\/([^/]+)/);
+    if (!match) return null;
+    owner = match[1];
+    repo = match[2].endsWith('.git') ? match[2].slice(0, -4) : match[2];
+  } else if (!repoName && repoUrlOrFullName.includes('/')) {
+    const parts = repoUrlOrFullName.split('/');
+    owner = parts[0];
+    repo = parts[1];
+  }
+
+  if (!owner || !repo) return null;
+
+  const headers: Record<string, string> = {
+    "Accept": "application/vnd.github.v3+json",
+    "User-Agent": "LinkedIn-Content-Generator-CronCheck",
+  };
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else if (process.env.GITHUB_TOKEN) {
+    headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  }
+
+  try {
+    const res = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`, { headers });
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0 || !data[0]?.sha) {
+      return null;
+    }
+    return {
+      sha: data[0].sha,
+      date: data[0].commit?.author?.date || data[0].commit?.committer?.date || '',
+      message: data[0].commit?.message || ''
+    };
+  } catch (error) {
+    console.warn(`Failed to fetch latest commit for ${owner}/${repo}:`, error);
+    return null;
+  }
 }
 
 export async function fetchDeepGithubContext(repoUrl: string, token?: string): Promise<DeepGithubContext> {
