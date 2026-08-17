@@ -27,12 +27,13 @@ vi.mock('../../src/infrastructure/firebase/config', () => ({
 global.fetch = vi.fn();
 
 const TestComponent = () => {
-  const { settings, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
+  const { settings, isPro, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
   return (
     <div>
       <div data-testid="loading">{loadingSettings ? 'Loading' : 'Loaded'}</div>
       <div data-testid="gh-user">{settings.githubUsername}</div>
       <div data-testid="onboarding">{isOnboardingComplete ? 'Complete' : 'Incomplete'}</div>
+      <div data-testid="is-pro">{isPro ? 'Pro' : 'Free'}</div>
       <button onClick={() => saveSettings('testuser', 'ghtoken', 'litoken')}>Save Settings</button>
       <button onClick={() => disconnectChannel('github')}>Disconnect GitHub</button>
     </div>
@@ -155,5 +156,90 @@ describe('SettingsContext', () => {
       githubToken: '',
       githubProfile: null,
     }, { merge: true });
+  });
+
+  it('evaluates normal user as Free tier (isPro === false)', () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'normal-user-456' } });
+
+    let snapshotCallback: any;
+    (firestore.onSnapshot as any).mockImplementation((ref: any, cb: any) => {
+      snapshotCallback = cb;
+      return mockUnsubscribe;
+    });
+
+    render(
+      <SettingsProvider>
+        <TestComponent />
+      </SettingsProvider>
+    );
+
+    act(() => {
+      const mockDocSnap = {
+        exists: () => true,
+        data: () => ({ githubUsername: 'standard_dev' })
+      };
+      snapshotCallback(mockDocSnap);
+    });
+
+    expect(screen.getByTestId('is-pro')).toHaveTextContent('Free');
+  });
+
+  it('evaluates user with isFounder: true as Pro tier (isPro === true)', () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'founder-uid-123' } });
+
+    let snapshotCallback: any;
+    (firestore.onSnapshot as any).mockImplementation((ref: any, cb: any) => {
+      snapshotCallback = cb;
+      return mockUnsubscribe;
+    });
+
+    render(
+      <SettingsProvider>
+        <TestComponent />
+      </SettingsProvider>
+    );
+
+    act(() => {
+      const mockDocSnap = {
+        exists: () => true,
+        data: () => ({
+          githubUsername: 'obadadallo95',
+          isFounder: true,
+          plan: 'pro'
+        })
+      };
+      snapshotCallback(mockDocSnap);
+    });
+
+    expect(screen.getByTestId('is-pro')).toHaveTextContent('Pro');
+  });
+
+  it('evaluates user with plan: pro or isPaidSubscription as Pro tier', () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'pro-user-789' } });
+
+    let snapshotCallback: any;
+    (firestore.onSnapshot as any).mockImplementation((ref: any, cb: any) => {
+      snapshotCallback = cb;
+      return mockUnsubscribe;
+    });
+
+    render(
+      <SettingsProvider>
+        <TestComponent />
+      </SettingsProvider>
+    );
+
+    act(() => {
+      const mockDocSnap = {
+        exists: () => true,
+        data: () => ({
+          githubUsername: 'pro_dev',
+          isPaidSubscription: true
+        })
+      };
+      snapshotCallback(mockDocSnap);
+    });
+
+    expect(screen.getByTestId('is-pro')).toHaveTextContent('Pro');
   });
 });

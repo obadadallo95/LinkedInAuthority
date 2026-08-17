@@ -14,10 +14,15 @@ export interface UserSettings {
   linkedinComment?: boolean;
   linkedinFollow?: boolean;
   onboardingSkipped?: boolean;
+  isPaidSubscription?: boolean;
+  plan?: 'free' | 'pro';
+  isFounder?: boolean;
+  role?: string;
 }
 
 export interface SettingsContextType {
   settings: UserSettings;
+  isPro: boolean;
   loadingSettings: boolean;
   isOnboardingComplete: boolean;
   saveSettings: (ghUsernameInput: string, ghTokenInput: string, liTokenInput: string) => Promise<void>;
@@ -140,8 +145,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const isOnboardingComplete = settings.onboardingSkipped === true
     || !!(settings.githubUsername || settings.githubProfile);
 
+  const isPro = Boolean(
+    settings.isFounder === true ||
+    settings.plan === 'pro' ||
+    settings.isPaidSubscription === true ||
+    settings.role === 'admin' ||
+    settings.role === 'founder'
+  );
+
   return (
-    <SettingsContext.Provider value={{ settings, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>
+    <SettingsContext.Provider value={{ settings, isPro, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>
       {children}
     </SettingsContext.Provider>
   );

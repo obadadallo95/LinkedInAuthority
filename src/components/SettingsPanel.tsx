@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, GitBranch, Share2, RefreshCw, Check, LogIn, Shield, Terminal, Activity } from 'lucide-react';
+import { Settings, GitBranch, Share2, RefreshCw, Check, LogIn, Shield, Terminal, Activity, Zap, Crown } from 'lucide-react';
 import { t } from '../constants';
 import { HelpGuides } from './HelpGuides';
 import { auth, githubProvider, db } from '../infrastructure/firebase/config';
@@ -245,6 +245,57 @@ export const SettingsPanel = ({
           </div>
         </div>
 
+        {/* Plan & Entitlements Card */}
+        <div className="rounded-3xl bg-slate-900/50 border border-white/5 p-6 flex flex-col justify-between relative overflow-hidden group hover:border-white/10 transition-colors">
+          <div>
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                  <Zap className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">{isAr ? 'خطة الحساب والصلاحيات' : 'Account & Access Plan'}</h3>
+                  <span className={`text-[10px] font-bold ${settings?.isFounder || settings?.plan === 'pro' || settings?.isPaidSubscription ? 'text-indigo-400' : 'text-slate-400'}`}>
+                    {settings?.isFounder ? (isAr ? 'عضوية المؤسس (PRO) ✓' : 'Founder Access (PRO) ✓') : (settings?.plan === 'pro' || settings?.isPaidSubscription) ? 'PRO Plan ✓' : (isAr ? 'الخطة المجانية (Free)' : 'Free Tier')}
+                  </span>
+                </div>
+              </div>
+              {(settings?.isFounder || settings?.plan === 'pro' || settings?.isPaidSubscription) && (
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400/25 text-[9px] px-2.5 py-1 rounded-full font-black tracking-wider shadow-sm">
+                  {settings?.isFounder ? 'FOUNDER' : 'PRO'}
+                </span>
+              )}
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-white/5 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">{isAr ? 'معدل الذكاء الاصطناعي:' : 'AI Quota Limit:'}</span>
+                <span className="font-bold text-slate-200">
+                  {settings?.isFounder || settings?.plan === 'pro' || settings?.isPaidSubscription ? (isAr ? '50 طلب / ساعة (PRO)' : '50 requests / hour (PRO)') : (isAr ? 'معدل قياسي' : 'Standard Rate')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">{isAr ? 'المسح العميق والأتمتة:' : 'Deep Intelligence & Cron:'}</span>
+                <span className="font-bold text-emerald-400">{isAr ? '✓ نشط ومتاح' : '✓ Active & Enabled'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">{isAr ? 'معرف الحساب:' : 'Account UID:'}</span>
+                <span className="font-mono text-[10px] text-slate-500">{auth.currentUser?.uid || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-white/5">
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              {settings?.isFounder 
+                ? (isAr ? 'تم تفعيل صلاحيات المؤسس الكاملة لهذا الحساب.' : 'Founder entitlements are active for this account.')
+                : (settings?.plan === 'pro' || settings?.isPaidSubscription)
+                ? (isAr ? 'حسابك مفعل بصلاحيات Pro الكاملة.' : 'Your account has full Pro access enabled.')
+                : (isAr ? 'يمكنك استخدام كافة مزايا التطبيق خلال المرحلة التجريبية.' : 'You can use all features during the beta release.')
+              }
+            </p>
+          </div>
+        </div>
 
       </div>
 

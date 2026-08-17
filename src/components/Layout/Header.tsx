@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ChevronDown, GitBranch, Share2, Bell, ShieldCheck, LogOut, MessageSquare, Globe, Activity } from 'lucide-react';
+import { Sparkles, ChevronDown, GitBranch, Share2, Bell, ShieldCheck, LogOut, MessageSquare, Globe, Activity, Zap } from 'lucide-react';
 import { t } from '../../constants';
 import { useAuth } from '../../application/AuthContext';
 import { fetchRateLimit } from '../../services/githubService';
@@ -16,6 +16,14 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const { signOut, user } = useAuth();
+
+  const isPro = Boolean(
+    settings?.isFounder === true ||
+    settings?.plan === 'pro' ||
+    settings?.isPaidSubscription === true ||
+    settings?.role === 'admin' ||
+    settings?.role === 'founder'
+  );
 
   // New GitHub Rate Limit states
   const [rateLimit, setRateLimit] = useState<{ limit: number; remaining: number; reset: number } | null>(null);
@@ -89,9 +97,9 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-50"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-indigo-500"></span>
             </span>
-            {settings?.isPaidSubscription && (
+            {isPro && (
               <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400/25 text-[7px] sm:text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-wider shadow-sm shadow-indigo-500/10 shrink-0">
-                PRO
+                {settings?.isFounder ? 'FOUNDER' : 'PRO'}
               </span>
             )}
           </h1>
@@ -224,6 +232,12 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                   <span className="flex items-center gap-2"><GitBranch className="w-3.5 h-3.5 text-slate-400" /> GitHub</span>
                   <span className={ghConnected ? "text-emerald-400 font-bold" : "text-slate-500"}>
                     {ghConnected ? "● Live" : "○ Disconnected"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] p-2 hover:bg-white/5 rounded-lg text-slate-300">
+                  <span className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-indigo-400" /> {isAr ? 'نوع الحساب' : 'Plan'}</span>
+                  <span className={isPro ? "text-indigo-400 font-bold" : "text-slate-500"}>
+                    {settings?.isFounder ? (isAr ? 'المؤسس (PRO)' : 'Founder (PRO)') : isPro ? 'PRO' : (isAr ? 'مجاني' : 'Free')}
                   </span>
                 </div>
               </div>
