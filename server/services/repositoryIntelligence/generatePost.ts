@@ -97,7 +97,7 @@ export async function generatePostFromAngle(
     7. Return any warnings if the user's human context or custom angle contradicted facts.
   `;
 
-  const model = tier === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const model = 'gemini-3.6-flash';
   const result = await callGeminiWithRetry(client, prompt, systemPrompt, generateSchema, model);
   
   // Strict Server-side Validation of used Evidence IDs

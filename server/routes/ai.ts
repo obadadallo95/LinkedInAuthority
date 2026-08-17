@@ -182,7 +182,7 @@ Respond strictly with the required JSON structure.`;
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         systemInstruction,
@@ -229,7 +229,7 @@ Return ONLY a JSON array of strings, where each string is a hashtag starting wit
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         systemInstruction,

@@ -60,7 +60,7 @@ INSTRUCTIONS:
 
 ${langInstruction}`;
 
-  const model = "gemini-2.5-flash"; // Fast, reliable generation
+  const model = "gemini-3.6-flash"; // Fast and reliable generation
 
   try {
     const response = await callGeminiWithRetry(

@@ -41,7 +41,7 @@ export async function analyzeRepositoryAngles(
     5. Output the finalAngles.
   `;
 
-  const model = tier === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const model = 'gemini-3.6-flash';
   const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema, model);
   
   return {

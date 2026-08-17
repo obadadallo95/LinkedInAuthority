@@ -57,7 +57,7 @@ Your task is to synthesize this raw data into:
 
 Do not invent information. If the commits are vague (e.g., "fix typo", "update readme"), state that there were no major architectural decisions rather than making them up.`;
 
-  const model = "gemini-2.5-flash"; // Flash is fast and cheap for this intermediate step
+  const model = "gemini-3.6-flash"; // Fast and up-to-date for context synthesis
 
   try {
     const systemInstruction = "You are a Senior Software Architecture Analyzer.";

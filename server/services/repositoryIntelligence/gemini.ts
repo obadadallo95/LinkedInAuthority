@@ -41,7 +41,7 @@ export function getGeminiClient(tier: 'free' | 'pro' = 'free'): GoogleGenAI | nu
   }
 }
 
-export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, systemInstruction: string, schema: Schema, model: string = "gemini-2.5-flash") {
+export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, systemInstruction: string, schema: Schema, model: string = "gemini-3.6-flash") {
   let response;
   let retries = 2;
   let currentModel = model;
@@ -59,11 +59,16 @@ export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, s
       break; 
     } catch (e: any) {
       const errStr = String(e.message || e).toLowerCase();
-      // If a model is not found / deprecated (404), fallback to gemini-2.5-flash
+      // If a model is not found / deprecated (404), fallback to gemini-3.6-flash or gemini-flash-latest
       if (errStr.includes('not_found') || errStr.includes('404') || errStr.includes('no longer available')) {
-        if (currentModel !== 'gemini-2.5-flash') {
-          console.warn(`Model ${currentModel} returned 404/not available. Falling back to gemini-2.5-flash.`);
-          currentModel = 'gemini-2.5-flash';
+        if (currentModel !== 'gemini-3.6-flash') {
+          console.warn(`Model ${currentModel} returned 404/not available. Falling back to gemini-3.6-flash.`);
+          currentModel = 'gemini-3.6-flash';
+          retries--;
+          continue;
+        } else if (currentModel === 'gemini-3.6-flash') {
+          console.warn(`Model gemini-3.6-flash returned 404. Falling back to gemini-flash-latest.`);
+          currentModel = 'gemini-flash-latest';
           retries--;
           continue;
         }
