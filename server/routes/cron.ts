@@ -60,24 +60,13 @@ router.post("/process-weekly", async (req, res) => {
         console.log(`Processing automation for ${data.fullName}`);
         
         try {
-          // 1. Get the user's Github token
+          // 1. Get the user's Github token (optional for public repositories)
           const userId = userDoc.id;
 
           const userSettingsRef = userDoc.ref.collection('settings').doc('current');
           const settingsSnap = await userSettingsRef.get();
-          
-          if (!settingsSnap.exists) {
-            console.log(`No settings found for user ${userId}, skipping ${data.fullName}`);
-            continue;
-          }
-          
-          const settings = settingsSnap.data();
+          const settings = settingsSnap.exists ? settingsSnap.data() : null;
           const token = settings?.githubToken;
-          
-          if (!token) {
-            console.log(`No Github token found for user ${userId}, skipping ${data.fullName}`);
-            continue;
-          }
 
           const repoUrl = `https://github.com/${data.fullName}`;
           
