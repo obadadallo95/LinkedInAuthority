@@ -60,7 +60,7 @@ INSTRUCTIONS:
 
 ${langInstruction}`;
 
-  const model = "gemini-2.5-pro"; // Use Pro for the highest quality creative generation
+  const model = "gemini-2.5-flash"; // Fast, reliable generation
 
   try {
     const response = await callGeminiWithRetry(

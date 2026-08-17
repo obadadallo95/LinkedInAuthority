@@ -44,10 +44,11 @@ export function getGeminiClient(tier: 'free' | 'pro' = 'free'): GoogleGenAI | nu
 export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, systemInstruction: string, schema: Schema, model: string = "gemini-2.5-flash") {
   let response;
   let retries = 2;
+  let currentModel = model;
   while (retries >= 0) {
     try {
       response = await client.models.generateContent({
-        model: model,
+        model: currentModel,
         contents: prompt,
         config: {
           systemInstruction,
@@ -58,6 +59,15 @@ export async function callGeminiWithRetry(client: GoogleGenAI, prompt: string, s
       break; 
     } catch (e: any) {
       const errStr = String(e.message || e).toLowerCase();
+      // If a model is not found / deprecated (404), fallback to gemini-2.5-flash
+      if (errStr.includes('not_found') || errStr.includes('404') || errStr.includes('no longer available')) {
+        if (currentModel !== 'gemini-2.5-flash') {
+          console.warn(`Model ${currentModel} returned 404/not available. Falling back to gemini-2.5-flash.`);
+          currentModel = 'gemini-2.5-flash';
+          retries--;
+          continue;
+        }
+      }
       const isBusy = errStr.includes('503') || errStr.includes('high demand') || errStr.includes('unavailable');
       if (retries === 0 || !isBusy) {
         throw e;
