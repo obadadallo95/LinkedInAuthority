@@ -14,3 +14,6 @@ secrets:
   - variable: ANALYSIS_SIGNING_SECRET
     secret: analysis_signing_secret
     version: latest
+  - variable: CRON_SECRET
+    secret: cron_secret
+    version: latest
