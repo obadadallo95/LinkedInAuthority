@@ -11,6 +11,8 @@ import { getAuth } from "firebase-admin/auth";
 import rateLimit from "express-rate-limit";
 import fs from "fs";
 
+import { getFirestoreDatabaseId } from "./server/services/firestoreAdmin";
+
 // Initialize Firebase Admin (using project config without service account for ID token verification only)
 try {
   const configRaw = fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8");
@@ -18,6 +20,10 @@ try {
   initializeApp({
     projectId: config.projectId,
   });
+  const dbId = getFirestoreDatabaseId();
+  if (dbId) {
+    console.log(`Firebase Admin initialized for project: ${config.projectId}, Firestore DB: ${dbId}`);
+  }
 } catch (e) {
   console.warn("Failed to load firebase-applet-config.json. Auth might fail if project ID is not set.", e);
   // Fallback to default if there are env variables

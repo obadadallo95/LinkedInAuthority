@@ -70,13 +70,7 @@ ${langInstruction}`;
       deepPostSchema as any,
       model
     );
-
-    if (!response.text) {
-      throw new Error("No text returned from Gemini generator");
-    }
-
-    const result = JSON.parse(response.text) as DeepGeneratedPost;
-    return result;
+    return response as DeepGeneratedPost;
   } catch (error: any) {
     console.error("Error generating deep post:", error);
     throw new Error("Failed to generate deep post: " + error.message);

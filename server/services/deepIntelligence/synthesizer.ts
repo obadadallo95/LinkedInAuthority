@@ -62,13 +62,7 @@ Do not invent information. If the commits are vague (e.g., "fix typo", "update r
   try {
     const systemInstruction = "You are a Senior Software Architecture Analyzer.";
     const response = await callGeminiWithRetry(client, prompt, systemInstruction, synthesizerSchema as any, model);
-
-    if (!response.text) {
-      throw new Error("No text returned from Gemini synthesizer");
-    }
-
-    const result = JSON.parse(response.text) as SynthesizedContext;
-    return result;
+    return response as SynthesizedContext;
   } catch (error: any) {
     console.error("Error synthesizing deep context:", error);
     throw new Error("Failed to synthesize deep context: " + error.message);

@@ -22,7 +22,7 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
 }) => {
   const isAr = lang === 'ar';
   const [step, setStep] = useState(1);
-  const [selectedRepo, setSelectedRepo] = useState('');
+  const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const [repoSearch, setRepoSearch] = useState('');
   const [scheduleDay, setScheduleDay] = useState('Friday');
   const [scheduleTime, setScheduleTime] = useState('09:00');
@@ -35,13 +35,34 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const filteredRepos = repos.filter(r => r.name.toLowerCase().includes(repoSearch.toLowerCase()));
+  const filteredRepos = repos.filter(r => {
+    const nameMatch = r.name && r.name.toLowerCase().includes(repoSearch.toLowerCase());
+    const fullNameMatch = r.full_name && r.full_name.toLowerCase().includes(repoSearch.toLowerCase());
+    return nameMatch || fullNameMatch;
+  });
 
   const handleSave = async () => {
+    if (!selectedRepo) return;
+
+    const owner = selectedRepo.owner?.login || 
+      (selectedRepo.full_name ? selectedRepo.full_name.split('/')[0] : '') || 
+      '';
+    const repoName = selectedRepo.name || 
+      (selectedRepo.full_name ? selectedRepo.full_name.split('/')[1] : '') || 
+      '';
+    const fullName = selectedRepo.full_name || 
+      (owner && repoName ? `${owner}/${repoName}` : repoName);
+
+    if (!owner || !repoName) {
+      console.error("Invalid repository identity for automation:", selectedRepo);
+      return;
+    }
+
     setSaving(true);
     await onSave({
-      repo: selectedRepo,
-      owner: repos.find(r => r.name === selectedRepo)?.owner?.login || '',
+      repo: repoName,
+      owner,
+      fullName,
       scheduleDay,
       scheduleTime,
       intent: postType,
@@ -113,23 +134,29 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
                      <RefreshCw className="w-6 h-6 text-slate-500 animate-spin" />
                    </div>
                 ) : filteredRepos.length > 0 ? (
-                  filteredRepos.map(repo => (
-                    <button
-                      key={repo.name}
-                      onClick={() => setSelectedRepo(repo.name)}
-                      className={`flex items-start gap-3 p-3 text-left rounded-xl border transition-all ${
-                        selectedRepo === repo.name 
-                          ? 'bg-indigo-500/20 border-indigo-500/50' 
-                          : 'bg-slate-950 border-white/5 hover:border-white/10 hover:bg-slate-900'
-                      }`}
-                    >
-                      <FolderGit2 className={`w-5 h-5 shrink-0 mt-0.5 ${selectedRepo === repo.name ? 'text-indigo-400' : 'text-slate-500'}`} />
-                      <div className="min-w-0">
-                        <p className={`text-sm font-bold truncate ${selectedRepo === repo.name ? 'text-indigo-300' : 'text-slate-300'}`}>{repo.name}</p>
-                        <p className="text-xs text-slate-500 truncate mt-1">{repo.description || 'No description'}</p>
-                      </div>
-                    </button>
-                  ))
+                  filteredRepos.map(repo => {
+                    const isSelected = selectedRepo && (
+                      (selectedRepo.full_name && repo.full_name && selectedRepo.full_name === repo.full_name) ||
+                      (selectedRepo.name === repo.name && (selectedRepo.owner?.login || '') === (repo.owner?.login || ''))
+                    );
+                    return (
+                      <button
+                        key={repo.full_name || `${repo.owner?.login || ''}_${repo.name}`}
+                        onClick={() => setSelectedRepo(repo)}
+                        className={`flex items-start gap-3 p-3 text-left rounded-xl border transition-all ${
+                          isSelected 
+                            ? 'bg-indigo-500/20 border-indigo-500/50' 
+                            : 'bg-slate-950 border-white/5 hover:border-white/10 hover:bg-slate-900'
+                        }`}
+                      >
+                        <FolderGit2 className={`w-5 h-5 shrink-0 mt-0.5 ${isSelected ? 'text-indigo-400' : 'text-slate-500'}`} />
+                        <div className="min-w-0">
+                          <p className={`text-sm font-bold truncate ${isSelected ? 'text-indigo-300' : 'text-slate-300'}`}>{repo.full_name || repo.name}</p>
+                          <p className="text-xs text-slate-500 truncate mt-1">{repo.description || 'No description'}</p>
+                        </div>
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="col-span-2 text-center py-6 text-sm text-slate-500">
                     No repositories found.

@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from './firestoreAdmin';
 
 export interface RateLimitStore {
   checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean>;
@@ -28,7 +28,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
 
 export class FirestoreRateLimitStore implements RateLimitStore {
   async checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const docRef = db.collection('rate_limits').doc(`${key}_${type}`);
     
     try {

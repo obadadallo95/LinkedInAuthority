@@ -1,5 +1,5 @@
 import express from 'express';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../services/firestoreAdmin';
 import { performDeepScan } from '../services/deepIntelligence';
 import { generateDeepPost } from '../services/deepIntelligence/deepPostGenerator';
 
@@ -19,7 +19,7 @@ router.post("/process-weekly", async (req, res) => {
   console.log("Running weekly automation check...");
   
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     
     console.log("Fetching users...");
     const usersSnapshot = await db.collection('users').get();
@@ -90,16 +90,28 @@ router.post("/process-weekly", async (req, res) => {
           
           const finalPost = await generateDeepPost(scanResult.synthesizedContext, repoUrl, lang);
           
-          // 4. Save the drafted post back to Firestore for the user to review
-          const draftsRef = db.collection('users').doc(userId).collection('posts');
+          // 4. Save the drafted post back to Firestore in the drafts collection for the user to review
+          const projectId = doc.id || (data.owner && data.repo ? `${data.owner}_${data.repo}` : data.fullName);
+          const draftContent = JSON.stringify({
+            post: finalPost.post,
+            suggestedComment: finalPost.suggestedComment,
+            synthesizedContext: scanResult.synthesizedContext,
+            repository: {
+              owner: data.owner,
+              name: data.repo || data.fullName,
+            }
+          });
+
+          const draftsRef = db.collection('users').doc(userId).collection('drafts');
           await draftsRef.add({
-            repository: data.fullName,
-            content: finalPost.post,
-            type: config.intent || 'weekly_progress',
+            projectId,
+            type: 'repo_analysis',
+            title: `Weekly Automation: ${data.fullName || data.repo || 'Repository'}`,
+            content: draftContent,
             status: 'draft',
             createdAt: new Date().toISOString(),
-            isAutomated: true,
-            suggestedComment: finalPost.suggestedComment
+            updatedAt: new Date().toISOString(),
+            isAutomated: true
           });
           
           processedCount++;

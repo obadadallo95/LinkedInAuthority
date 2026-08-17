@@ -1,0 +1,53 @@
+name: Weekly Repository Automation Cron
+
+on:
+  schedule:
+    # Runs at the top of every hour (UTC) to process automations scheduled for the current hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI or CLI
+
+jobs:
+  trigger-automation:
+    name: Run Weekly Automation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger /api/cron/process-weekly
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ vars.APP_BASE_URL || secrets.APP_BASE_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Repository secret 'CRON_SECRET' is not configured."
+            exit 1
+          fi
+
+          if [ -z "$APP_BASE_URL" ]; then
+            echo "::error::Repository variable or secret 'APP_BASE_URL' is not configured (e.g., https://your-app.com)."
+            exit 1
+          fi
+
+          # Strip trailing slash if present
+          CLEAN_BASE_URL="${APP_BASE_URL%/}"
+          ENDPOINT="${CLEAN_BASE_URL}/api/cron/process-weekly"
+
+          echo "Triggering weekly automation endpoint: ${ENDPOINT}"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${ENDPOINT}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --connect-timeout 10 \
+            --max-time 120)
+
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+
+          echo "HTTP Status: ${HTTP_STATUS}"
+          echo "Response Body: ${HTTP_BODY}"
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "::error::Automation request failed with HTTP ${HTTP_STATUS}: ${HTTP_BODY}"
+            exit 1
+          fi
+
+          echo "Automation process completed successfully."

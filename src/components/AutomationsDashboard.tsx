@@ -38,16 +38,25 @@ export const AutomationsDashboard: React.FC<AutomationsDashboardProps> = ({ lang
   const handleSaveAutomation = async (config: any) => {
     if (!user) return;
     try {
-      const { repo, owner, scheduleDay, scheduleTime, intent, targetAudience, monitorCommits, monitorIssues, monitorPullRequests } = config;
-      const projectId = `${owner}_${repo}`;
-      
-      const projectMeta = repos.find(r => r.name === repo);
+      const { repo, owner, fullName, scheduleDay, scheduleTime, intent, targetAudience, monitorCommits, monitorIssues, monitorPullRequests } = config;
+      const resolvedOwner = owner || (fullName ? fullName.split('/')[0] : '');
+      const resolvedRepo = repo || (fullName ? fullName.split('/')[1] : '');
+      const resolvedFullName = fullName || (resolvedOwner && resolvedRepo ? `${resolvedOwner}/${resolvedRepo}` : resolvedRepo);
+
+      if (!resolvedOwner || !resolvedRepo) {
+        console.error("Cannot save automation without valid owner and repository name:", config);
+        alert(isAr ? 'بيانات المستودع غير مكتملة' : 'Invalid repository identity');
+        return;
+      }
+
+      const projectId = `${resolvedOwner}_${resolvedRepo}`;
+      const projectMeta = repos.find(r => r.full_name === resolvedFullName || (r.name === resolvedRepo && r.owner?.login === resolvedOwner));
       
       // Save or ensure project exists
       await firestoreService.saveProject(user.uid, {
-        owner: owner,
-        repo: repo,
-        fullName: `${owner}/${repo}`,
+        owner: resolvedOwner,
+        repo: resolvedRepo,
+        fullName: resolvedFullName,
         description: projectMeta?.description || '',
         language: projectMeta?.language || '',
       });
