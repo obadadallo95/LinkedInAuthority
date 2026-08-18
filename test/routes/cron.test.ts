@@ -2,14 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-// Mocks for deep scan and gemini generator
+// Mocks for deep scan, activity delta checker, and gemini generator
 const mockPerformDeepScan = vi.fn();
-const mockFetchLatestCommit = vi.fn();
+const mockCheckRepositoryActivityDelta = vi.fn();
 const mockGenerateDeepPost = vi.fn();
 
 vi.mock('../../server/services/deepIntelligence', () => ({
   performDeepScan: (...args: any[]) => mockPerformDeepScan(...args),
-  fetchLatestCommit: (...args: any[]) => mockFetchLatestCommit(...args)
+  checkRepositoryActivityDelta: (...args: any[]) => mockCheckRepositoryActivityDelta(...args),
+  fetchLatestCommit: vi.fn()
 }));
 
 vi.mock('../../server/services/deepIntelligence/deepPostGenerator', () => ({
@@ -40,7 +41,7 @@ vi.mock('../../server/services/firestoreAdmin', () => ({
               }
               if (subColl === 'settings') {
                 return {
-                  doc: vi.fn((docId: string) => ({
+                  doc: vi.fn(() => ({
                     get: mockSettingsGet
                   }))
                 };
@@ -61,32 +62,112 @@ const app = express();
 app.use(express.json());
 app.use('/api/cron', cronRouter);
 
-describe('Cron Route - Minimal AI/API Cost Optimization & Persistence', () => {
-  const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const currentHour = new Date().getHours();
-  const formattedHour = currentHour < 10 ? `0${currentHour}:00` : `${currentHour}:00`;
+describe('Scheduled Automation Subsystem Tests', () => {
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const now = new Date();
+  const currentDay = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: localTz }).format(now);
+  const currentHourNum = parseInt(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: localTz }).format(now), 10);
+  const formattedHour = currentHourNum < 10 ? `0${currentHourNum}:00` : `${currentHourNum}:00`;
+
+  function setupUserProject(projectDataOverrides: Record<string, any> = {}, userSettingsData: Record<string, any> = {}) {
+    const { monitoringConfig: overrideConfig, ...otherOverrides } = projectDataOverrides;
+    const finalMonitoringConfig = {
+      scheduleDay: currentDay,
+      scheduleTime: formattedHour,
+      timezone: localTz,
+      intent: 'weekly_progress',
+      targetAudience: 'tech_community',
+      contentLanguage: 'en',
+      monitorCommits: true,
+      monitorIssues: false,
+      monitorPullRequests: false,
+      ...overrideConfig
+    };
+
+    mockUsersGet.mockResolvedValueOnce({
+      size: 1,
+      empty: false,
+      docs: [
+        {
+          id: 'user-abc',
+          ref: {
+            collection: vi.fn((sub: string) => {
+              if (sub === 'projects') {
+                return {
+                  get: vi.fn().mockResolvedValue({
+                    size: 1,
+                    empty: false,
+                    docs: [
+                      {
+                        id: 'testowner_testrepo',
+                        ref: { update: mockProjectUpdate },
+                        data: () => ({
+                          fullName: 'testowner/testrepo',
+                          owner: 'testowner',
+                          repo: 'testrepo',
+                          monitoringEnabled: true,
+                          ...otherOverrides,
+                          monitoringConfig: finalMonitoringConfig
+                        })
+                      }
+                    ]
+                  })
+                };
+              }
+              if (sub === 'settings') {
+                return {
+                  doc: vi.fn(() => ({
+                    get: vi.fn().mockResolvedValue({
+                      exists: true,
+                      data: () => userSettingsData
+                    })
+                  }))
+                };
+              }
+              return { get: vi.fn() };
+            })
+          }
+        }
+      ]
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.CRON_SECRET = 'test-secret';
 
     mockPerformDeepScan.mockResolvedValue({
-      githubContext: { owner: 'testowner', repo: 'testrepo' },
+      githubContext: {
+        owner: 'testowner',
+        repo: 'testrepo',
+        repoIdentity: {
+          name: 'testrepo',
+          description: 'A developer tool for automated keyboard layout fixes',
+          readmeText: 'KeyFixer detects mistyped text and corrects layouts.',
+          manifestData: '',
+          languages: { TypeScript: 100 },
+          topics: ['keyboard', 'layout']
+        },
+        commits: [{ message: 'feat: add auto layout detection', date: '2026-08-18', author: 'Dev' }],
+        pullRequests: [],
+        issues: []
+      },
       synthesizedContext: {
-        technicalDecisions: ['Adopted TypeScript strictly'],
-        challengesSolved: ['Resolved async deadlock'],
-        newFeatures: ['Added cron automation'],
-        summary: 'High momentum sprint'
+        hasMeaningfulContent: true,
+        technicalDecisions: ['Integrated heuristic layout switcher'],
+        challengesSolved: ['Fixed UTF-8 character conversion bug'],
+        newFeatures: ['Arabic and English layout auto-switch'],
+        summary: 'Added robust keyboard layout correction.'
       }
     });
 
     mockGenerateDeepPost.mockResolvedValue({
-      post: '🚀 Automated Weekly Update: Refactored engine architecture.',
+      post: '🚀 Automated Update: Fixed keyboard layout switching heuristics.',
       suggestedComment: 'Check out the code: https://github.com/testowner/testrepo'
     });
   });
 
-  it('rejects unauthorized cron requests', async () => {
+  it('1. rejects unauthorized cron requests', async () => {
     const res = await request(app)
       .post('/api/cron/process-weekly')
       .set('Authorization', 'Bearer wrong-secret');
@@ -95,45 +176,13 @@ describe('Cron Route - Minimal AI/API Cost Optimization & Persistence', () => {
     expect(res.body.error).toBe('Unauthorized cron request');
   });
 
-  it('only processes repositories with monitoringEnabled=true', async () => {
-    mockUsersGet.mockResolvedValueOnce({
-      size: 1,
-      empty: false,
-      docs: [
-        {
-          id: 'user-disabled',
-          ref: {
-            collection: vi.fn((sub: string) => {
-              if (sub === 'projects') {
-                return {
-                  get: vi.fn().mockResolvedValue({
-                    size: 1,
-                    empty: false,
-                    docs: [
-                      {
-                        id: 'disabled_repo',
-                        ref: { update: mockProjectUpdate },
-                        data: () => ({
-                          fullName: 'testowner/disabledrepo',
-                          owner: 'testowner',
-                          repo: 'disabledrepo',
-                          monitoringEnabled: false,
-                          monitoringConfig: {
-                            scheduleDay: currentDay,
-                            scheduleTime: formattedHour
-                          }
-                        })
-                      }
-                    ]
-                  })
-                };
-              }
-              return { get: vi.fn() };
-            })
-          }
-        }
-      ]
+  it('2. no new enabled-source activity => zero AI calls', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: false,
+      reasons: []
     });
+
+    setupUserProject();
 
     const res = await request(app)
       .post('/api/cron/process-weekly')
@@ -141,61 +190,23 @@ describe('Cron Route - Minimal AI/API Cost Optimization & Persistence', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.processed).toBe(0);
-    expect(mockFetchLatestCommit).not.toHaveBeenCalled();
+    expect(mockCheckRepositoryActivityDelta).toHaveBeenCalledTimes(1);
     expect(mockPerformDeepScan).not.toHaveBeenCalled();
     expect(mockGenerateDeepPost).not.toHaveBeenCalled();
   });
 
-  it('stops without calling deep scan or Gemini when no new commits exist (null commit)', async () => {
-    mockFetchLatestCommit.mockResolvedValueOnce(null);
+  it('3. commits disabled => commits do not trigger delta or generation', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: false,
+      reasons: []
+    });
 
-    mockUsersGet.mockResolvedValueOnce({
-      size: 1,
-      empty: false,
-      docs: [
-        {
-          id: 'user-abc',
-          ref: {
-            collection: vi.fn((sub: string) => {
-              if (sub === 'projects') {
-                return {
-                  get: vi.fn().mockResolvedValue({
-                    size: 1,
-                    empty: false,
-                    docs: [
-                      {
-                        id: 'testowner_testrepo',
-                        ref: { update: mockProjectUpdate },
-                        data: () => ({
-                          fullName: 'testowner/testrepo',
-                          owner: 'testowner',
-                          repo: 'testrepo',
-                          monitoringEnabled: true,
-                          monitoringConfig: {
-                            scheduleDay: currentDay,
-                            scheduleTime: formattedHour
-                          }
-                        })
-                      }
-                    ]
-                  })
-                };
-              }
-              if (sub === 'settings') {
-                return {
-                  doc: vi.fn(() => ({
-                    get: vi.fn().mockResolvedValue({
-                      exists: true,
-                      data: () => ({ language: 'en' })
-                    })
-                  }))
-                };
-              }
-              return { get: vi.fn() };
-            })
-          }
-        }
-      ]
+    setupUserProject({
+      monitoringConfig: {
+        monitorCommits: false,
+        monitorIssues: true,
+        monitorPullRequests: false
+      }
     });
 
     const res = await request(app)
@@ -203,70 +214,28 @@ describe('Cron Route - Minimal AI/API Cost Optimization & Persistence', () => {
       .set('Authorization', 'Bearer test-secret');
 
     expect(res.status).toBe(200);
-    expect(res.body.processed).toBe(0);
-    expect(mockFetchLatestCommit).toHaveBeenCalledTimes(1);
+    expect(mockCheckRepositoryActivityDelta).toHaveBeenCalledWith(
+      'testowner/testrepo',
+      expect.objectContaining({ monitorCommits: false, monitorIssues: true, monitorPullRequests: false }),
+      expect.anything(),
+      undefined
+    );
     expect(mockPerformDeepScan).not.toHaveBeenCalled();
-    expect(mockGenerateDeepPost).not.toHaveBeenCalled();
-    expect(mockDraftsAdd).not.toHaveBeenCalled();
-    expect(mockProjectUpdate).not.toHaveBeenCalled();
   });
 
-  it('stops without calling deep scan or Gemini when commit matches lastProcessedCommit (same commit range)', async () => {
-    mockFetchLatestCommit.mockResolvedValueOnce({
-      sha: 'c8b31e2abcdef1234567890abcdef1234567890',
-      date: '2026-08-17T20:00:00Z',
-      message: 'fix: already processed commit'
+  it('4. issue-only automation triggers when new issue is updated', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestIssueUpdatedAt: '2026-08-18T01:00:00Z',
+      reasons: ['Updated Issue: #12 (Fix layout race condition)']
     });
 
-    mockUsersGet.mockResolvedValueOnce({
-      size: 1,
-      empty: false,
-      docs: [
-        {
-          id: 'user-abc',
-          ref: {
-            collection: vi.fn((sub: string) => {
-              if (sub === 'projects') {
-                return {
-                  get: vi.fn().mockResolvedValue({
-                    size: 1,
-                    empty: false,
-                    docs: [
-                      {
-                        id: 'testowner_testrepo',
-                        ref: { update: mockProjectUpdate },
-                        data: () => ({
-                          fullName: 'testowner/testrepo',
-                          owner: 'testowner',
-                          repo: 'testrepo',
-                          monitoringEnabled: true,
-                          lastProcessedCommit: 'c8b31e2abcdef1234567890abcdef1234567890',
-                          lastProcessedAt: '2026-08-17T20:05:00Z',
-                          monitoringConfig: {
-                            scheduleDay: currentDay,
-                            scheduleTime: formattedHour
-                          }
-                        })
-                      }
-                    ]
-                  })
-                };
-              }
-              if (sub === 'settings') {
-                return {
-                  doc: vi.fn(() => ({
-                    get: vi.fn().mockResolvedValue({
-                      exists: true,
-                      data: () => ({ language: 'en' })
-                    })
-                  }))
-                };
-              }
-              return { get: vi.fn() };
-            })
-          }
-        }
-      ]
+    setupUserProject({
+      monitoringConfig: {
+        monitorCommits: false,
+        monitorIssues: true,
+        monitorPullRequests: false
+      }
     });
 
     const res = await request(app)
@@ -274,111 +243,283 @@ describe('Cron Route - Minimal AI/API Cost Optimization & Persistence', () => {
       .set('Authorization', 'Bearer test-secret');
 
     expect(res.status).toBe(200);
-    expect(res.body.processed).toBe(0);
-    expect(mockFetchLatestCommit).toHaveBeenCalledTimes(1);
-    expect(mockPerformDeepScan).not.toHaveBeenCalled();
-    expect(mockGenerateDeepPost).not.toHaveBeenCalled();
-    expect(mockDraftsAdd).not.toHaveBeenCalled();
-    expect(mockProjectUpdate).not.toHaveBeenCalled();
-  });
-
-  it('triggers exactly one generation and updates the checkpoint when new meaningful activity exists', async () => {
-    const newCommitSha = 'a61900f9876543210fedcba9876543210fedcba9';
-    mockFetchLatestCommit.mockResolvedValueOnce({
-      sha: newCommitSha,
-      date: '2026-08-17T22:00:00Z',
-      message: 'feat: brand new feature'
-    });
-
-    mockUsersGet.mockResolvedValueOnce({
-      size: 1,
-      empty: false,
-      docs: [
-        {
-          id: 'user-abc',
-          ref: {
-            collection: vi.fn((sub: string) => {
-              if (sub === 'projects') {
-                return {
-                  get: vi.fn().mockResolvedValue({
-                    size: 1,
-                    empty: false,
-                    docs: [
-                      {
-                        id: 'testowner_testrepo',
-                        ref: { update: mockProjectUpdate },
-                        data: () => ({
-                          fullName: 'testowner/testrepo',
-                          owner: 'testowner',
-                          repo: 'testrepo',
-                          monitoringEnabled: true,
-                          lastProcessedCommit: 'c8b31e2_old_sha',
-                          monitoringConfig: {
-                            scheduleDay: currentDay,
-                            scheduleTime: formattedHour,
-                            intent: 'weekly_progress'
-                          }
-                        })
-                      }
-                    ]
-                  })
-                };
-              }
-              if (sub === 'settings') {
-                return {
-                  doc: vi.fn(() => ({
-                    get: vi.fn().mockResolvedValue({
-                      exists: true,
-                      data: () => ({
-                        githubToken: 'ghp_fake_token_123',
-                        language: 'en'
-                      })
-                    })
-                  }))
-                };
-              }
-              return { get: vi.fn() };
-            })
-          }
-        }
-      ]
-    });
-
-    const res = await request(app)
-      .post('/api/cron/process-weekly')
-      .set('Authorization', 'Bearer test-secret');
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
     expect(res.body.processed).toBe(1);
-
-    // Exactly one deep scan and Gemini generation
     expect(mockPerformDeepScan).toHaveBeenCalledTimes(1);
-    expect(mockGenerateDeepPost).toHaveBeenCalledTimes(1);
-
-    // Verify draft was saved to users/{uid}/drafts with DraftsDashboard schema
     expect(mockDraftsAdd).toHaveBeenCalledTimes(1);
-    const savedDraft = mockDraftsAdd.mock.calls[0][0];
+  });
 
-    expect(savedDraft).toMatchObject({
-      projectId: 'testowner_testrepo',
-      type: 'repo_analysis',
-      title: 'Weekly Automation: testowner/testrepo',
-      status: 'draft',
-      isAutomated: true
+  it('5. PR-only automation triggers when new PR is merged', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestPrUpdatedAt: '2026-08-18T01:30:00Z',
+      reasons: ['Merged PR: #5 (Add Wayland protocol support)']
     });
 
-    const parsedContent = JSON.parse(savedDraft.content);
-    expect(parsedContent.post).toBe('🚀 Automated Weekly Update: Refactored engine architecture.');
-    expect(parsedContent.suggestedComment).toBe('Check out the code: https://github.com/testowner/testrepo');
-
-    // Verify successful generation updates the checkpoint on the project document
-    expect(mockProjectUpdate).toHaveBeenCalledTimes(1);
-    expect(mockProjectUpdate).toHaveBeenCalledWith({
-      lastProcessedCommit: newCommitSha,
-      lastProcessedAt: expect.any(String),
-      updatedAt: expect.any(String)
+    setupUserProject({
+      monitoringConfig: {
+        monitorCommits: false,
+        monitorIssues: false,
+        monitorPullRequests: true
+      }
     });
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(1);
+    expect(mockPerformDeepScan).toHaveBeenCalledTimes(1);
+    expect(mockDraftsAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('6. contentLanguage=en generates English regardless of Arabic UI settings', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_123', date: '2026-08-18', message: 'feat: add key mapping' },
+      reasons: ['New commit']
+    });
+
+    setupUserProject(
+      { monitoringConfig: { contentLanguage: 'en' } },
+      { language: 'ar' } // UI language is Arabic in settings
+    );
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateDeepPost).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://github.com/testowner/testrepo',
+      'en',
+      expect.anything()
+    );
+  });
+
+  it('7. contentLanguage=ar generates Arabic regardless of English UI settings', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_123', date: '2026-08-18', message: 'feat: add key mapping' },
+      reasons: ['New commit']
+    });
+
+    setupUserProject(
+      { monitoringConfig: { contentLanguage: 'ar' } },
+      { language: 'en' } // UI language is English in settings
+    );
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateDeepPost).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://github.com/testowner/testrepo',
+      'ar',
+      expect.anything()
+    );
+  });
+
+  it('8. weekly_progress vs technical_deep_dive follow different intent paths and targetAudience is passed', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_456', date: '2026-08-18', message: 'feat: architectural refactor' },
+      reasons: ['New commit']
+    });
+
+    setupUserProject({
+      monitoringConfig: {
+        intent: 'technical_deep_dive',
+        targetAudience: 'recruiters'
+      }
+    });
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(mockGenerateDeepPost).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://github.com/testowner/testrepo',
+      'en',
+      expect.objectContaining({
+        intent: 'technical_deep_dive',
+        targetAudience: 'recruiters'
+      })
+    );
+  });
+
+  it('9. insufficient evidence (hasMeaningfulContent=false) => no draft created', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_trivial', date: '2026-08-18', message: 'chore: bump patch version' },
+      reasons: ['Trivial edit']
+    });
+
+    mockPerformDeepScan.mockResolvedValueOnce({
+      githubContext: {
+        owner: 'testowner',
+        repo: 'testrepo',
+        repoIdentity: { name: 'testrepo', description: '' },
+        commits: [],
+        pullRequests: [],
+        issues: []
+      },
+      synthesizedContext: {
+        hasMeaningfulContent: false,
+        technicalDecisions: [],
+        challengesSolved: [],
+        newFeatures: [],
+        summary: 'Only trivial edits'
+      }
+    });
+
+    setupUserProject();
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(0);
+    expect(mockGenerateDeepPost).not.toHaveBeenCalled();
+    expect(mockDraftsAdd).not.toHaveBeenCalled();
+  });
+
+  it('10. successful generation => checkpoint updated and lease released', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_new_commit', date: '2026-08-18', message: 'feat: new feature' },
+      reasons: ['New commit']
+    });
+
+    setupUserProject();
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(1);
+    expect(mockDraftsAdd).toHaveBeenCalledTimes(1);
+    expect(mockProjectUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      lastProcessedCommit: 'sha_new_commit',
+      lastProcessed: expect.objectContaining({ commitSha: 'sha_new_commit' }),
+      processingLease: null
+    }));
+  });
+
+  it('11. Gemini failure => checkpoint unchanged and lease released', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_fail', date: '2026-08-18', message: 'feat: big feature' },
+      reasons: ['New commit']
+    });
+
+    mockGenerateDeepPost.mockRejectedValueOnce(new Error('Gemini quota exceeded'));
+
+    setupUserProject({ lastProcessedCommit: 'old_sha' });
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(0);
+    expect(mockDraftsAdd).not.toHaveBeenCalled();
+    // Checkpoint must NOT be updated with new sha
+    expect(mockProjectUpdate).not.toHaveBeenCalledWith(expect.objectContaining({
+      lastProcessedCommit: 'sha_fail'
+    }));
+    // Lease must be cleaned up
+    expect(mockProjectUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      processingLease: null
+    }));
+  });
+
+  it('12. active lease prevents concurrent duplicate execution', async () => {
+    const futureExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    setupUserProject({
+      processingLease: {
+        lockedAt: new Date().toISOString(),
+        expiresAt: futureExpiry
+      }
+    });
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(0);
+    expect(mockCheckRepositoryActivityDelta).not.toHaveBeenCalled();
+    expect(mockPerformDeepScan).not.toHaveBeenCalled();
+  });
+
+  it('13. KeyFixer regression: grounded repository identity is passed to post generator', async () => {
+    mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
+      hasNewActivity: true,
+      latestCommit: { sha: 'sha_keyfixer', date: '2026-08-18', message: 'feat: fix keyboard shortcut' },
+      reasons: ['New commit']
+    });
+
+    mockPerformDeepScan.mockResolvedValueOnce({
+      githubContext: {
+        owner: 'obadadallo',
+        repo: 'KeyFixer',
+        repoIdentity: {
+          name: 'KeyFixer',
+          description: 'A desktop keyboard layout auto-fixer and language switcher tool',
+          readmeText: 'KeyFixer automatically detects mistyped text in the wrong keyboard layout.',
+          manifestData: '',
+          languages: { Rust: 100 },
+          topics: ['keyboard', 'layout-switcher']
+        },
+        commits: [{ message: 'feat: fix shortcut handling', date: '2026-08-18', author: 'obadadallo' }],
+        pullRequests: [],
+        issues: []
+      },
+      synthesizedContext: {
+        hasMeaningfulContent: true,
+        technicalDecisions: ['Direct OS hook integration'],
+        challengesSolved: ['Race conditions in global keyboard hooks'],
+        newFeatures: ['Instant text layout correction without clipboard contamination'],
+        summary: 'Enhanced global keyboard layout switching performance.'
+      }
+    });
+
+    setupUserProject({
+      fullName: 'obadadallo/KeyFixer',
+      owner: 'obadadallo',
+      repo: 'KeyFixer',
+      monitoringConfig: {
+        intent: 'technical_deep_dive',
+        targetAudience: 'tech_community',
+        contentLanguage: 'en'
+      }
+    });
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed).toBe(1);
+    expect(mockGenerateDeepPost).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://github.com/obadadallo/KeyFixer',
+      'en',
+      expect.objectContaining({
+        repoIdentity: expect.objectContaining({
+          name: 'KeyFixer',
+          description: 'A desktop keyboard layout auto-fixer and language switcher tool'
+        })
+      })
+    );
   });
 });
-

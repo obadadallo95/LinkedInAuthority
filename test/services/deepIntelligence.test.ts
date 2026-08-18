@@ -38,6 +38,7 @@ describe('Deep Intelligence - Scan & Post Generation Flow', () => {
 
   it('generates an evidence-based LinkedIn post draft from synthesized context', async () => {
     const mockSynthesizedContext = {
+      hasMeaningfulContent: true,
       technicalDecisions: ['Adopted native keyboard event interception'],
       challengesSolved: ['Resolved race condition on quick layout switch'],
       newFeatures: ['Auto layout detection per application window'],

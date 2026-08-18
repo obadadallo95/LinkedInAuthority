@@ -1,7 +1,8 @@
 import { getGeminiClient, callGeminiWithRetry } from '../repositoryIntelligence/gemini';
-import { DeepGithubContext } from './githubDeepFetcher';
+import { GroundedDeepGithubContext } from './githubDeepFetcher';
 
 export interface SynthesizedContext {
+  hasMeaningfulContent: boolean;
   technicalDecisions: string[];
   challengesSolved: string[];
   newFeatures: string[];
@@ -11,56 +12,81 @@ export interface SynthesizedContext {
 const synthesizerSchema = {
   type: "OBJECT",
   properties: {
+    hasMeaningfulContent: {
+      type: "BOOLEAN",
+      description: "True if the monitored commits/PRs/issues contain real, meaningful engineering changes worth discussing in a post. False if changes are trivial, empty, or purely noise (e.g. typos, formatting only)."
+    },
     technicalDecisions: {
       type: "ARRAY",
       items: { type: "STRING" },
-      description: "Key technical decisions made in the codebase based on commits and PRs."
+      description: "Key technical decisions made in the codebase based on recent activity, strictly grounded in the repository domain."
     },
     challengesSolved: {
       type: "ARRAY",
       items: { type: "STRING" },
-      description: "Problems or bugs that were fixed, extracted from PRs or commit messages."
+      description: "Problems, bugs, or performance issues resolved in the recent activity."
     },
     newFeatures: {
       type: "ARRAY",
       items: { type: "STRING" },
-      description: "New features added to the repository recently."
+      description: "New features or improvements added to the repository."
     },
     summary: {
       type: "STRING",
-      description: "A comprehensive summary of the recent work done on this repository."
+      description: "A grounded summary of recent development momentum."
     }
   },
-  required: ["technicalDecisions", "challengesSolved", "newFeatures", "summary"]
+  required: ["hasMeaningfulContent", "technicalDecisions", "challengesSolved", "newFeatures", "summary"]
 };
 
-export async function synthesizeDeepContext(deepContext: DeepGithubContext): Promise<SynthesizedContext> {
+export async function synthesizeDeepContext(deepContext: GroundedDeepGithubContext): Promise<SynthesizedContext> {
   const client = getGeminiClient('pro');
   if (!client) {
     throw new Error("Gemini API client is not configured.");
   }
 
-  const prompt = `You are a Senior Software Architecture Analyzer.
-Analyze the following recent commits and merged Pull Requests from the repository ${deepContext.owner}/${deepContext.repo}.
+  const identity = deepContext.repoIdentity || {
+    name: deepContext.repo,
+    description: '',
+    readmeText: '',
+    manifestData: '',
+    languages: {},
+    topics: []
+  };
 
-COMMITS:
+  const prompt = `You are a Senior Software Architecture and Engineering Analyzer.
+Analyze the following recent activity for repository ${deepContext.owner}/${deepContext.repo}.
+
+STABLE REPOSITORY IDENTITY (GROUND TRUTH):
+- Name: ${identity.name}
+- Description: ${identity.description || "None provided"}
+- Topics: ${(identity.topics || []).join(", ") || "None"}
+- Primary Languages: ${Object.keys(identity.languages || {}).join(", ") || "Unknown"}
+- README Excerpt:
+${identity.readmeText ? identity.readmeText.substring(0, 4000) : "No README available"}
+- Manifest Snippet:
+${identity.manifestData ? identity.manifestData.substring(0, 2000) : "No manifest available"}
+
+MONITORED RECENT ACTIVITY:
+COMMITS (${deepContext.commits.length}):
 ${JSON.stringify(deepContext.commits.slice(0, 15), null, 2)}
 
-PULL REQUESTS:
+MERGED PULL REQUESTS (${deepContext.pullRequests.length}):
 ${JSON.stringify(deepContext.pullRequests.slice(0, 10), null, 2)}
 
-Your task is to synthesize this raw data into:
-1. Technical Decisions: What underlying architectural or technical choices were made?
-2. Challenges Solved: What were the bugs or hard problems that got fixed?
-3. New Features: What new capabilities were added?
-4. Summary: A brief paragraph describing the recent momentum of the project.
+ISSUES UPDATED (${deepContext.issues?.length || 0}):
+${JSON.stringify((deepContext.issues || []).slice(0, 10), null, 2)}
 
-Do not invent information. If the commits are vague (e.g., "fix typo", "update readme"), state that there were no major architectural decisions rather than making them up.`;
+CRITICAL GROUNDING RULES:
+1. Ground truth regarding what this product/project actually does comes STRICTLY from the Stable Repository Identity (README and Description).
+2. DO NOT invent or infer what the product does from repository names or commit messages (e.g. do not assume a repository named "KeyFixer" is a config validator if the README explains it fixes keyboard/typing layout issues).
+3. If the monitored activity contains no meaningful changes or only trivial edits (e.g. bumping version numbers, formatting), set "hasMeaningfulContent": false.
+4. Do not invent technical decisions that are not evidenced in the commits, PRs, or issues.`;
 
-  const model = "gemini-3.6-flash"; // Fast and up-to-date for context synthesis
+  const model = "gemini-3.6-flash";
 
   try {
-    const systemInstruction = "You are a Senior Software Architecture Analyzer.";
+    const systemInstruction = "You are a Senior Software Architecture Analyzer. Strictly ground all analysis in the provided repository identity and observed activity.";
     const response = await callGeminiWithRetry(client, prompt, systemInstruction, synthesizerSchema as any, model);
     return response as SynthesizedContext;
   } catch (error: any) {

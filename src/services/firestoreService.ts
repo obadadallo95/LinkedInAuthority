@@ -11,14 +11,28 @@ export interface ProjectData {
   lastAnalyzedAt?: any;
   monitoringEnabled?: boolean;
   monitoringConfig?: {
-    intent?: string;
-    targetAudience?: string;
+    intent?: 'weekly_progress' | 'technical_deep_dive' | string;
+    targetAudience?: 'tech_community' | 'recruiters' | 'beginners' | string;
+    contentLanguage?: 'ar' | 'en' | 'de';
+    timezone?: string;
     monitorCommits?: boolean;
     monitorIssues?: boolean;
     monitorPullRequests?: boolean;
     scheduleDay?: string;
     scheduleTime?: string;
     postType?: string;
+  };
+  lastProcessedCommit?: string;
+  lastProcessedAt?: string;
+  lastProcessed?: {
+    commitSha?: string;
+    pullRequestUpdatedAt?: string;
+    issueUpdatedAt?: string;
+    processedAt?: string;
+  };
+  processingLease?: {
+    lockedAt: string;
+    expiresAt: string;
   };
 }
 
@@ -28,7 +42,19 @@ export interface DraftData {
   title: string;
   content: string; // The JSON stringified content or text
   status: 'draft' | 'published';
+  isAutomated?: boolean;
   sourceData?: any;
+  metadata?: {
+    intent?: string;
+    targetAudience?: string;
+    contentLanguage?: string;
+    monitoredSources?: {
+      commits?: boolean;
+      pullRequests?: boolean;
+      issues?: boolean;
+    };
+    activitySummary?: string;
+  };
   createdAt?: any;
   updatedAt?: any;
 }

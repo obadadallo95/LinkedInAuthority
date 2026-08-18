@@ -38,7 +38,7 @@ export const AutomationsDashboard: React.FC<AutomationsDashboardProps> = ({ lang
   const handleSaveAutomation = async (config: any) => {
     if (!user) return;
     try {
-      const { repo, owner, fullName, scheduleDay, scheduleTime, intent, targetAudience, monitorCommits, monitorIssues, monitorPullRequests } = config;
+      const { repo, owner, fullName, scheduleDay, scheduleTime, intent, targetAudience, contentLanguage, timezone, monitorCommits, monitorIssues, monitorPullRequests } = config;
       const resolvedOwner = owner || (fullName ? fullName.split('/')[0] : '');
       const resolvedRepo = repo || (fullName ? fullName.split('/')[1] : '');
       const resolvedFullName = fullName || (resolvedOwner && resolvedRepo ? `${resolvedOwner}/${resolvedRepo}` : resolvedRepo);
@@ -67,9 +67,11 @@ export const AutomationsDashboard: React.FC<AutomationsDashboardProps> = ({ lang
         monitoringConfig: {
           intent,
           targetAudience,
-          monitorCommits,
-          monitorIssues,
-          monitorPullRequests,
+          contentLanguage: contentLanguage || 'en',
+          timezone: timezone || 'UTC',
+          monitorCommits: monitorCommits ?? true,
+          monitorIssues: monitorIssues ?? false,
+          monitorPullRequests: monitorPullRequests ?? false,
           scheduleDay,
           scheduleTime,
         }
@@ -149,11 +151,24 @@ export const AutomationsDashboard: React.FC<AutomationsDashboardProps> = ({ lang
                   <div className={`w-2.5 h-2.5 rounded-full ${auto.monitoringEnabled ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
                   <span className="text-sm font-bold text-slate-300 truncate max-w-[150px]">{auto.repo}</span>
                 </div>
-                <div className="bg-slate-800 text-xs px-2 py-1 rounded text-slate-400 font-mono">
-                  {auto.monitoringConfig?.scheduleDay?.substring(0,3) || 'Fri'} {auto.monitoringConfig?.scheduleTime || '09:00'}
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-indigo-500/15 text-indigo-300 uppercase text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-500/30">
+                    {auto.monitoringConfig?.contentLanguage || 'en'}
+                  </span>
+                  <div className="bg-slate-800 text-xs px-2 py-1 rounded text-slate-400 font-mono">
+                    {auto.monitoringConfig?.scheduleDay?.substring(0,3) || 'Fri'} {auto.monitoringConfig?.scheduleTime || '09:00'}
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-slate-500 mt-2">{auto.monitoringConfig?.intent || 'Weekly Progress'}</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-slate-300 font-medium">{auto.monitoringConfig?.intent === 'technical_deep_dive' ? (isAr ? 'تحليل تقني عميق' : 'Technical Deep Dive') : (isAr ? 'ملخص التقدم الأسبوعي' : 'Weekly Progress')}</p>
+                <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-slate-500">
+                  {auto.monitoringConfig?.monitorCommits && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">Commits</span>}
+                  {auto.monitoringConfig?.monitorPullRequests && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">PRs</span>}
+                  {auto.monitoringConfig?.monitorIssues && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-white/5">Issues</span>}
+                  {auto.monitoringConfig?.timezone && <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-white/5 font-mono text-[9px] text-slate-400">{auto.monitoringConfig.timezone}</span>}
+                </div>
+              </div>
               
               <button 
                 onClick={() => toggleAutomation(auto.id, !!auto.monitoringEnabled)}

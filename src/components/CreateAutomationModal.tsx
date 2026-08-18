@@ -28,6 +28,14 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
   const [scheduleTime, setScheduleTime] = useState('09:00');
   const [postType, setPostType] = useState('weekly_progress');
   const [targetAudience, setTargetAudience] = useState('tech_community');
+  const [contentLanguage, setContentLanguage] = useState<'ar' | 'en' | 'de'>('en');
+  const [timezone] = useState(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {
+      return 'UTC';
+    }
+  });
   const [monitorCommits, setMonitorCommits] = useState(true);
   const [monitorIssues, setMonitorIssues] = useState(false);
   const [monitorPullRequests, setMonitorPullRequests] = useState(false);
@@ -67,6 +75,8 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
       scheduleTime,
       intent: postType,
       targetAudience,
+      contentLanguage,
+      timezone,
       monitorCommits,
       monitorIssues,
       monitorPullRequests,
@@ -192,25 +202,50 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
               </div>
             </div>
 
-            {/* Step 3: Audience & Tracking */}
+            {/* Step 3: Audience & Content Language & Tracking */}
             <div className={`space-y-4 transition-opacity duration-300 ${!selectedRepo ? 'opacity-30 pointer-events-none' : ''}`}>
               <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
                 <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">3</span>
-                {isAr ? 'الجمهور المستهدف والمراقبة' : 'Audience & Tracking'}
+                {isAr ? 'الجمهور المستهدف ولغة المنشور' : 'Audience & Content Language'}
               </div>
               
-              <div className="grid grid-cols-1 gap-4">
-                <select
-                  value={targetAudience}
-                  onChange={(e) => setTargetAudience(e.target.value)}
-                  className={`w-full bg-slate-950 border border-white/5 text-sm rounded-xl py-3.5 px-4 text-slate-200 focus:outline-none focus:border-indigo-500/50`}
-                >
-                  <option value="tech_community">{isAr ? 'المجتمع التقني' : 'Tech Community'}</option>
-                  <option value="recruiters">{isAr ? 'مدراء التوظيف' : 'Recruiters'}</option>
-                  <option value="beginners">{isAr ? 'المبتدئين' : 'Beginners'}</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    {isAr ? 'الجمهور المستهدف' : 'Target Audience'}
+                  </label>
+                  <select
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    className={`w-full bg-slate-950 border border-white/5 text-sm rounded-xl py-3 px-4 text-slate-200 focus:outline-none focus:border-indigo-500/50`}
+                  >
+                    <option value="tech_community">{isAr ? 'المجتمع التقني' : 'Tech Community'}</option>
+                    <option value="recruiters">{isAr ? 'مدراء التوظيف' : 'Recruiters'}</option>
+                    <option value="beginners">{isAr ? 'المبتدئين' : 'Beginners'}</option>
+                  </select>
+                </div>
 
-                <div className="flex gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                    {isAr ? 'لغة المنشور المولّد' : 'Generated Content Language'}
+                  </label>
+                  <select
+                    value={contentLanguage}
+                    onChange={(e) => setContentLanguage(e.target.value as any)}
+                    className={`w-full bg-slate-950 border border-white/5 text-sm rounded-xl py-3 px-4 text-slate-200 focus:outline-none focus:border-indigo-500/50`}
+                  >
+                    <option value="en">English (EN)</option>
+                    <option value="ar">العربية (AR)</option>
+                    <option value="de">Deutsch (DE)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-xs font-medium text-slate-400 mb-2">
+                  {isAr ? 'مصادر النشاط المراقبة' : 'Monitored Activity Sources'}
+                </label>
+                <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                     <input type="checkbox" checked={monitorCommits} onChange={(e) => setMonitorCommits(e.target.checked)} className="rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500" />
                     {isAr ? 'الالتزامات (Commits)' : 'Commits'}
@@ -229,9 +264,14 @@ export const CreateAutomationModal: React.FC<CreateAutomationModalProps> = ({
 
             {/* Step 4: Schedule */}
             <div className={`space-y-4 transition-opacity duration-300 ${!selectedRepo ? 'opacity-30 pointer-events-none' : ''}`}>
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
-                <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">4</span>
-                {isAr ? 'الجدولة والتوقيت' : 'Schedule & Timing'}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                  <span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs">4</span>
+                  {isAr ? 'الجدولة والتوقيت' : 'Schedule & Timing'}
+                </div>
+                <span className="text-[11px] text-indigo-400/80 font-mono bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                  {timezone}
+                </span>
               </div>
               
               <div className="flex gap-4">

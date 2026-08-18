@@ -1,14 +1,19 @@
 import express from 'express';
 import { getAdminFirestore } from '../services/firestoreAdmin';
-import { performDeepScan, fetchLatestCommit } from '../services/deepIntelligence';
+import { performDeepScan, checkRepositoryActivityDelta, ActivityCheckOptions, ActivityCheckpoint } from '../services/deepIntelligence';
 import { generateDeepPost } from '../services/deepIntelligence/deepPostGenerator';
 
 const router = express.Router();
 
-// This endpoint should be triggered by a Cloud Scheduler or GitHub Actions
-// It scans all projects for active automations that match the current time
+/**
+ * Scheduled Automation Processor
+ * 
+ * NOTE: Triggered by an hourly heartbeat (e.g. GitHub Actions or Cloud Scheduler).
+ * Evaluates each project's configured scheduleDay, scheduleTime, and timezone.
+ * Concurrency-safe: acquires an expiring lease to prevent duplicate runs across parallel cron triggers.
+ */
 router.post("/process-weekly", async (req, res) => {
-  // 1. Verify a secret token from headers to ensure only trusted schedulers can trigger this
+  // 1. Authorization check
   const authHeader = req.headers.authorization;
   const CRON_SECRET = process.env.CRON_SECRET?.trim() || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-key');
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : authHeader?.trim();
@@ -17,81 +22,154 @@ router.post("/process-weekly", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized cron request" });
   }
 
-  console.log("Running weekly automation check...");
+  console.log("Running scheduled repository automation heartbeat...");
   
   try {
     const db = getAdminFirestore();
-    
-    console.log("Fetching users...");
     const usersSnapshot = await db.collection('users').get();
-    console.log(`Fetched ${usersSnapshot.size} users.`);
-    
-    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const currentHour = new Date().getHours();
     
     let processedCount = 0;
+    let skippedCount = 0;
     const errors: any[] = [];
 
     for (const userDoc of usersSnapshot.docs) {
-      console.log(`Fetching projects for user ${userDoc.id}...`);
       const projectsSnapshot = await userDoc.ref.collection('projects').get();
-        
-      console.log(`User ${userDoc.id} has ${projectsSnapshot.size} projects.`);
       if (projectsSnapshot.empty) continue;
 
-      for (const doc of projectsSnapshot.docs) {
-        const data = doc.data();
+      for (const projectDoc of projectsSnapshot.docs) {
+        const data = projectDoc.data();
         
         if (data.monitoringEnabled !== true) {
           continue;
         }
         const config = data.monitoringConfig;
-        
-        // Basic scheduling check
         if (!config || !config.scheduleDay || !config.scheduleTime) {
           continue;
         }
-      
-      const scheduledHour = parseInt(config.scheduleTime.split(':')[0], 10);
-      
-      // Check if this project is scheduled for today and this hour
-      // (For this MVP, we use simple hour matching)
-      if (config.scheduleDay === currentDay && scheduledHour === currentHour) {
-        console.log(`Processing automation for ${data.fullName}`);
+        
+        // 2. Timezone-aware schedule matching
+        const userTimezone = config.timezone || 'UTC';
+        let currentDay: string;
+        let currentHour: number;
         
         try {
-          // 1. Get the user's Github token (optional for public repositories)
-          const userId = userDoc.id;
+          const nowInTz = new Date();
+          const dayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: userTimezone });
+          const hourFormatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: userTimezone });
+          currentDay = dayFormatter.format(nowInTz);
+          currentHour = parseInt(hourFormatter.format(nowInTz), 10);
+        } catch {
+          // Fallback if timezone string is invalid
+          currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+          currentHour = new Date().getHours();
+        }
 
+        const scheduledHour = parseInt(config.scheduleTime.split(':')[0], 10);
+
+        if (config.scheduleDay !== currentDay || scheduledHour !== currentHour) {
+          continue;
+        }
+
+        console.log(`[Automation Due] Project ${data.fullName || data.repo} in user ${userDoc.id}`);
+
+        // 3. Concurrency Protection: Lease Acquisition
+        const now = Date.now();
+        const existingLeaseExpiry = data.processingLease?.expiresAt 
+          ? new Date(data.processingLease.expiresAt).getTime() 
+          : 0;
+
+        if (data.processingLease && existingLeaseExpiry > now) {
+          console.log(`[Concurrency] Project ${data.fullName} is currently locked by active lease until ${data.processingLease.expiresAt}. Skipping.`);
+          continue;
+        }
+
+        const leaseExpiresAt = new Date(now + 10 * 60 * 1000).toISOString();
+        try {
+          await projectDoc.ref.update({
+            processingLease: {
+              lockedAt: new Date(now).toISOString(),
+              expiresAt: leaseExpiresAt
+            }
+          });
+        } catch (leaseErr: any) {
+          console.warn(`Failed to acquire lease for ${data.fullName}:`, leaseErr.message);
+          continue;
+        }
+
+        let isSuccess = false;
+        try {
+          // 4. Fetch User Settings & GitHub Token
+          const userId = userDoc.id;
           const userSettingsRef = userDoc.ref.collection('settings').doc('current');
           const settingsSnap = await userSettingsRef.get();
           const settings = settingsSnap.exists ? settingsSnap.data() : null;
-          const token = settings?.githubToken;
+          const githubToken = settings?.githubToken;
 
-          const repoUrl = `https://github.com/${data.fullName}`;
-          
-          // 2. Check lightweight GitHub activity metadata before running deep scan or Gemini
-          const latestCommit = await fetchLatestCommit(data.fullName, undefined, token);
-          if (!latestCommit) {
-            console.log(`No commits found or unable to fetch commits for ${data.fullName}, skipping.`);
+          const repoUrl = `https://github.com/${data.fullName || `${data.owner}/${data.repo}`}`;
+
+          // 5. Configured Monitored Sources
+          const sourceOptions: ActivityCheckOptions = {
+            monitorCommits: config.monitorCommits !== false,
+            monitorPullRequests: config.monitorPullRequests === true,
+            monitorIssues: config.monitorIssues === true,
+          };
+
+          // 6. Existing Activity Checkpoint (with backwards compatibility)
+          const lastCheckpoint: ActivityCheckpoint = {
+            commitSha: data.lastProcessed?.commitSha || data.lastProcessedCommit,
+            pullRequestUpdatedAt: data.lastProcessed?.pullRequestUpdatedAt,
+            issueUpdatedAt: data.lastProcessed?.issueUpdatedAt,
+            processedAt: data.lastProcessed?.processedAt || data.lastProcessedAt
+          };
+
+          // 7. Lightweight Activity Delta Check (Zero AI calls if no new activity)
+          const deltaResult = await checkRepositoryActivityDelta(
+            data.fullName || `${data.owner}/${data.repo}`,
+            sourceOptions,
+            lastCheckpoint,
+            githubToken
+          );
+
+          if (!deltaResult.hasNewActivity) {
+            console.log(`[No Activity] No new activity across monitored sources for ${data.fullName}. Skipping AI calls.`);
+            skippedCount++;
+            await projectDoc.ref.update({ processingLease: null });
             continue;
           }
 
-          // 3. Compare against checkpoint (lastProcessedCommit) to prevent duplicate generation
-          if (data.lastProcessedCommit && data.lastProcessedCommit === latestCommit.sha) {
-            console.log(`No new commits for ${data.fullName} since ${latestCommit.sha.slice(0, 7)}, skipping deep scan and Gemini.`);
+          console.log(`[Activity Detected] Reasons for ${data.fullName}:`, deltaResult.reasons);
+
+          // 8. Grounded Deep Scan (Stable Identity Context + Monitored Streams)
+          const scanResult = await performDeepScan(repoUrl, githubToken, sourceOptions);
+
+          if (!scanResult.synthesizedContext.hasMeaningfulContent) {
+            console.log(`[Insufficient Substance] Observed changes for ${data.fullName} are trivial/noise. Skipping post generation.`);
+            skippedCount++;
+            await projectDoc.ref.update({ processingLease: null });
             continue;
           }
 
-          // 4. Perform deep scan only when there is new meaningful activity
-          const scanResult = await performDeepScan(repoUrl, token);
-          
-          // 5. Generate the post using Gemini
-          const lang = settings?.language || 'en';
-          const finalPost = await generateDeepPost(scanResult.synthesizedContext, repoUrl, lang);
-          
-          // 6. Save the drafted post back to Firestore in the drafts collection for the user to review
-          const projectId = doc.id || (data.owner && data.repo ? `${data.owner}_${data.repo}` : data.fullName);
+          // 9. Independent Content Language (Strictly decoupled from UI language)
+          const contentLanguage = config.contentLanguage || settings?.defaultContentLanguage || 'en';
+
+          // 10. Generate Grounded Deep Post
+          const finalPost = await generateDeepPost(
+            scanResult.synthesizedContext,
+            repoUrl,
+            contentLanguage,
+            {
+              intent: config.intent || 'weekly_progress',
+              targetAudience: config.targetAudience || 'tech_community',
+              repoIdentity: scanResult.githubContext.repoIdentity
+            }
+          );
+
+          // 11. Save Draft to users/{uid}/drafts
+          const projectId = projectDoc.id || `${data.owner}_${data.repo}`;
+          const draftTitle = config.intent === 'technical_deep_dive'
+            ? `Deep Dive: ${data.fullName || data.repo}`
+            : `Weekly Update: ${data.fullName || data.repo}`;
+
           const draftContent = JSON.stringify({
             post: finalPost.post,
             suggestedComment: finalPost.suggestedComment,
@@ -106,45 +184,67 @@ router.post("/process-weekly", async (req, res) => {
           await draftsRef.add({
             projectId,
             type: 'repo_analysis',
-            title: `Weekly Automation: ${data.fullName || data.repo || 'Repository'}`,
+            title: draftTitle,
             content: draftContent,
             status: 'draft',
+            isAutomated: true,
+            metadata: {
+              intent: config.intent || 'weekly_progress',
+              targetAudience: config.targetAudience || 'tech_community',
+              contentLanguage,
+              monitoredSources: {
+                commits: sourceOptions.monitorCommits,
+                pullRequests: sourceOptions.monitorPullRequests,
+                issues: sourceOptions.monitorIssues
+              },
+              activityReasons: deltaResult.reasons
+            },
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isAutomated: true
-          });
-
-          // 7. Persist checkpoint (latest processed commit SHA and timestamp)
-          await doc.ref.update({
-            lastProcessedCommit: latestCommit.sha,
-            lastProcessedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           });
-          
+
+          // 12. Advance Checkpoint ONLY after successful draft persistence
+          const updatedCheckpoint: ActivityCheckpoint = {
+            commitSha: deltaResult.latestCommit?.sha || lastCheckpoint.commitSha,
+            pullRequestUpdatedAt: deltaResult.latestPrUpdatedAt || lastCheckpoint.pullRequestUpdatedAt,
+            issueUpdatedAt: deltaResult.latestIssueUpdatedAt || lastCheckpoint.issueUpdatedAt,
+            processedAt: new Date().toISOString()
+          };
+
+          await projectDoc.ref.update({
+            lastProcessed: updatedCheckpoint,
+            lastProcessedCommit: updatedCheckpoint.commitSha || null,
+            lastProcessedAt: updatedCheckpoint.processedAt,
+            processingLease: null,
+            updatedAt: new Date().toISOString()
+          });
+
+          isSuccess = true;
           processedCount++;
-          console.log(`Successfully generated draft and updated checkpoint for ${data.fullName}`);
-          
+          console.log(`[Success] Automation draft created and checkpoint advanced for ${data.fullName}`);
+
         } catch (err: any) {
-          console.error(`Error processing ${data.fullName}:`, err.message);
+          console.error(`[Error] Automation error for ${data.fullName}:`, err.message);
           errors.push({ repo: data.fullName, error: err.message });
+        } finally {
+          // Always release lease if not already released
+          if (!isSuccess) {
+            await projectDoc.ref.update({ processingLease: null }).catch(() => {});
+          }
         }
       }
-    } // close inner for
-    } // close outer for
-
-    if (processedCount === 0 && errors.length === 0) {
-        console.log("No active automations matched the current time.");
     }
 
     return res.json({ 
       success: true, 
-      processed: processedCount, 
+      processed: processedCount,
+      skipped: skippedCount,
       errors: errors.length > 0 ? errors : undefined 
     });
 
   } catch (error: any) {
-    console.error("Cron Process Error:", error);
-    return res.status(500).json({ error: "Cron Process Failed" });
+    console.error("Scheduled Automation Processor Failed:", error);
+    return res.status(500).json({ error: "Scheduled Automation Processor Failed" });
   }
 });
 
