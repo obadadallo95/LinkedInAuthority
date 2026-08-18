@@ -63,15 +63,16 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
   const [savingCommitAnalysis, setSavingCommitAnalysis] = useState(false);
 
   useEffect(() => {
-    if (user && owner && repo) {
-      firestoreService.getProject(user.uid, owner, repo).then((proj) => {
-        if (proj) {
+    if (repoPhase === 'result' && analysisResult) {
+      setTimeout(() => {
+        const el = document.getElementById('analysis-result-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }).catch(err => {
-        console.error("Error fetching project:", err);
-      });
+      }, 100);
     }
-  }, [user, owner, repo]);
+  }, [repoPhase, analysisResult]);
+
 
   const saveToFirestore = async (type: 'repo_analysis' | 'commit_update', data: any, setSavingState: (s: boolean) => void) => {
     if (!user) {
@@ -560,6 +561,7 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                 {/* FULL WIDTH RESULTS AREA (Demo Like) */}
                 {repoPhase === 'result' && analysisResult && (
                   <motion.div 
+                    id="analysis-result-section"
                     initial={{ opacity: 0, y: 15 }} 
                     animate={{ opacity: 1, y: 0 }} 
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
