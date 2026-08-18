@@ -7,13 +7,12 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
-secrets:
+env:
   - variable: GEMINI_API_KEY
     secret: gemini_api_key
-    version: latest
+  - variable: GEMINI_PRO_API_KEY
+    secret: gemini_api_key
   - variable: ANALYSIS_SIGNING_SECRET
     secret: analysis_signing_secret
-    version: latest
   - variable: CRON_SECRET
     secret: cron_secret
-    version: latest
