@@ -1,4 +1,8 @@
 import { fetchWithTimeout, fetchGithubContext, cleanText } from '../github';
+import { VerifiedLink, extractVerifiedLinks } from './linkExtractor';
+
+export type { VerifiedLink, VerifiedLinkType } from './linkExtractor';
+export { extractVerifiedLinks, classifyUrl } from './linkExtractor';
 
 export interface LatestCommitInfo {
   sha: string;
@@ -37,7 +41,9 @@ export interface GroundedDeepGithubContext {
     manifestData: string;
     languages: Record<string, number>;
     topics: string[];
+    homepageUrl?: string;
   };
+  verifiedLinks: VerifiedLink[];
   commits: Array<{ message: string; date: string; author: string }>;
   pullRequests: Array<{ title: string; body: string; merged_at: string }>;
   issues: Array<{ title: string; body: string; updated_at: string; state: string }>;
@@ -296,6 +302,16 @@ export async function fetchDeepGithubContext(
       }));
   }
 
+  const verifiedLinks = extractVerifiedLinks(
+    owner,
+    repo,
+    ghBaseContext.repoData.homepage,
+    ghBaseContext.readmeText,
+    ghBaseContext.manifestData
+  );
+
+  const homepageUrl = ghBaseContext.repoData.homepage || verifiedLinks.find(l => l.type === 'homepage')?.url;
+
   return {
     owner,
     repo,
@@ -305,8 +321,10 @@ export async function fetchDeepGithubContext(
       readmeText: ghBaseContext.readmeText || '',
       manifestData: ghBaseContext.manifestData || '',
       languages: ghBaseContext.languages || {},
-      topics: ghBaseContext.repoData.topics || []
+      topics: ghBaseContext.repoData.topics || [],
+      homepageUrl
     },
+    verifiedLinks,
     commits,
     pullRequests,
     issues

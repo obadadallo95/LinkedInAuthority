@@ -6,17 +6,24 @@ import {
   checkRepositoryActivityDelta,
   ActivityCheckOptions,
   ActivityCheckpoint,
-  ActivityDeltaResult
+  ActivityDeltaResult,
+  VerifiedLink,
+  VerifiedLinkType,
+  extractVerifiedLinks,
+  classifyUrl
 } from './githubDeepFetcher';
-import { synthesizeDeepContext, SynthesizedContext } from './synthesizer';
-import { generateDeepPost, DeepGeneratedPost, DeepPostOptions } from './deepPostGenerator';
+import { synthesizeDeepContext, SynthesizedContext, ProductProfile } from './synthesizer';
+import { generateDeepPost, DeepGeneratedPost, DeepPostOptions, selectCallToAction, SelectedCTA } from './deepPostGenerator';
 
 export { 
   fetchLatestCommit,
   checkRepositoryActivityDelta,
   fetchDeepGithubContext,
   synthesizeDeepContext,
-  generateDeepPost
+  generateDeepPost,
+  extractVerifiedLinks,
+  classifyUrl,
+  selectCallToAction
 };
 
 export type { 
@@ -26,8 +33,12 @@ export type {
   ActivityDeltaResult,
   GroundedDeepGithubContext,
   SynthesizedContext,
+  ProductProfile,
+  VerifiedLink,
+  VerifiedLinkType,
   DeepGeneratedPost,
-  DeepPostOptions
+  DeepPostOptions,
+  SelectedCTA
 };
 
 export interface DeepScanResult {

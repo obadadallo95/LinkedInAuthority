@@ -10,6 +10,7 @@ const mockGenerateDeepPost = vi.fn();
 vi.mock('../../server/services/deepIntelligence', () => ({
   performDeepScan: (...args: any[]) => mockPerformDeepScan(...args),
   checkRepositoryActivityDelta: (...args: any[]) => mockCheckRepositoryActivityDelta(...args),
+  generateDeepPost: (...args: any[]) => mockGenerateDeepPost(...args),
   fetchLatestCommit: vi.fn()
 }));
 
