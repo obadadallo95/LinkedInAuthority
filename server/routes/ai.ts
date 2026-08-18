@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getGeminiClient, handleGeminiError } from "../services/repositoryIntelligence/gemini";
+import { getGeminiClient, handleGeminiError, callGeminiWithRetry } from "../services/repositoryIntelligence/gemini";
 import { fetchGithubContext } from "../services/github";
 import { analyzeRepositoryAngles, generatePostFromAngle } from "../services/repositoryIntelligence";
 import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIntelligence/token";
@@ -181,33 +181,30 @@ ${commits.map((c: any) => `- [${c.sha.substring(0, 7)}] ${c.message}`).join('\n'
 Respond strictly with the required JSON structure.`;
 
   try {
-    const response = await client.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            changelog: { type: Type.STRING },
-            technicalUpdate: { type: Type.STRING }
-          },
-          required: ["title", "changelog", "technicalUpdate"]
-        }
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        changelog: { type: Type.STRING },
+        technicalUpdate: { type: Type.STRING }
+      },
+      required: ["title", "changelog", "technicalUpdate"]
+    };
+
+    const result = await callGeminiWithRetry(client, prompt, systemInstruction, schema as any, {
+      task: 'commit_analysis',
+      telemetryContext: {
+        userId: req.user?.uid,
+        feature: 'commit_analysis',
+        repository: repo
       }
     });
     
-    if (response.text) {
-      return res.json(JSON.parse(response.text));
-    }
+    return res.json(result);
   } catch (err: any) {
     console.error("Gemini commit analysis failed:", err);
     return res.status(500).json({ error: "Failed to generate commit analysis." });
   }
-  
-  return res.status(500).json({ error: "Empty AI response." });
 });
 
 // Hashtag Optimization Endpoint (Kept as is)
@@ -228,32 +225,26 @@ Return ONLY a JSON array of strings, where each string is a hashtag starting wit
   const prompt = `Post text: ${text}`;
 
   try {
-    const response = await client.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            hashtags: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
-          },
-          required: ["hashtags"]
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        hashtags: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
         }
+      },
+      required: ["hashtags"]
+    };
+
+    const result = await callGeminiWithRetry(client, prompt, systemInstruction, schema as any, {
+      task: 'hashtag_generation',
+      telemetryContext: {
+        userId: req.user?.uid,
+        feature: 'hashtag_generation'
       }
     });
 
-    const outText = response.text;
-    if (outText) {
-      const parsed = JSON.parse(outText);
-      return res.json(parsed);
-    } else {
-      throw new Error("Empty response");
-    }
+    return res.json(result);
   } catch (err: any) {
     console.error("Hashtag generation error:", err);
     return res.status(500).json({ error: "Failed to generate hashtags." });

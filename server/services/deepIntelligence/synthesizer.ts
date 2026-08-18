@@ -83,11 +83,15 @@ CRITICAL GROUNDING RULES:
 3. If the monitored activity contains no meaningful changes or only trivial edits (e.g. bumping version numbers, formatting), set "hasMeaningfulContent": false.
 4. Do not invent technical decisions that are not evidenced in the commits, PRs, or issues.`;
 
-  const model = "gemini-3.6-flash";
-
   try {
     const systemInstruction = "You are a Senior Software Architecture Analyzer. Strictly ground all analysis in the provided repository identity and observed activity.";
-    const response = await callGeminiWithRetry(client, prompt, systemInstruction, synthesizerSchema as any, model);
+    const response = await callGeminiWithRetry(client, prompt, systemInstruction, synthesizerSchema as any, {
+      task: 'deep_synthesis',
+      telemetryContext: {
+        feature: 'deep_synthesis',
+        repository: `${deepContext.owner}/${deepContext.repo}`
+      }
+    });
     return response as SynthesizedContext;
   } catch (error: any) {
     console.error("Error synthesizing deep context:", error);

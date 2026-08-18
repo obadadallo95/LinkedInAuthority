@@ -122,15 +122,19 @@ CRITICAL RULES:
 
 ${langInstruction}`;
 
-  const model = "gemini-3.6-flash";
-
   try {
     const response = await callGeminiWithRetry(
       client, 
       prompt, 
       "You are an elite Tech Lead and Developer Advocate.", 
       deepPostSchema as any,
-      model
+      {
+        task: 'deep_post_generation',
+        telemetryContext: {
+          feature: 'deep_post_generation',
+          repository: options?.repoIdentity?.name
+        }
+      }
     );
     return response as DeepGeneratedPost;
   } catch (error: any) {

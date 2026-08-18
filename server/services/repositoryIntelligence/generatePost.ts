@@ -97,8 +97,15 @@ export async function generatePostFromAngle(
     7. Return any warnings if the user's human context or custom angle contradicted facts.
   `;
 
-  const model = 'gemini-3.6-flash';
-  const result = await callGeminiWithRetry(client, prompt, systemPrompt, generateSchema, model);
+  const result = await callGeminiWithRetry(client, prompt, systemPrompt, generateSchema, {
+    task: 'post_generation',
+    telemetryContext: {
+      userId: tokenPayload.userId,
+      feature: 'post_generation',
+      isDemo: tier === 'free',
+      repository: tokenPayload.repository
+    }
+  });
   
   // Strict Server-side Validation of used Evidence IDs
   const validIds = new Set(tokenPayload.atomicFacts.map(f => f.id));

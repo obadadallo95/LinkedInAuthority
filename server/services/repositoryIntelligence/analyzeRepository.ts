@@ -41,8 +41,14 @@ export async function analyzeRepositoryAngles(
     5. Output the finalAngles.
   `;
 
-  const model = 'gemini-3.6-flash';
-  const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema, model);
+  const result = await callGeminiWithRetry(client, prompt, systemPrompt, analyzeSchema, {
+    task: 'repo_analysis',
+    telemetryContext: {
+      feature: 'repo_analysis',
+      isDemo: tier === 'free',
+      repository: `${ghContext.repoData?.owner?.login}/${ghContext.repoData?.name}`
+    }
+  });
   
   return {
     repository: {
