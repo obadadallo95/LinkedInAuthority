@@ -262,6 +262,7 @@ router.post("/deep-scan", async (req: any, res: any) => {
   const requestedLang = lang && SUPPORTED_LANGUAGES.includes(lang) ? lang : 'en';
 
   try {
+    const { username, repo, token, lang, intent, targetAudience } = req.body;
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
@@ -277,7 +278,19 @@ router.post("/deep-scan", async (req: any, res: any) => {
     const scanResult = await performDeepScan(repoUrl, token);
 
     // 2. Generate Final Post
-    const finalPost = await generateDeepPost(scanResult.synthesizedContext, repoUrl, requestedLang);
+    const finalPost = await generateDeepPost(
+      scanResult.synthesizedContext, 
+      repoUrl, 
+      requestedLang,
+      {
+        intent: intent || 'weekly_progress',
+        targetAudience: targetAudience || 'General Public',
+        repoIdentity: scanResult.githubContext.repoIdentity ? {
+          name: scanResult.githubContext.repoIdentity.name,
+          description: scanResult.githubContext.repoIdentity.description
+        } : undefined
+      }
+    );
 
     return res.json({
       success: true,

@@ -32,7 +32,20 @@ const deepPostSchema = {
 };
 
 function getIntentGuidance(intent: string = 'weekly_progress'): string {
-  if (intent === 'technical_deep_dive') {
+  const norm = (intent || '').toLowerCase();
+  
+  if (norm.includes('project') || norm.includes('launch') || norm.includes('announc') || norm.includes('مشروع') || norm.includes('انطلاق') || norm.includes('أعلن')) {
+    return `CONTENT STRATEGY: PROJECT LAUNCH / PRODUCT ANNOUNCEMENT
+- Goal: Introduce the project and explain its core value proposition clearly.
+- Structure:
+  1. The Problem / Frustration: What common annoyance, friction, or unmet need inspired creating this?
+  2. The Solution: Introduce the product by name and describe what it does in human, accessible terms.
+  3. Key Value & Features: Highlight 2-3 standout benefits for the user (e.g. privacy, native UX, zero configuration, speed).
+  4. Call to Action: Invite the audience to check it out, give feedback, or try it.
+- Tone: Welcoming, proud, user-focused, and inspiring. Do NOT write an internal changelog; focus on the product's purpose and experience.`;
+  }
+
+  if (norm === 'technical_deep_dive' || norm.includes('technical') || norm.includes('decision') || norm.includes('قرار')) {
     return `CONTENT STRATEGY: TECHNICAL DEEP DIVE
 - Select ONE specific, meaningful architectural choice, bug resolution, or technical challenge from the context.
 - Structure:
@@ -43,7 +56,16 @@ function getIntentGuidance(intent: string = 'weekly_progress'): string {
 - Do NOT make a generic bullet-point list of features. Go deep on one concrete engineering story.`;
   }
 
-  // Default: weekly_progress
+  if (norm.includes('challenge') || norm.includes('lesson') || norm.includes('تحدي') || norm.includes('درس')) {
+    return `CONTENT STRATEGY: CHALLENGE & LESSON LEARNED
+- Focus on an obstacle or friction encountered during development and what was learned from overcoming it.
+- Structure:
+  1. The unexpected roadblock or complexity.
+  2. How it was diagnosed and solved.
+  3. The core lesson that others can apply in their own projects.`;
+  }
+
+  // Default: weekly_progress / progress_update
   return `CONTENT STRATEGY: WEEKLY PROGRESS UPDATE
 - Structure:
   1. Strong Hook: Highlight this week's development momentum or the major problem addressed.
@@ -54,19 +76,27 @@ function getIntentGuidance(intent: string = 'weekly_progress'): string {
 }
 
 function getAudienceGuidance(audience: string = 'tech_community'): string {
-  if (audience === 'recruiters') {
+  const norm = (audience || '').toLowerCase();
+
+  if (norm.includes('general') || norm.includes('public') || norm.includes('beginner') || norm.includes('عام') || norm.includes('الجمهور')) {
+    return `TARGET AUDIENCE: GENERAL PUBLIC & BROAD AUDIENCE
+- Write in clear, relatable, human language that ANY computer/Mac user or professional can easily understand.
+- STRICT RULE: AVOID obscure internal programming jargon (e.g. do NOT talk about "semaphore bridges", "MainActor", "NSServices", or "mutex race conditions" unless explained simply as "making the app ultra-fast, smooth, and crash-free").
+- Focus on the practical everyday problem solved, time saved, ease of use, design elegance, and user privacy.`;
+  }
+
+  if (norm.includes('recruiter') || norm.includes('hr') || norm.includes('توظيف') || norm.includes('موارد')) {
     return `TARGET AUDIENCE: HIRING MANAGERS & RECRUITERS
 - Frame the engineering work to showcase technical ownership, problem-solving ability, production readiness, and shipping velocity.
 - Emphasize business and developer impact rather than hyper-obscure compiler arcana.`;
   }
-  if (audience === 'beginners') {
-    return `TARGET AUDIENCE: JUNIOR DEVELOPERS & LEARNERS
-- Explain technical concepts clearly without heavy jargon.
-- Use intuitive analogies where helpful.
-- Focus on the learning journey and takeaways that any developer can benefit from.`;
+
+  if (norm.includes('cto') || norm.includes('lead') || norm.includes('مدراء')) {
+    return `TARGET AUDIENCE: CTOs, TECH LEADS & ENGINEERING LEADERSHIP
+- Focus on architectural scalability, maintainability, engineering trade-offs, and technical strategy.`;
   }
 
-  // Default: tech_community
+  // Default: tech_community / software engineers
   return `TARGET AUDIENCE: EXPERIENCED SOFTWARE ENGINEERS & PEERS
 - Speak engineer-to-engineer with sharp technical clarity, authentic vocabulary, and architectural precision.
 - Focus on practical decisions, performance, DX, and clean engineering trade-offs.`;

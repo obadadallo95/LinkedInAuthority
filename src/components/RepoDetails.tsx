@@ -290,7 +290,14 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                             const res = await fetch("/api/deep-scan", {
                               method: "POST",
                               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${idToken}` },
-                              body: JSON.stringify({ username: owner, token: settings.githubToken, repo: repo, lang: lang })
+                              body: JSON.stringify({ 
+                                username: owner, 
+                                token: settings.githubToken, 
+                                repo: repo, 
+                                lang: lang,
+                                intent: intent,
+                                targetAudience: targetAudience
+                              })
                             });
                             const data = await res.json();
                             if(res.ok) {
@@ -394,9 +401,9 @@ export const RepoDetails = ({ lang, settings, demoMode }: any) => {
                                 username: owner, 
                                 token: settings.githubToken, 
                                 repo: repo, 
-                                projectDescription: projectDescription || 'A repository', 
-                                intent: "Write a comprehensive tutorial based on this repository.", 
-                                humanContext: "Technical Developers", 
+                                projectDescription: projectDescription || '', 
+                                intent: intent || 'project', 
+                                humanContext: targetAudience || 'General Public', 
                                 lang: lang 
                               })
                             });
