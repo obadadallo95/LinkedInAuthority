@@ -7,6 +7,7 @@ import { performDeepScan } from "../services/deepIntelligence";
 import { generateDeepPost } from "../services/deepIntelligence/deepPostGenerator";
 import { Type } from "@google/genai";
 import { rateLimitStore } from "../services/rateLimitStore";
+import { getUserTier } from "../services/entitlements";
 
 const router = Router();
 
@@ -52,7 +53,8 @@ router.post("/analyze-repo", async (req: any, res: any) => {
       return res.json({ needsUserContext: true });
     }
 
-    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang, 'pro');
+    const tier = await getUserTier(uid);
+    const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang, tier);
     
     // Generate Analysis Token for authenticated user
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
@@ -128,6 +130,7 @@ router.post("/generate-post", async (req: any, res: any) => {
       return res.status(403).json({ error: "Language mismatch. Token was created for a different language." });
     }
 
+    const tier = await getUserTier(uid);
     const result = await generatePostFromAngle(
       tokenPayload, 
       ghContext, 
@@ -136,7 +139,7 @@ router.post("/generate-post", async (req: any, res: any) => {
       customAngle,
       humanContext, 
       lang,
-      'pro'
+      tier
     );
     res.json(result);
   } catch (err: any) {
@@ -161,7 +164,10 @@ router.post("/analyze-commits", async (req: any, res: any) => {
     return res.status(400).json({ error: "Missing or invalid commits array" });
   }
 
-  const client = getGeminiClient('pro');
+  const uid = req.user?.uid;
+  if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+  const client = getGeminiClient(await getUserTier(uid));
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -214,7 +220,10 @@ router.post("/generate-hashtags", async (req: any, res: any) => {
     return res.status(400).json({ error: "Missing text parameter" });
   }
 
-  const client = getGeminiClient('pro');
+  const uid = req.user?.uid;
+  if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+  const client = getGeminiClient(await getUserTier(uid));
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -275,7 +284,8 @@ router.post("/deep-scan", async (req: any, res: any) => {
     const repoUrl = `https://github.com/${username}/${repo}`;
 
     // 1. Fetch & Synthesize Deep Context
-    const scanResult = await performDeepScan(repoUrl, token);
+    const tier = await getUserTier(uid);
+    const scanResult = await performDeepScan(repoUrl, token, undefined, tier);
 
     // 2. Generate Final Post
     const finalPost = await generateDeepPost(
@@ -289,7 +299,8 @@ router.post("/deep-scan", async (req: any, res: any) => {
           name: scanResult.githubContext.repoIdentity.name,
           description: scanResult.githubContext.repoIdentity.description
         } : undefined
-      }
+      },
+      tier
     );
 
     return res.json({

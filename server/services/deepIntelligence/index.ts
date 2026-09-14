@@ -14,6 +14,7 @@ import {
 } from './githubDeepFetcher';
 import { synthesizeDeepContext, SynthesizedContext, ProductProfile } from './synthesizer';
 import { generateDeepPost, DeepGeneratedPost, DeepPostOptions, selectCallToAction, SelectedCTA } from './deepPostGenerator';
+import { UserTier } from '../entitlements';
 
 export { 
   fetchLatestCommit,
@@ -49,13 +50,14 @@ export interface DeepScanResult {
 export async function performDeepScan(
   repoUrl: string, 
   token?: string,
-  options?: ActivityCheckOptions
+  options?: ActivityCheckOptions,
+  tier: UserTier = 'free'
 ): Promise<DeepScanResult> {
   // 1. Fetch Grounded Context (Identity + Monitored Streams)
   const githubContext = await fetchDeepGithubContext(repoUrl, token, options);
 
   // 2. Synthesize Grounded Context using AI
-  const synthesizedContext = await synthesizeDeepContext(githubContext);
+  const synthesizedContext = await synthesizeDeepContext(githubContext, tier);
 
   return {
     githubContext,

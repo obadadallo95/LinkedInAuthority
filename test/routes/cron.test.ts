@@ -18,6 +18,10 @@ vi.mock('../../server/services/deepIntelligence/deepPostGenerator', () => ({
   generateDeepPost: (...args: any[]) => mockGenerateDeepPost(...args)
 }));
 
+vi.mock('../../server/services/entitlements', () => ({
+  getUserTier: vi.fn().mockResolvedValue('free')
+}));
+
 // Mock Firestore Admin
 const mockDraftsAdd = vi.fn().mockResolvedValue({ id: 'new-draft-123' });
 const mockProjectUpdate = vi.fn().mockResolvedValue({});
@@ -177,6 +181,17 @@ describe('Scheduled Automation Subsystem Tests', () => {
     expect(res.body.error).toBe('Unauthorized cron request');
   });
 
+  it('rejects cron requests when the secret is not configured', async () => {
+    delete process.env.CRON_SECRET;
+
+    const res = await request(app)
+      .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Cron service is not configured');
+  });
+
   it('2. no new enabled-source activity => zero AI calls', async () => {
     mockCheckRepositoryActivityDelta.mockResolvedValueOnce({
       hasNewActivity: false,
@@ -295,7 +310,8 @@ describe('Scheduled Automation Subsystem Tests', () => {
       expect.anything(),
       'https://github.com/testowner/testrepo',
       'en',
-      expect.anything()
+      expect.anything(),
+      'free'
     );
   });
 
@@ -320,7 +336,8 @@ describe('Scheduled Automation Subsystem Tests', () => {
       expect.anything(),
       'https://github.com/testowner/testrepo',
       'ar',
-      expect.anything()
+      expect.anything(),
+      'free'
     );
   });
 
@@ -350,7 +367,8 @@ describe('Scheduled Automation Subsystem Tests', () => {
       expect.objectContaining({
         intent: 'technical_deep_dive',
         targetAudience: 'recruiters'
-      })
+      }),
+      'free'
     );
   });
 
@@ -520,7 +538,8 @@ describe('Scheduled Automation Subsystem Tests', () => {
           name: 'KeyFixer',
           description: 'A desktop keyboard layout auto-fixer and language switcher tool'
         })
-      })
+      }),
+      'free'
     );
   });
 });

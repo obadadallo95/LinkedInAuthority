@@ -27,17 +27,17 @@ export const LoginScreen = ({
     : "AI Professional Presence Automation from GitHub Codebases.";
 
   const description = isAr
-    ? "حوّل أكوادك البرمجية ومستودعاتك على GitHub إلى منشورات احترافية، ومقالات تقنية عميقة، وبطاقات بصرية جاهزة للمشاركة المباشرة على LinkedIn بلمسة زر."
+    ? "حوّل مستودعات GitHub إلى مسودات تقنية قابلة للتحرير للمراجعة والنسخ اليدوي."
     : isDe
-    ? "Verwandeln Sie Ihre Repositories in erstklassige technische Beiträge, detaillierte Architektur-Berichte und visuelle Grafiken, die sofort auf LinkedIn geteilt werden können."
-    : "Convert your GitHub repositories into high-engagement articles, technical deep dives, and visual social graphic banners ready to broadcast directly to LinkedIn.";
+    ? "Verwandeln Sie Ihre Repositories in bearbeitbare technische Entwürfe zur manuellen Prüfung und zum Kopieren."
+    : "Convert your GitHub repositories into editable technical drafts for review and manual copying.";
 
   const securityLabel = isAr ? "تأمين وحماية الحساب" : isDe ? "Sicherheit & Identität" : "Security & Identity";
   const securityDesc = isAr
-    ? "نظام المصادقة الآمن عبر LinkedIn و GitHub يربط هويتك البرمجية بأمان ويحفظ إعدادات قنوات البث الخاصة بك."
+    ? "المصادقة الحالية متاحة عبر Google وGitHub، مع حفظ إعدادات المستخدم ضمن مساحته."
     : isDe
-    ? "Unser sicheres Anmeldesystem über LinkedIn und GitHub schützt Ihre Entwickler-Identität und speichert Ihre Kanaleinstellungen."
-    : "Our secure login via LinkedIn and GitHub protects your developer identity and safely persists your broadcasting channels.";
+    ? "Die aktuelle Anmeldung erfolgt über Google und GitHub; Benutzereinstellungen werden im eigenen Bereich gespeichert."
+    : "Current sign-in uses Google and GitHub; user settings are stored in the user-scoped account area.";
 
   const googleBtnLabel = isAr ? "متابعة باستخدام Google" : isDe ? "Mit Google anmelden" : "Continue with Google";
   const githubBtnLabel = isAr ? "متابعة باستخدام GitHub" : isDe ? "Mit GitHub anmelden" : "Continue with GitHub";

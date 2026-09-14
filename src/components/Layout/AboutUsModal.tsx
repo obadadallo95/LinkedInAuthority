@@ -22,8 +22,8 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
       features: [
         { icon: Cpu, title: "تحليل ذكي معماري", desc: "يفهم التقنيات، هيكل المشروع، والهدف البرمجي دون حفظ الشفرة المصدرية." },
         { icon: Globe, title: "تفوق لغوي متعدد", desc: "يكتب بطلاقة باللغات الإنجليزية، العربية، والألمانية مع الحفاظ على النبرة الاحترافية." },
-        { icon: Rocket, title: "نشر مباشر وسلس", desc: "جدولة ذكية ونشر مباشر على LinkedIn باستخدام API رسمي وآمن 100%." },
-        { icon: ShieldCheck, title: "أمان بمستوى الحصون", desc: "لا نخزن الكود، تشفير AES-256، وامتثال كامل لقوانين GDPR." }
+        { icon: Rocket, title: "مسودات تقنية قابلة للتحرير", desc: "ينشئ مسودات تقنية للمراجعة والنسخ اليدوي؛ النشر المباشر والجدولة غير مطبقين في النسخة التجريبية." },
+        { icon: ShieldCheck, title: "حدود الأمان في النسخة التجريبية", desc: "تبقى أسرار Gemini على الخادم، بينما تبقى رموز GitHub ضمن إعدادات المستخدم لدعم التدفق الحالي." }
       ],
       developer: {
         title: "مهندس ومنشئ منتجات ذكاء اصطناعي (AI-First Product Builder)",
@@ -42,8 +42,8 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
       features: [
         { icon: Cpu, title: "Architectural AI Analysis", desc: "Understands your stack and project goals without ever storing your source code." },
         { icon: Globe, title: "Multilingual Mastery", desc: "Writes flawlessly in English, Arabic, and German while maintaining professional tone." },
-        { icon: Rocket, title: "Seamless Broadcasting", desc: "Smart scheduling and direct publishing to LinkedIn using 100% secure official APIs." },
-        { icon: ShieldCheck, title: "Fort-Knox Security", desc: "Zero code storage, AES-256 encryption, and complete GDPR compliance." }
+        { icon: Rocket, title: "Editable Technical Drafts", desc: "Generates technical drafts for manual review and copying; direct publishing and scheduling are not implemented in the beta." },
+        { icon: ShieldCheck, title: "Beta Security Boundary", desc: "Gemini secrets stay server-side; GitHub integration tokens remain in user settings for the current client flow." }
       ],
       developer: {
         title: "AI-First Product Builder & Architect",
@@ -62,8 +62,8 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
       features: [
         { icon: Cpu, title: "Architektonische KI-Analyse", desc: "Versteht Ihren Stack und Ihre Projektziele, ohne jemals Ihren Quellcode zu speichern." },
         { icon: Globe, title: "Mehrsprachige Meisterschaft", desc: "Schreibt fehlerfrei in Englisch, Arabisch und Deutsch bei Wahrung des professionellen Tons." },
-        { icon: Rocket, title: "Nahtloses Broadcasting", desc: "Intelligente Planung und direkte Veröffentlichung auf LinkedIn über sichere APIs." },
-        { icon: ShieldCheck, title: "Fort-Knox-Sicherheit", desc: "Keine Codespeicherung, AES-256-Verschlüsselung und vollständige DSGVO-Konformität." }
+        { icon: Rocket, title: "Bearbeitbare technische Entwürfe", desc: "Erstellt technische Entwürfe zur manuellen Prüfung und zum Kopieren; direktes Posting und Planung sind in der Beta nicht implementiert." },
+        { icon: ShieldCheck, title: "Sicherheitsgrenze der Beta", desc: "Gemini-Schlüssel bleiben auf dem Server; GitHub-Integrationstoken bleiben für den aktuellen Client-Ablauf in den Benutzereinstellungen." }
       ],
       developer: {
         title: "KI-First Product Builder & Architekt",

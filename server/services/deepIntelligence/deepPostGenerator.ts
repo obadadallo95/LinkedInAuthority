@@ -2,6 +2,7 @@ import { getGeminiClient, callGeminiWithRetry } from '../repositoryIntelligence/
 import { SynthesizedContext, ProductProfile } from './synthesizer';
 import { getGenerateLanguageInstruction } from '../repositoryIntelligence/prompts';
 import { VerifiedLink, VerifiedLinkType } from './linkExtractor';
+import { UserTier } from '../entitlements';
 
 export interface DeepGeneratedPost {
   post: string;
@@ -180,9 +181,10 @@ export async function generateDeepPost(
   synthesizedContext: SynthesizedContext,
   repoUrl: string,
   lang: string,
-  options?: DeepPostOptions
+  options?: DeepPostOptions,
+  tier: UserTier = 'free'
 ): Promise<DeepGeneratedPost> {
-  const client = getGeminiClient('pro');
+  const client = getGeminiClient(tier);
   if (!client) {
     throw new Error("Gemini API client is not configured.");
   }
@@ -280,4 +282,3 @@ ${langInstruction}`;
     throw new Error("Failed to generate deep post: " + error.message);
   }
 }
-

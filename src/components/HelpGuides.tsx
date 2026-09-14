@@ -53,8 +53,8 @@ export const HelpGuides = ({ lang }: any) => {
           </div>
           <p className="text-[10.5px] text-slate-400 leading-relaxed flex-1">
             {isAr 
-              ? 'قم بإنشاء تطبيق في بوابة مطوري لينكدإن واحصل على رمز وصول (Access Token) للنشر نيابة عنك.' 
-              : 'Create an app in the LinkedIn Developer Portal and generate an access token to publish content.'}
+              ? 'النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. هذا الدليل محفوظ لإصدار مستقبلي.'
+              : 'LinkedIn publishing is not implemented in the current beta. This integration guide is reserved for a future release.'}
           </p>
           <a 
             href="https://developer.linkedin.com" 

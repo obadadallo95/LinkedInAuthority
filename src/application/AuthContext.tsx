@@ -60,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const settingsRef = doc(db, "users", result.user.uid, "settings", "current");
           await setDoc(settingsRef, {
               githubUsername: userData.login,
-              githubToken: token,
               githubProfile: {
                   login: userData.login,
                   avatar_url: userData.avatar_url,

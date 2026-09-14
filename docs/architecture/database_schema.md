@@ -1,86 +1,47 @@
-# Database Schema & Persistence Guide
+# Persistence and Firestore Rules
 
-This document describes the durable cloud persistence layer designed for **LinkedIn Authority [PRO]** using **Google Cloud Firestore**.
+The current beta uses Firebase Authentication for identity and Firestore for user-scoped persistence. This document describes the collections used by the live code, not a future billing or publishing schema.
 
----
-
-## 1. Multi-Tenant Architecture
-
-The system utilizes Firebase Authentication to identify users. All user data is isolated at the sub-collection level under a parent `users` collection. This secures multi-tenant data isolation and ensures strict compliance with user data privacy standards.
-
----
-
-## 2. Document Models & Fields
-
-Firestore structures are schema-less by nature, but this application enforces the following logical structures:
+## Current layout
 
 ```text
 /users/{uid}
-    |
-    +--- /settings/current  (Global integrations, GitHub, and Premium states)
-    |
-    +--- /posts/{postId}    (Saved LinkedIn drafts, scheduled posts, and card configurations)
+    /settings/current       authentication-linked settings and beta integration fields
+    /projects/{projectId}   repository and monitoring configuration
+    /drafts/{draftId}      generated draft content and metadata
+    /posts/{postId}        client-managed post records used by legacy/dashboard flows
+    /aiUsage/{usageId}     best-effort server-side AI usage telemetry
+/rate_limits/{key_type}   server-side rate-limit state
 ```
 
-### Collection: `users/{uid}/settings`
-Contains the user's API integrations, tokens, and billing preferences.
+## Important fields
 
-#### Document: `current`
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `githubUsername` | `string` | The connected GitHub profile handle. |
-| `githubToken` | `string` | Encrypted/Masked token for GitHub API communication. |
-| `linkedinToken` | `string` | Encrypted/Masked token for LinkedIn API communications. |
-| `githubProfile` | `object` | Cached user metadata from GitHub (e.g. avatar, public repos count). |
-| `linkedinProfile` | `object` | Cached user profile metadata (name, headline, avatar). |
-| `isPaidSubscription` | `boolean` | Flag indicating whether the account has unlocked Pro features. |
+### `users/{uid}/settings/current`
 
----
+- `githubUsername`: connected GitHub profile handle.
+- `githubToken`: current beta limitation; stored for the existing authenticated client/API flow and not a dedicated server-side token vault.
+- `linkedinToken`: legacy field. LinkedIn publishing is not implemented and the current settings flow clears this value.
+- `githubProfile` / `linkedinProfile`: cached profile metadata.
+- `plan`, `role`, `isFounder`, `isPaidSubscription`: server-managed entitlement fields. Ordinary clients cannot create or modify these fields under `firestore.rules`.
 
-### Collection: `users/{uid}/posts`
-Tracks all generated posts, scheduling queues, and analytical simulations.
+### `users/{uid}/projects/{projectId}`
 
-#### Document: `{postId}`
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `string` | Unique identifier for the document. |
-| `repoName` | `string` | Name of the source GitHub repository. |
-| `text` | `string` | The generated markdown content for LinkedIn. |
-| `status` | `string` | `"draft" \| "scheduled" \| "published"` |
-| `scheduledDate` | `string` | Target date string for published queues (e.g., `"2026-07-20"`). |
-| `scheduledTime` | `string` | Target time string for queues (e.g., `"14:30"`). |
-| `createdAt` | `string` | ISO timestamp of generation. |
-| `tags` | `array<string>`| Selected high-relevance hashtags. |
-| `cardConfig` | `object` | Visual parameters for social banner image generation: |
-| `cardConfig.title` | `string` | Large display header on the generated graphic. |
-| `cardConfig.subtitle` | `string` | Secondary descriptive text. |
-| `cardConfig.metrics` | `string` | Key performance indicators (e.g. `"99.2% Performance"`). |
-| `cardConfig.colorTheme` | `string` | Style identifier (`"indigo" \| "emerald" \| "amber" \| "rose" \| "slate"`). |
+Stores repository identity, monitoring configuration, activity checkpoints, and the best-effort processing lease used by the automation route.
 
----
+### `users/{uid}/drafts/{draftId}`
 
-## 3. Firestore Security Rules (`firestore.rules`)
+Stores generated content, title, status, source project, automation metadata, and timestamps. Automated monitoring writes here after successful draft generation.
 
-To prevent unauthorized access, Firestore database calls are protected by rules that restrict reading or writing to documents that do not belong to the currently authenticated user.
+### `users/{uid}/posts/{postId}`
 
-### Production Rules Definition:
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Restrict access so users can only view or modify their own sub-collections
-    match /users/{userId}/{allSubCollections=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+Stores client-managed post records and status/card fields used by existing dashboard flows. It is separate from the server-written `drafts` collection and remains an area for future consolidation.
 
----
+## Rules model
 
-## 4. Local-First Isolation (Demo Mode)
+The rules default to deny and allow authenticated users to access only their own user document tree. Settings writes validate selected field types and prevent ordinary clients from changing entitlement fields. Firebase Admin operations used by the server bypass client Firestore rules.
 
-For users who prefer to preview the system without a Cloud Connection or Firebase authentication, the application implements a local fallback state machine:
-- Users can toggle **Demo Mode** in Settings.
-- Repositories are populated with realistic developer profiles using cached fallback static mocks (`githubService.ts`).
-- Posts are saved to `localStorage` utilizing standard state syncs to maintain high performance in offline or low-bandwidth conditions.
+The current rules do not provide a server-side token vault: a user can read their own settings document, including the legacy GitHub token field. This is documented beta limitation and requires a larger token-storage redesign.
+
+## Retention and deletion
+
+The application does not yet provide a verified, complete deletion or retention workflow across every collection. Do not treat the current delete action as proof of complete erasure or regulatory compliance.

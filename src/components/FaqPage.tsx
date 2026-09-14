@@ -20,8 +20,8 @@ const faqs = {
       category: "النشر على LinkedIn",
       icon: Send,
       questions: [
-        { q: "كيف يتم النشر على حسابي؟", a: "نستخدم منصة LinkedIn API الرسمية. لا نحتفظ ببيانات تسجيل الدخول الخاصة بك، بل نستخدم رموز وصول آمنة (OAuth)." },
-        { q: "هل يمكنني جدولة المنشورات؟", a: "نعم، يمكنك اختيار وقت محدد في المستقبل وسيقوم النظام بنشره تلقائياً." }
+        { q: "كيف يتم النشر على حسابي؟", a: "النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. يتم حفظ المحتوى كمسودة للمراجعة والنسخ اليدوي." },
+        { q: "هل يمكنني جدولة المنشورات؟", a: "الجدولة التلقائية على LinkedIn غير مطبقة في النسخة التجريبية الحالية." }
       ]
     },
     {
@@ -43,19 +43,19 @@ const faqs = {
       ]
     },
     {
-      category: "LinkedIn Publishing",
+      category: "LinkedIn Publishing (planned)",
       icon: Send,
       questions: [
-        { q: "How does posting to my account work?", a: "We use the official LinkedIn API. We don't keep your login credentials; we use secure OAuth access tokens." },
-        { q: "Can I schedule posts?", a: "Yes, you can choose a future time and the system will publish it automatically." }
+        { q: "How does posting to my account work?", a: "LinkedIn publishing is not implemented in the current beta. Generated content is saved as a draft for manual review and copying." },
+        { q: "Can I schedule posts?", a: "Automatic LinkedIn scheduling is not implemented in the current beta." }
       ]
     },
     {
       category: "Privacy & Security",
       icon: Shield,
       questions: [
-        { q: "Can I delete my data?", a: "Yes, you can permanently erase all your data, posts, and account links via the 'Delete Account' option in Settings." },
-        { q: "Is my data encrypted?", a: "Yes, all communication with the database is encrypted using industry standards." }
+        { q: "Can I delete my data?", a: "The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure." },
+        { q: "Is my data encrypted?", a: "Transport and platform-level storage protections are provided by Firebase, but this beta does not implement a dedicated application-level token vault." }
       ]
     }
   ],
@@ -72,8 +72,8 @@ const faqs = {
       category: "LinkedIn Veröffentlichung",
       icon: Send,
       questions: [
-        { q: "Wie funktioniert das Posten auf meinem Konto?", a: "Wir verwenden die offizielle LinkedIn-API. Wir behalten Ihre Anmeldedaten nicht; wir verwenden sichere OAuth-Zugangstoken." },
-        { q: "Kann ich Beiträge planen?", a: "Ja, Sie können eine zukünftige Zeit wählen und das System wird sie automatisch veröffentlichen." }
+        { q: "Wie funktioniert das Posten auf meinem Konto?", a: "Direktes LinkedIn-Posting ist in der aktuellen Beta nicht implementiert. Inhalte werden zur manuellen Prüfung und zum Kopieren als Entwurf gespeichert." },
+        { q: "Kann ich Beiträge planen?", a: "Automatische LinkedIn-Planung ist in der aktuellen Beta nicht implementiert." }
       ]
     },
     {
@@ -81,7 +81,7 @@ const faqs = {
       icon: Shield,
       questions: [
         { q: "Kann ich meine Daten löschen?", a: "Ja, Sie können alle Ihre Daten, Beiträge und Kontoverknüpfungen dauerhaft über die Option 'Konto löschen' in den Einstellungen löschen." },
-        { q: "Sind meine Daten verschlüsselt?", a: "Ja, die gesamte Kommunikation mit der Datenbank ist nach Industriestandards verschlüsselt." }
+        { q: "Sind meine Daten verschlüsselt?", a: "Firebase bietet Schutz für Übertragung und Speicherung auf Plattformebene; diese Beta enthält jedoch keine eigene Token-Vault für Anwendungsschlüssel." }
       ]
     }
   ]

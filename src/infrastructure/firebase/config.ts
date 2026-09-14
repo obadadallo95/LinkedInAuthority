@@ -22,6 +22,7 @@ const db = getFirestore(app, configData.firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
-githubProvider.addScope("repo");
+// Public repository analysis does not require GitHub's broad full-repository
+// scope. Private-repository support remains a documented beta limitation.
 
 export { app, auth, db, googleProvider, githubProvider };

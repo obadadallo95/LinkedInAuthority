@@ -1,8 +1,17 @@
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAdminFirestore } from '../server/services/firestoreAdmin';
 
+const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+const targetUid = process.argv[2]?.trim();
+const targetPlan = process.argv[3] as 'free' | 'pro' | undefined;
+const isFounderArg = process.argv[4];
+
+if (!projectId || !targetUid || !targetPlan || !['free', 'pro'].includes(targetPlan)) {
+  throw new Error('Usage: FIREBASE_PROJECT_ID=... tsx scripts/setUserEntitlement.ts <user-id> <free|pro> [true|false]');
+}
+
 if (getApps().length === 0) {
-  initializeApp({ projectId: 'linkedin-content-generat-71303' });
+  initializeApp({ projectId });
 }
 
 export async function setUserEntitlement(userId: string, entitlement: {
@@ -19,9 +28,7 @@ export async function setUserEntitlement(userId: string, entitlement: {
 }
 
 // Run if called directly
-const targetUid = process.argv[2] || 'oeKiP9rkLOXf3Ub9M0gBSAEvfHO2';
-const targetPlan = (process.argv[3] || 'pro') as 'free' | 'pro';
-const isFounder = process.argv[4] !== 'false';
+const isFounder = isFounderArg !== 'false';
 
 setUserEntitlement(targetUid, {
   plan: targetPlan,

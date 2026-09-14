@@ -132,20 +132,20 @@ export const SchemaTemplates = {
   getFAQSchema: (lang: 'ar' | 'en' | 'de' = 'en') => {
     const arQuestions = [
       { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "لا، نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط لتوليد مسودات المنشورات المهنية." },
-      { q: "هل يمكنني حذف بياناتي؟", a: "نعم، يمكنك مسح كافة بياناتك ومنشوراتك وارتباطات حسابك بشكل نهائي من خلال خيار 'حذف الحساب' في صفحة الإعدادات، استجابةً للائحة العامة لحماية البيانات (GDPR)." },
-      { q: "كيف يتم النشر على حسابي في LinkedIn؟", a: "نستخدم منصة LinkedIn API الرسمية باستخدام رموز وصول آمنة (OAuth) ولا نحتفظ ببيانات تسجيل الدخول الخاصة بك مطلقاً." }
+      { q: "هل يمكنني حذف بياناتي؟", a: "ميزة الحذف الحالية في النسخة التجريبية لا تضمن بعد إزالة البيانات من كل المجموعات. راجع التنفيذ قبل الاعتماد عليها كمحو كامل." },
+      { q: "كيف يتم النشر على حسابي في LinkedIn؟", a: "النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. يتم حفظ المحتوى كمسودة للمراجعة والنسخ اليدوي." }
     ];
 
     const deQuestions = [
       { q: "Speichern Sie meinen Code?", a: "Nein, wir speichern keinen Quellcode auf unseren Servern. Die Verarbeitung erfolgt rein flüchtig im RAM zur Inhaltserstellung." },
-      { q: "Kann ich meine Daten löschen?", a: "Ja, Sie können alle Ihre Daten, Beiträge und Kontoverknüpfungen dauerhaft über die Option 'Konto löschen' in den Einstellungen löschen (DSGVO-konform)." },
-      { q: "Wie funktioniert das Posten auf LinkedIn?", a: "Wir nutzen die offizielle LinkedIn-API über sichere OAuth-Verbindungen. Ihre persönlichen Anmeldedaten werden niemals gespeichert." }
+      { q: "Kann ich meine Daten löschen?", a: "Die Löschfunktion der aktuellen Beta garantiert noch nicht die Entfernung aus jeder Sammlung. Prüfen Sie die Implementierung vor einer vollständigen Löschung." },
+      { q: "Wie funktioniert das Posten auf LinkedIn?", a: "Direktes LinkedIn-Posting ist in der aktuellen Beta nicht implementiert. Inhalte werden zur manuellen Prüfung und zum Kopieren als Entwurf gespeichert." }
     ];
 
     const enQuestions = [
       { q: "Do you store my code?", a: "No, we do not store any source code on our servers. Processing is strictly transient and runs inside ephemeral memory enclaves." },
-      { q: "Can I delete my data?", a: "Yes, you can permanently erase all your data, posts, and connected API tokens via the 'Delete Account' option in Settings (fully GDPR compliant)." },
-      { q: "How does LinkedIn publishing work?", a: "We use the official LinkedIn API through secure OAuth credentials. Your actual account passwords are never accessed or stored." }
+      { q: "Can I delete my data?", a: "The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure." },
+      { q: "How does LinkedIn publishing work?", a: "Direct LinkedIn publishing is not implemented in the current beta. Generated content is saved as a draft for manual review and copying." }
     ];
 
     const selectedList = lang === 'ar' ? arQuestions : lang === 'de' ? deQuestions : enQuestions;

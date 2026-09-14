@@ -1,5 +1,7 @@
 # Systems Architecture & Design Patterns
 
+> **Current-status note:** This document contains some historical design detail. The current source of truth is the root README and the live route/service code. LinkedIn publishing, LinkedIn OIDC, and a zero-client-leakage token architecture are not implemented in this beta.
+
 This document details the high-level system architecture, client-side module decomposition, and full-stack orchestration patterns governing **LinkedIn Authority [PRO]**.
 
 ---
@@ -22,8 +24,8 @@ The platform is designed as a **Full-Stack Single-Page Application (SPA)** utili
 |                                                                                                              |
 |   +--------------------------+    +--------------------------------------+    +--------------------------+   |
 |   |   Static Assets Engine   |    |         Secure API Router            |    |  LLM Inference Pipeline  |   |
-|   |  (React SPA Static File  |    |  (GitHub Repository Proxies, Auth    |    |  (Google GenAI SDK via   |   |
-|   |   Serving & Fallbacks)   |    |   Masking, LinkedIn OIDC Handshake)  |    |     gemini-3.5-flash)    |   |
+|   |  (React SPA Static File  |    |  (GitHub Repository Proxies,       |    |  (Google GenAI SDK via   |   |
+|   |   Serving & Fallbacks)   |    |   Firebase Auth)                   |    |   configured model       |   |
 |   +--------------------------+    +--------------------------------------+    +--------------------------+   |
 +--------------------------------------------------------------------------------------------------------------+
                                                          |
@@ -38,7 +40,7 @@ The platform is designed as a **Full-Stack Single-Page Application (SPA)** utili
 
 ## 2. Server-Side Architecture (`server.ts`)
 
-To adhere strictly to corporate security principles, the application enforces a **Zero Client Leakage** architecture. Clients never directly interface with third-party keys or direct SDKs if secrets are involved.
+The current beta keeps Gemini secrets server-side. GitHub integration tokens remain in the user-scoped settings/client flow as a documented limitation.
 
 ### Key Components:
 - **Port Orchestration**: Listens strictly on port `3000` and binds to host `0.0.0.0` for universal container ingress.

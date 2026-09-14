@@ -24,8 +24,8 @@ export const faqsData = {
       category: "النشر والجدولة",
       icon: Send,
       questions: [
-        { q: "كيف يتم النشر على حساب LinkedIn الخاص بي؟", a: "نستخدم منصة LinkedIn API الرسمية. بمجرد ربط حسابك، نرسل المحتوى مباشرة إلى ملفك الشخصي كمنشور نصي، ولا نحتفظ ببيانات تسجيل الدخول الخاصة بك بل نستخدم رموز وصول آمنة (OAuth)." },
-        { q: "هل يمكنني جدولة المنشورات للأوقات المزدحمة؟", a: "نعم، النظام يوفر ميزة الجدولة الذكية. يمكنك اختيار وقت محدد في المستقبل، وسيقوم المحرك بالنشر تلقائياً بالنيابة عنك دون تدخل منك." },
+        { q: "كيف يتم النشر على حساب LinkedIn الخاص بي؟", a: "النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. يتم حفظ المحتوى كمسودة للمراجعة والنسخ اليدوي." },
+        { q: "هل يمكنني جدولة المنشورات للأوقات المزدحمة؟", a: "الجدولة التلقائية على LinkedIn غير مطبقة في النسخة التجريبية الحالية." },
         { q: "هل تدعم الأداة النشر بملفات الميديا أو الصور؟", a: "النسخة الحالية تركز على صناعة النصوص التقنية العميقة التي تتفوق في خوارزميات LinkedIn. النشر المتعدد الوسائط قيد التطوير وسيصدر قريباً." },
         { q: "ماذا لو لم يعجبني المنشور المولد؟", a: "الأداة توفر لك ميزة 'المسودات'. يمكنك تعديل أي كلمة، إعادة التوليد، أو إضافة لمساتك الخاصة قبل الضغط على زر النشر النهائي." }
       ]
@@ -35,9 +35,9 @@ export const faqsData = {
       icon: Lock,
       questions: [
         { q: "هل تقومون بتخزين الكود المصدري (Source Code) الخاص بي؟", a: "قطعاً لا. نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط لاستخراج البيانات الوصفية وبناء المحتوى، ثم يتم التخلص منها." },
-        { q: "هل بياناتي مشفرة؟", a: "نعم، كافة بيانات الاتصال والتخزين في قاعدة البيانات مشفرة بالكامل باستخدام معايير التشفير العسكرية (AES-256) المتوافقة مع معايير الصناعة." },
-        { q: "كيف تحمون حساب LinkedIn الخاص بي من الحظر؟", a: "نحن نستخدم الـ API الرسمي والموثق من LinkedIn، ونلتزم بحدود النشر (Rate limits) لضمان أن حسابك آمن 100% ولا يتعرض لأي عقوبات." },
-        { q: "هل يمكنني حذف بياناتي وارتباطاتي نهائياً؟", a: "نعم، وفقاً لمعايير اللائحة العامة لحماية البيانات (GDPR)، توفر لك المنصة زراً واحداً لـ 'حذف الحساب' يمسح جميع منشوراتك، ارتباطاتك بـ GitHub و LinkedIn، وكل ما يتعلق بك من خوادمنا بشكل نهائي ولا رجعة فيه." }
+        { q: "هل بياناتي مشفرة؟", a: "يوفر Firebase حماية النقل والتخزين على مستوى المنصة، لكن النسخة التجريبية لا تطبق خزنة رموز مخصصة على مستوى التطبيق." },
+        { q: "كيف تحمون حساب LinkedIn الخاص بي من الحظر؟", a: "النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية، لذلك لا توجد أتمتة نشر أو حدود API ندّعي إدارتها." },
+        { q: "هل يمكنني حذف بياناتي وارتباطاتي نهائياً؟", a: "ميزة الحذف الحالية في النسخة التجريبية لا تضمن بعد إزالة البيانات من كل المجموعات. راجع التنفيذ قبل الاعتماد عليها كمحو كامل." }
       ]
     },
     {
@@ -46,7 +46,7 @@ export const faqsData = {
       questions: [
         { q: "هل توفر الأداة قوالب (Templates) جاهزة؟", a: "نعم، المنصة تحتوي على مكتبة قوالب متقدمة يمكنك من خلالها حفظ أسلوب معين للنشر (مثل 'إطلاق ميزة جديدة' أو 'مشاركة تحديث تقني') وإعادة استخدامه بنقرة واحدة لاحقاً." },
         { q: "هل تدعم الأداة اللغات المتعددة للمنشورات؟", a: "نعم! يمكنك من خلال الإعدادات طلب توليد المنشور باللغة العربية، الإنجليزية، أو الألمانية، بغض النظر عن لغة الكود المصدري أو ملف الـ README." },
-        { q: "كيف تفيد الأداة في تحسين محركات البحث الشخصية (SEO) الخاصة بي؟", a: "النشر المستمر لمحتوى تقني غني بالكلمات المفتاحية الصحيحة (والذي نولده لك) يجعل حسابك على LinkedIn يظهر في نتائج البحث الأولى للشركات والمستقطبين (Recruiters) الذين يبحثون عن خبراتك." }
+        { q: "كيف تفيد الأداة في تحسين محركات البحث الشخصية (SEO) الخاصة بي؟", a: "تساعدك المسودات التقنية الغنية بالكلمات المفتاحية على إعداد محتوى يمكنك مراجعته ونشره يدوياً على LinkedIn؛ لا نقدم تحليلات رسمية من LinkedIn." }
       ]
     },
     {
@@ -79,11 +79,11 @@ export const faqsData = {
       ]
     },
     {
-      category: "Publishing & Scheduling",
+      category: "Publishing & Scheduling (planned)",
       icon: Send,
       questions: [
-        { q: "How is content published to my LinkedIn?", a: "We utilize the official LinkedIn API. Once connected, we send the content securely to your profile. We do not store passwords; we use secure OAuth tokens." },
-        { q: "Can I schedule posts for busy times?", a: "Yes, the system offers smart scheduling. You can pick a specific future date and time, and the engine will publish it for you automatically." },
+        { q: "How is content published to my LinkedIn?", a: "LinkedIn publishing is not implemented in the current beta. Generated content is saved as a draft for manual review and copying." },
+        { q: "Can I schedule posts for busy times?", a: "Automatic LinkedIn scheduling is not implemented in the current beta." },
         { q: "Does the tool support media or images?", a: "The current version excels at creating deep, text-based technical narratives which perform incredibly well in LinkedIn's algorithm. Media support is coming soon." },
         { q: "What if I don't like the generated post?", a: "You have a full 'Drafts' manager. You can edit any word, regenerate completely, or add personal touches before hitting publish." }
       ]
@@ -93,9 +93,9 @@ export const faqsData = {
       icon: Lock,
       questions: [
         { q: "Do you store my source code?", a: "Absolutely not. Code is processed in real-time strictly to extract metadata and generate the narrative, then it is immediately discarded." },
-        { q: "Is my data encrypted?", a: "Yes, all data in transit and at rest is encrypted using industry-standard military-grade (AES-256) encryption." },
-        { q: "How do you protect my LinkedIn account?", a: "We strictly adhere to LinkedIn's official API guidelines and rate limits, ensuring your account remains 100% safe and compliant." },
-        { q: "Can I permanently delete my data?", a: "Yes, in full GDPR compliance, we provide a 1-click 'Delete Account' button that irrevocably wipes your posts, GitHub/LinkedIn connections, and all associated data from our servers." }
+        { q: "Is my data encrypted?", a: "Transport and platform-level storage protections are provided by Firebase, but this beta does not implement a dedicated application-level token vault." },
+        { q: "How do you protect my LinkedIn account?", a: "Direct LinkedIn publishing is not implemented in the current beta, so the app does not claim to manage LinkedIn API limits or publishing safety." },
+        { q: "Can I permanently delete my data?", a: "The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure." }
       ]
     },
     {
@@ -104,7 +104,7 @@ export const faqsData = {
       questions: [
         { q: "Does the tool provide templates?", a: "Yes, we feature an advanced templates library. You can save a specific posting style (e.g., 'New Feature Launch') and reuse it with one click." },
         { q: "Are multi-language posts supported?", a: "Yes! Regardless of your source code language, you can command the engine to write the post in English, Arabic, or German." },
-        { q: "How does this improve my personal SEO?", a: "Consistently publishing keyword-rich technical content (which we automate for you) makes your profile rank significantly higher when recruiters and companies search for your specific skills." }
+        { q: "How does this improve my personal SEO?", a: "Keyword-rich technical drafts can help you prepare content to review and publish manually on LinkedIn; the app does not provide official LinkedIn analytics." }
       ]
     },
     {
@@ -140,8 +140,8 @@ export const faqsData = {
       category: "Veröffentlichung & Planung",
       icon: Send,
       questions: [
-        { q: "Wie werden Inhalte auf meinem LinkedIn veröffentlicht?", a: "Wir nutzen die offizielle LinkedIn-API. Wir speichern keine Passwörter, sondern verwenden sichere OAuth-Token." },
-        { q: "Kann ich Beiträge planen?", a: "Ja, das System bietet intelligente Planung. Sie können ein bestimmtes Datum und eine Uhrzeit auswählen, und die Engine veröffentlicht es automatisch für Sie." },
+        { q: "Wie werden Inhalte auf meinem LinkedIn veröffentlicht?", a: "Direktes LinkedIn-Posting ist in der aktuellen Beta nicht implementiert. Inhalte werden zur manuellen Prüfung und zum Kopieren als Entwurf gespeichert." },
+        { q: "Kann ich Beiträge planen?", a: "Automatische LinkedIn-Planung ist in der aktuellen Beta nicht implementiert." },
         { q: "Unterstützt das Tool Medien oder Bilder?", a: "Die aktuelle Version zeichnet sich durch die Erstellung tiefer, textbasierter technischer Erzählungen aus, die im LinkedIn-Algorithmus hervorragend abschneiden. Medienunterstützung kommt bald." },
         { q: "Was ist, wenn mir der generierte Beitrag nicht gefällt?", a: "Sie haben einen vollständigen Entwurfsmanager. Sie können jedes Wort bearbeiten, vollständig neu generieren oder persönliche Note hinzufügen, bevor Sie auf Veröffentlichen klicken." }
       ]
@@ -151,9 +151,9 @@ export const faqsData = {
       icon: Lock,
       questions: [
         { q: "Speichern Sie meinen Quellcode?", a: "Absolut nicht. Der Code wird streng in Echtzeit verarbeitet, nur um Metadaten zu extrahieren, und dann sofort verworfen." },
-        { q: "Sind meine Daten verschlüsselt?", a: "Ja, alle Daten werden während der Übertragung und im Ruhezustand mit branchenüblicher AES-256-Verschlüsselung nach Militärstandard verschlüsselt." },
-        { q: "Wie schützen Sie mein LinkedIn-Konto?", a: "Wir halten uns strikt an die offiziellen API-Richtlinien und Ratenbegrenzungen von LinkedIn, um sicherzustellen, dass Ihr Konto zu 100% sicher und konform bleibt." },
-        { q: "Kann ich meine Daten dauerhaft löschen?", a: "Ja, in voller Übereinstimmung mit der DSGVO bieten wir eine 1-Klick-Schaltfläche zum Löschen des Kontos, mit der alle Ihre Beiträge und verknüpften Daten dauerhaft von unseren Servern gelöscht werden." }
+        { q: "Sind meine Daten verschlüsselt?", a: "Firebase bietet Schutz für Übertragung und Speicherung auf Plattformebene; diese Beta enthält jedoch keine eigene Token-Vault für Anwendungsschlüssel." },
+        { q: "Wie schützen Sie mein LinkedIn-Konto?", a: "Direktes Veröffentlichen auf LinkedIn ist in der aktuellen Beta nicht implementiert; die App beansprucht daher keine Verwaltung von LinkedIn-API-Limits oder Veröffentlichungssicherheit." },
+        { q: "Kann ich meine Daten dauerhaft löschen?", a: "Die Löschfunktion der aktuellen Beta garantiert noch nicht die Entfernung aus jeder Sammlung. Prüfen Sie die Implementierung vor einer vollständigen Löschung." }
       ]
     },
     {

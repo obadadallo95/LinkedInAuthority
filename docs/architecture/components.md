@@ -2,6 +2,8 @@
 
 This document explains the technical architecture, state flow, and styling principles for the primary client-side components powering **LinkedIn Authority [PRO]**.
 
+> **Current-status note:** This document contains historical/planned UI descriptions. The current beta is draft-first; LinkedIn publishing and official analytics are not implemented.
+
 ---
 
 ## 1. RepositoriesDashboard (`/src/components/RepositoriesDashboard.tsx`)

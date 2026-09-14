@@ -1,5 +1,7 @@
 # SOC 2 Architecture & Security Review
 
+> **Current-status note:** This is a draft design review for a beta portfolio project, not a SOC 2 certification or evidence that all listed controls are fully implemented.
+
 **System:** LinkedIn Authority Engine
 **Version:** 1.0
 **Date:** 2026-07-16

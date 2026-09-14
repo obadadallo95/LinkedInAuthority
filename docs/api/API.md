@@ -1,209 +1,66 @@
-# Backend API Specifications & Router Reference
+# API Reference
 
-This document provides exact, professional technical documentation for the primary full-stack API endpoints exposed by the **LinkedIn Authority [PRO]** Express server.
+This is the current Express route surface. The application is an active beta; this document describes implemented routes only.
 
----
+## Authentication
 
-## 🔐 Authentication & Globals
+`GET /api/health` and the demo routes are unauthenticated. The remaining `/api` routes require a Firebase ID token:
 
-All client-to-server operations require valid routing configurations. For third-party authentication proxies (e.g. GitHub OAuth), keys are masked and securely exchanged on the server-side to prevent client-side credential exposure.
+```http
+Authorization: Bearer <firebase-id-token>
+```
 
----
+GitHub integration tokens may be supplied by the current authenticated client flow. Gemini secrets are loaded only by the server. LinkedIn OAuth and publishing endpoints are not implemented.
 
-## 🩺 System Diagnostic Endpoints
+## Implemented routes
 
-### 1. Health Status check
-Determines server viability and container readiness.
+### `GET /api/health`
 
-- **Endpoint**: `GET /api/health`
-- **Headers**: None
-- **Query Parameters**: None
-- **Response Format**: `JSON`
+Returns a basic server health response.
 
-#### Successful Response (`200 OK`)
+### `POST /api/demo/analyze`
+
+Analyzes the configured demo repository with anonymous, IP-keyed limits.
+
+### `POST /api/demo/generate`
+
+Generates demo content from a signed demo analysis session.
+
+### `POST /api/analyze-repo`
+
+Fetches GitHub repository context and returns grounded candidate angles plus an expiring analysis token.
+
+Required body fields:
+
 ```json
 {
-  "status": "ok"
+  "username": "owner",
+  "repo": "repository"
 }
 ```
 
----
+Optional fields include `token`, `projectDescription`, `lang`, and `intent`.
 
-## 🧠 AI Analysis & Generation Endpoints
+### `POST /api/generate-post`
 
-### 2. Analyze Codebase Repository
-Reads repository metadata and `README.md` details to draft three high-impact LinkedIn posts and visual social card configurations tailored to specified templates and locales.
+Generates a post from a valid analysis token. The token is checked for user, repository, audience, language, signature, and expiry before generation.
 
-- **Endpoint**: `POST /api/analyze-repo`
-- **Content-Type**: `application/json`
-- **Request Body Parameters**:
-  | Parameter | Type | Required | Description |
-  | :--- | :--- | :--- | :--- |
-  | `repo` | `string` | **Yes** | Name of the GitHub repository (e.g. `"react-dashboard"`). |
-  | `username` | `string` | No | GitHub username of the repository owner. |
-  | `token` | `string` | No | Personal Access Token to authenticate against GitHub API. |
-  | `branch` | `string` | No | Target branch to pull context from (defaults to default branch). |
-  | `template` | `string` | No | Focus template: `"showcase" \| "educational" \| "leadership"`. |
-  | `lang` | `string` | No | Target locale language code: `"ar" \| "en" \| "de"`. |
+### `POST /api/analyze-commits`
 
-#### Response Format (`200 OK`)
-```json
-{
-  "posts": [
-    {
-      "text": "🚀 Proud to share my open-source project: **react-dashboard**! Developed with modular layouts...",
-      "cardConfig": {
-        "colorTheme": "indigo",
-        "title": "REACT-DASHBOARD",
-        "subtitle": "Production-grade Code Release",
-        "metrics": "99.2% SPEED"
-      }
-    },
-    ...
-  ]
-}
-```
+Creates a structured technical update from recent commit summaries.
 
-#### Error Response (`400 Bad Request`)
-Returned if `repo` name is missing:
-```json
-{
-  "error": "Missing repository name parameter"
-}
-```
+### `POST /api/generate-hashtags`
 
-*Note: If the primary AI model `gemini-3.5-flash` or fallback `gemini-3.1-flash-lite` experiences service degradation, the endpoint automatically intercepts the exception and serves highly optimized, localized, fallback static drafts matching the requested language, ensuring 100% operational uptime.*
+Returns generated hashtags for supplied post text.
 
----
+### `POST /api/deep-scan`
 
-### 3. Generate Hashtags
-Suggests 5-8 highly relevant, professional developer hashtags based on the post text to boost LinkedIn algorithm reach.
+Fetches repository identity and recent activity, synthesizes grounded context, and returns an editable draft plus a suggested call to action.
 
-- **Endpoint**: `POST /api/generate-hashtags`
-- **Content-Type**: `application/json`
-- **Request Body Parameters**:
-  | Parameter | Type | Required | Description |
-  | :--- | :--- | :--- | :--- |
-  | `text` | `string` | **Yes** | The complete post text to generate tags for. |
-  | `lang` | `string` | No | Target locale language code (e.g. `"en"`). |
+### `POST /api/cron/process-weekly`
 
-#### Response Format (`200 OK`)
-```json
-{
-  "hashtags": [
-    "#webdev",
-    "#typescript",
-    "#opensource",
-    "#reactjs",
-    "#coding",
-    "#softwareengineering"
-  ]
-}
-```
+Processes due repository-monitoring configurations and stores generated drafts. It requires a configured `CRON_SECRET`; there is no development fallback secret.
 
-#### Error Response (`400 Bad Request`)
-Returned if `text` is missing:
-```json
-{
-  "error": "Missing text parameter"
-}
-```
+## Error handling and limits
 
-*Note: If AI servers are offline, the system catches the error and returns high-traffic developer hashtags seamlessly.*
-
----
-
-## 📢 Social Integration Endpoints
-
-### 4. Publish LinkedIn Post
-Simulates authentic LinkedIn post broadcast and queues it for the feed.
-
-- **Endpoint**: `POST /api/publish-post`
-- **Content-Type**: `application/json`
-- **Request Body Parameters**:
-  | Parameter | Type | Required | Description |
-  | :--- | :--- | :--- | :--- |
-  | `token` | `string` | **Yes** | LinkedIn secure Bearer token. |
-  | `text` | `string` | **Yes** | Post content markdown. |
-  | `repo` | `string` | No | Associated repository context. |
-
-#### Response Format (`200 OK`)
-```json
-{
-  "success": true,
-  "postId": "urn:li:activity:7012345678910111213",
-  "timestamp": "2026-07-16T15:53:10.000Z"
-}
-```
-
-#### Error Responses
-- **`401 Unauthorized`** (Returned if token is missing):
-  ```json
-  {
-    "error": "LinkedIn personal access token is missing or unauthorized. Link your LinkedIn account in the settings panel."
-  }
-  ```
-- **`400 Bad Request`** (Returned if post body is empty):
-  ```json
-  {
-    "error": "Post text is empty"
-  }
-  ```
-
----
-
-## 🐙 GitHub Integration (OAuth Handshake)
-
-### 5. Get OAuth Authorize URL
-Calculates and redirects the client to GitHub’s OIDC Authorize portal.
-
-- **Endpoint**: `GET /api/oauth/github/url`
-- **Response Format**: `JSON`
-
-#### Successful Response (`200 OK`)
-```json
-{
-  "url": "https://github.com/login/oauth/authorize?client_id=XYZ&redirect_uri=https://.../api/oauth/github/callback&scope=repo,user"
-}
-```
-
-#### Error Response (`500 Internal Server Error`)
-Returned if OAuth secrets are missing in `.env`:
-```json
-{
-  "error": "GitHub Client ID not configured"
-}
-```
-
----
-
-### 6. OAuth Authorization Redirect Gateway
-Performs a direct 302 Redirect to the secure GitHub Authorization endpoint.
-
-- **Endpoint**: `GET /api/oauth/github`
-- **Response**: `302 Found (Redirect)`
-
----
-
-### 7. OAuth Handshake Callback Gateway
-Processes authorization code exchange and posts messages to the client frame.
-
-- **Endpoint**: `GET /api/oauth/github/callback`
-- **Query Parameters**:
-  | Parameter | Type | Required | Description |
-  | :--- | :--- | :--- | :--- |
-  | `code` | `string` | **Yes** | Transient authorization code supplied by GitHub. |
-
-#### Successful Handshake
-Returns a script block utilizing `window.opener.postMessage` to send authorization tokens and user profile maps securely back to the parent app window, then initiates auto-closing.
-```html
-<script>
-  if (window.opener) {
-    window.opener.postMessage({
-      type: 'oauth_success',
-      accessToken: 'gho_abc123...',
-      userData: { "login": "octocat", "id": 1, ... }
-    }, window.location.origin);
-  }
-</script>
-```
+Malformed repository identifiers and unsupported language/intent values are rejected at the route boundary. Authenticated AI routes use user-scoped rate limiting. The current beta still needs stricter per-field payload limits, transactional automation leases, and broader operational quotas.

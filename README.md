@@ -1,95 +1,141 @@
-# 👑 LinkedIn Authority [PRO]
+# LinkedIn Authority
 
-An elite, enterprise-grade full-stack companion architected utilizing **React 19 (Vite)**, **Tailwind CSS v4**, and **Node.js (Express)**, powered by **Google Gemini AI**. 
+GitHub repository analysis and AI-assisted technical post drafting for developers and technical teams.
 
-**LinkedIn Authority [PRO]** empowers developers, security researchers, and systems architects to connect real-world code repositories, extract architecture models or codebases, and generate high-fidelity technical LinkedIn posts to establish robust, authoritative professional thought leadership.
+**Status: Active development / beta**
 
----
+This project explores how repository structure, documentation, and recent engineering activity can be turned into grounded, editable LinkedIn content. It is intentionally unfinished and is useful as a working full-stack and AI-engineering portfolio project.
 
-## 🏗️ Architectural Topology
+## Problem explored
 
-```text
-                               +------------------------------------+
-                               |     Client Browser Interface       |
-                               | (React 19 SPA + Tailwind CSS v4)   |
-                               +-----------------+--^---------------+
-                                                 |  |
-                                                 |  | Cloud Database & Auth
-                                  User Actions   |  | State Synchronization
-                                                 v  +--+
-+------------------------------------------------------+-------------------------------------------------------+
-|                                              Node.js Express Server                                          |
-|                                                                                                              |
-|   +--------------------------+    +--------------------------------------+    +--------------------------+   |
-|   |   Static Assets Engine   |    |         Secure API Router            |    |  LLM Inference Pipeline  |   |
-|   |  (React SPA Static File  |    |  (GitHub Repository Proxies, Auth    |    |  (Google GenAI SDK via   |   |
-|   |   Serving & Fallbacks)   |    |   Masking, LinkedIn OIDC Handshake)  |    |     gemini-3.5-flash)    |   |
-|   +--------------------------+    +--------------------------------------+    +--------------------------+   |
-+--------------------------------------------------------------------------------------------------------------+
-                                                         |
-                                                         v
-                                              +--------------------+
-                                              | Google Firestore   |
-                                              | Cloud Database     |
-                                              +--------------------+
+Technical work is often difficult to explain consistently outside the codebase. This project experiments with extracting concrete repository evidence and turning it into a reviewable narrative without asking a developer to start from a blank page.
+
+## What currently works
+
+- Firebase Authentication with Google and GitHub sign-in.
+- Authenticated repository analysis through the Express API.
+- GitHub metadata, README, manifest, commit, pull-request, and issue intelligence.
+- Structured evidence extraction, conflicts, intent-aware generation, and audience-aware generation.
+- Gemini model routing with configured fallback handling.
+- HMAC-signed, expiring analysis sessions that bind generated work to a user and repository.
+- Deterministic extraction and selection of links found in repository content for suggested calls to action.
+- Firestore persistence for settings, projects, drafts, automation state, and AI usage telemetry.
+- Server-side entitlement lookup, authenticated rate limiting, and scheduled repository-monitoring infrastructure.
+- Activity-delta/checkpoint logic that avoids generation when monitored repositories have no relevant changes.
+- Automated tests for contexts, services, AI flows, and automation behavior.
+
+## Product flow
+
+1. A user signs in and selects a GitHub repository.
+2. The server fetches repository context and normalizes the relevant evidence.
+3. Gemini produces structured angles or a grounded technical draft.
+4. The user reviews and edits the result, then saves it as a draft.
+5. Optional automation checks monitored repositories and stores new drafts when activity changes.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Client[React / Vite client]
+    Auth[Firebase Auth]
+    API[Express API]
+    Verify[Firebase ID-token verification]
+    GitHub[GitHub repository intelligence]
+    Grounding[Evidence and grounding pipeline]
+    Gemini[Gemini model routing and fallback]
+    Firestore[(Firestore persistence and telemetry)]
+    Automation[Scheduled monitoring state]
+
+    Client --> Auth
+    Client --> API
+    Verify --> GitHub
+    API --> Verify
+    GitHub --> Grounding
+    Grounding --> Gemini
+    API --> Firestore
+    Automation --> GitHub
+    Automation --> Grounding
+    Automation --> Firestore
+    Client --> Firestore
 ```
 
----
+The browser uses Firebase for authentication and user-scoped data access. Protected API requests carry a Firebase ID token; the Express server verifies it before invoking the AI routes. GitHub context is transformed into structured evidence before Gemini generation. Firestore stores user-scoped settings, projects, drafts, checkpoints, and usage telemetry.
 
-## 📖 Complete Platform Documentation
+## Engineering highlights
 
-To aid developers in understanding, maintaining, and expanding the platform, the documentation is divided into specialized modules inside the `/docs` directory:
+### Grounded AI generation
 
-1. **[Systems Architecture & Components Layout](/docs/architecture.md)**
-   - High-level topology, server-side Express runtime, Vite asset pipelines, and multi-lingual RTL/LTR layout strategies.
-2. **[Database Schema & Security Policies](/docs/database_schema.md)**
-   - Cloud Firestore collection blueprints, active document fields, multi-tenant security rules, and offline-first Demo modes.
-3. **[AI Prompt Engineering & Analytics Algorithms](/docs/ai_generation.md)**
-   - Google Gemini `gemini-3.5-flash` model configurations, system instruction schemas, and character-weighted organic reach forecasting algorithms.
-4. **[Developer Handoff & Technical Onboarding](/docs/developer_handoff.md)**
-   - Local workspace setup, core commands, type checking, state management lifecycle, and production bundling methodologies using `esbuild`.
+Repository analysis uses structured response schemas and separates observed evidence from generated narrative. Analysis sessions are signed with an HMAC and expire, preventing a generated result from being reused across users or repositories. Deep analysis combines stable repository identity with recent commits, pull requests, and issues.
 
----
+### Model routing and observability
 
-## 🌟 Advanced Product Features
+`server/services/repositoryIntelligence/modelRouting.ts` and the Gemini service select models by task and provide configured fallback behavior. AI calls record task, model, token, latency, and estimated-cost telemetry when the telemetry store is available.
 
-- **Double-Buffered Security**: Client tokens (GitHub, LinkedIn, and Gemini secrets) are securely processed on the server-side, with selective masking in transit to prevent client-side credential leakages.
-- **Organic Growth Sandbox**: Features an interactive Recharts-powered projection calculator allowing developers to simulate different post frequencies and estimate organic visibility.
-- **Predictive Reach Index**: Synthesizes custom character structures to categorize posts and calculate projected Likes, Comments, and Shares.
-- **Beautiful Social Cards**: Real-time vector preview graphics styled with color-balanced gradient backings.
+### Persistence and automation
 
----
+Firestore provides user-scoped persistence for drafts and project monitoring configuration. The automation route checks activity deltas, stores checkpoints only after draft persistence, and uses an expiring lease as a best-effort duplicate-run guard.
 
-## ⚡ Quick-Start
+### Authentication and security model
 
-### Installation
+Gemini API secrets are loaded server-side. Firestore rules restrict user data to the authenticated owner and keep entitlement fields server-managed. The current beta still stores GitHub integration tokens in user settings for the existing client flow; this is a documented limitation, not a dedicated production token vault.
+
+## Testing and quality
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+The repository currently has 15 test files and 82 passing tests. The TypeScript check and production build also pass. The build currently reports an oversized frontend bundle warning; this is known follow-up work.
+
+## Tech stack
+
+- React 19, React Router, TypeScript, Vite
+- Tailwind CSS, Framer Motion, Recharts, Lucide
+- Node.js, Express, TypeScript runtime tooling, esbuild
+- Firebase Authentication, Firestore, and Firebase Admin SDK
+- Google Gemini via `@google/genai`
+- Vitest, Testing Library, Supertest
+
+## Running locally
+
+Requirements: Node.js 20+ and npm.
+
 ```bash
 npm install
-```
-
-### Environment Configuration
-Copy the sample environment variables:
-```bash
 cp .env.example .env
-```
-Provide your Google Gemini API token:
-```env
-GEMINI_API_KEY=your_gemini_key_here
-PORT=3000
-```
-
-### Run Local Development
-```bash
 npm run dev
 ```
 
-### Compile Production Bundle
-```bash
-npm run build
-npm run start
-```
+Configure at least `GEMINI_API_KEY`, `ANALYSIS_SIGNING_SECRET`, and `CRON_SECRET` in `.env`. There is no default cron secret. Server-side Firebase Admin operations also require the normal Google Application Default Credentials or an explicitly configured service-account environment. The Firebase Web configuration in `firebase-applet-config.json` is client configuration and is intentionally browser-visible.
 
----
+## Current limitations
 
-© 2026 **Obada Dallo** (عبادة دللو). All rights reserved.
-The architectural topology, design systems, LLM prompts, and codebase configurations inside the **LinkedIn Authority [PRO]** solution are the exclusive intellectual property of Obada Dallo (obada.dallo95@gmail.com).
+- Direct LinkedIn publishing is not implemented.
+- Scheduling and automation prepare or store drafts; they do not publish to LinkedIn.
+- Reach projections are estimates and are not official LinkedIn analytics.
+- GitHub token handling remains a beta limitation because the current client flow stores the integration token in user settings.
+- Account deletion and broader production hardening are incomplete.
+- Some legacy UI and documentation paths remain under active development.
+
+## Roadmap
+
+Planned capabilities are separate from the current implementation:
+
+- A server-side token vault and narrower integration permissions.
+- Complete, verified account-deletion and retention workflows.
+- LinkedIn publishing only after its OAuth, consent, and safety model are implemented.
+- Official analytics integration if the required platform access becomes available.
+- More transactional automation leasing, quotas, and operational controls.
+
+## Documentation
+
+- [API reference](docs/api/API.md)
+- [AI generation notes](docs/api/ai_generation.md)
+- [Persistence and Firestore rules](docs/architecture/database_schema.md)
+- [Developer handoff](docs/development/developer_handoff.md)
+
+## Attribution
+
+Developed by **Obada Dallo**. The repository is shared as an active-development portfolio project; no open-source license is currently declared.

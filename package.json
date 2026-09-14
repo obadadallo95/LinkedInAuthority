@@ -1,7 +1,17 @@
 {
-  "name": "react-example",
+  "name": "linkedin-authority",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
+  "description": "GitHub repository analysis and AI-assisted technical post drafting beta",
+  "author": "Obada Dallo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/obadadallo95/LinkedInAuthority.git"
+  },
+  "bugs": {
+    "url": "https://github.com/obadadallo95/LinkedInAuthority/issues"
+  },
+  "homepage": "https://github.com/obadadallo95/LinkedInAuthority",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",

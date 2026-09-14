@@ -2,6 +2,7 @@ import express from 'express';
 import { getAdminFirestore } from '../services/firestoreAdmin';
 import { performDeepScan, checkRepositoryActivityDelta, ActivityCheckOptions, ActivityCheckpoint } from '../services/deepIntelligence';
 import { generateDeepPost } from '../services/deepIntelligence/deepPostGenerator';
+import { getUserTier } from '../services/entitlements';
 
 const router = express.Router();
 
@@ -10,13 +11,18 @@ const router = express.Router();
  * 
  * NOTE: Triggered by an hourly heartbeat (e.g. GitHub Actions or Cloud Scheduler).
  * Evaluates each project's configured scheduleDay, scheduleTime, and timezone.
- * Concurrency-safe: acquires an expiring lease to prevent duplicate runs across parallel cron triggers.
+ * Uses an expiring lease as a best-effort guard against duplicate runs across cron triggers.
  */
 router.post("/process-weekly", async (req, res) => {
   // 1. Authorization check
   const authHeader = req.headers.authorization;
-  const CRON_SECRET = process.env.CRON_SECRET?.trim() || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-key');
+  const CRON_SECRET = process.env.CRON_SECRET?.trim();
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : authHeader?.trim();
+
+  if (!CRON_SECRET) {
+    console.error("Cron request rejected because CRON_SECRET is not configured.");
+    return res.status(503).json({ error: "Cron service is not configured" });
+  }
   
   if (!CRON_SECRET || token !== CRON_SECRET) {
     return res.status(401).json({ error: "Unauthorized cron request" });
@@ -161,7 +167,8 @@ router.post("/process-weekly", async (req, res) => {
               intent: config.intent || 'weekly_progress',
               targetAudience: config.targetAudience || 'tech_community',
               repoIdentity: scanResult.githubContext.repoIdentity
-            }
+            },
+            await getUserTier(userId)
           );
 
           // 11. Save Draft to users/{uid}/drafts

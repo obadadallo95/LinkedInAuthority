@@ -8,7 +8,7 @@
 To outline the mechanisms and policies governing access to both the application runtime environment and the underlying infrastructure, ensuring adherence to the principle of least privilege.
 
 ## 2. Customer Access Controls
-- **Authentication Mechanism:** All end-user access is governed by Firebase Authentication using secure OAuth 2.0 flows (Google, GitHub, LinkedIn).
+- **Authentication Mechanism:** Current end-user access is governed by Firebase Authentication using Google and GitHub sign-in. LinkedIn OIDC is not implemented in the current beta.
 - **Data Isolation:** Access to the database is rigidly enforced at the request level. A user can only execute CRUD (Create, Read, Update, Delete) operations on their specific `uid` path (`/users/{userId}/*`). This zero-trust boundary is maintained purely by Firestore Security Rules, independent of client-side logic.
 - **Session Management:** User sessions are managed by Firebase SDK tokens which automatically expire and refresh. Revoking access logs the user out globally.
 

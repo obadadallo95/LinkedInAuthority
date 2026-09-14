@@ -130,9 +130,9 @@ describe('SettingsContext', () => {
     expect(firestore.setDoc).toHaveBeenCalledWith('mock-doc-ref', {
       githubUsername: 'testuser',
       githubToken: 'ghtoken',
-      linkedinToken: 'litoken',
+      linkedinToken: '',
       githubProfile: { name: 'GitHub User', avatar_url: 'avatar' },
-      linkedinProfile: { name: 'User Name', picture: 'url' },
+      linkedinProfile: null,
     }, { merge: true });
   });
 

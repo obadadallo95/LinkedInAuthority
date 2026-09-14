@@ -1,7 +1,7 @@
 # Backend API Testing Documentation
 
 ## Overview
-Our backend is built using Node.js and Express. It connects to multiple third-party APIs (Google GenAI for content generation, LinkedIn API for publishing/analytics). 
+Our backend is built using Node.js and Express. It integrates with Google GenAI for content generation and GitHub repository services. LinkedIn publishing and official analytics are not implemented in the current beta.
 
 We test our backend using **Vitest** combined with **Supertest**. Supertest allows us to simulate HTTP requests (GET, POST) against our Express application without having to start a physical server on a port.
 
@@ -9,13 +9,13 @@ We test our backend using **Vitest** combined with **Supertest**. Supertest allo
 
 ### 1. Route Testing with Supertest
 We create integration tests that load the Express router and make requests to it.
-- **Example Files:** `ai.test.ts`, `linkedin.test.ts`.
+- **Example Files:** `ai.test.ts`, `cron.test.ts`.
 - **Methodology:** We initialize an instance of Express, attach our routes, and use `request(app).post('/api/ai/analyze-repo').send({ data })`.
 
 ### 2. Mocking External Services
-It is strictly forbidden to make live API calls to Google or LinkedIn during automated testing. Live calls cost money, introduce latency, and lead to flaky tests due to network issues.
+It is strictly forbidden to make live API calls to Google, GitHub, or LinkedIn during automated testing. Live calls cost money, introduce latency, and lead to flaky tests due to network issues.
 - **Google GenAI Mocking:** In `ai.test.ts`, we use `vi.mock('@google/genai')` to intercept AI generation requests. We return deterministic JSON strings matching the schemas expected by our frontend.
-- **Node-Fetch Mocking:** For the LinkedIn OAuth and Publishing endpoints (`linkedin.test.ts`), we mock the `node-fetch` module. We check the URL being called and return appropriate mocked responses (e.g., mock OAuth tokens or successful URNs for posts).
+- **External service mocking:** No live LinkedIn integration is tested because it is not implemented; external GitHub and Gemini calls are mocked where needed.
 
 ## Writing a New Backend Test
 1. **Locate the Route:** If testing a new route in `server/routes/billing.ts`, create `test/routes/billing.test.ts`.

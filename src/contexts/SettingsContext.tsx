@@ -106,21 +106,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    let linkedinProfile = null;
-    if (liTokenInput) {
-      linkedinProfile = {
-        name: user.displayName || "LinkedIn Executive",
-        picture: user.photoURL || "",
-      };
-    }
-
     const settingsRef = doc(db, "users", user.uid, "settings", "current");
     await setDoc(settingsRef, {
       githubUsername: ghUsernameInput,
       githubToken: ghTokenInput,
-      linkedinToken: liTokenInput,
+      // LinkedIn publishing is not implemented in this beta. Do not persist
+      // a token for an unused integration flow.
+      linkedinToken: "",
       githubProfile,
-      linkedinProfile,
+      linkedinProfile: null,
     }, { merge: true });
   };
 

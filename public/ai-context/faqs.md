@@ -4,7 +4,7 @@
 
 ### Platform Introduction
 **Q: What is LinkedIn Authority Engine?**
-A: It is an advanced AI-powered engine designed specifically for developers and tech companies. It connects to your GitHub repositories, analyzes your code intelligently, and transforms it into highly professional, ready-to-publish LinkedIn posts.
+A: It is an AI-powered beta designed for developers and tech companies. It connects to your GitHub repositories, analyzes repository context, and transforms it into professional LinkedIn drafts for manual review and copying.
 
 **Q: How is it different from Buffer or Hootsuite?**
 A: Traditional tools are mere 'schedulers'. We are a 'Content Creator'. We understand your codebase, tech stack, and project structure, and build a compelling professional narrative around it on your behalf.
@@ -24,10 +24,10 @@ A: Absolutely. You can configure the engine to use a 'Professional', 'Deep Tech'
 
 ### Publishing & Scheduling
 **Q: How is content published to my LinkedIn?**
-A: We utilize the official LinkedIn API. Once connected, we send the content securely to your profile. We do not store passwords; we use secure OAuth tokens.
+A: Direct LinkedIn publishing is not implemented in the current beta. Generated content is saved as a draft for manual review and copying.
 
 **Q: Can I schedule posts for busy times?**
-A: Yes, the system offers smart scheduling. You can pick a specific future date and time, and the engine will publish it for you automatically.
+A: Automatic LinkedIn scheduling is not implemented in the current beta.
 
 **Q: Does the tool support media or images?**
 A: The current version excels at creating deep, text-based technical narratives which perform incredibly well in LinkedIn's algorithm. Media support is coming soon.
@@ -40,13 +40,13 @@ A: You have a full 'Drafts' manager. You can edit any word, regenerate completel
 A: Absolutely not. Code is processed in real-time strictly to extract metadata and generate the narrative, then it is immediately discarded.
 
 **Q: Is my data encrypted?**
-A: Yes, all data in transit and at rest is encrypted using industry-standard military-grade (AES-256) encryption.
+A: Firebase provides platform-level transport and storage protections, but this beta does not implement a dedicated application-level token vault.
 
 **Q: How do you protect my LinkedIn account?**
-A: We strictly adhere to LinkedIn's official API guidelines and rate limits, ensuring your account remains 100% safe and compliant.
+A: Direct LinkedIn publishing is not implemented in the current beta, so the app does not claim to manage LinkedIn API limits or publishing safety.
 
 **Q: Can I permanently delete my data?**
-A: Yes, in full GDPR compliance, we provide a 1-click 'Delete Account' button that irrevocably wipes your posts, GitHub/LinkedIn connections, and all associated data from our servers.
+A: The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure.
 
 ### Advanced Features
 **Q: Does the tool provide templates?**
@@ -56,7 +56,7 @@ A: Yes, we feature an advanced templates library. You can save a specific postin
 A: Yes! Regardless of your source code language, you can command the engine to write the post in English, Arabic, or German.
 
 **Q: How does this improve my personal SEO?**
-A: Consistently publishing keyword-rich technical content (which we automate for you) makes your profile rank significantly higher when recruiters and companies search for your specific skills.
+A: Keyword-rich technical drafts can help you prepare content to review and publish manually on LinkedIn; the app does not provide official LinkedIn analytics.
 
 ### Support & Development
 **Q: Who is behind this tool?**
@@ -74,10 +74,10 @@ A: Yes, we provide custom solutions for tech companies aiming to automate their 
 
 ### مقدمة عن المنصة
 **س: ما هو LinkedIn Authority Engine؟**
-ج: هو محرك متطور يعتمد على الذكاء الاصطناعي، صُمم خصيصاً للمطورين والشركات التقنية. يقوم بربط مستودعات GitHub الخاصة بك وتحليل الكود تلقائياً لتحويله إلى منشورات ومقالات احترافية جاهزة للنشر على LinkedIn.
+ج: هو مشروع تجريبي يعتمد على الذكاء الاصطناعي للمطورين والشركات التقنية. يربط مستودعات GitHub ويحلل سياقها لتحويله إلى مسودات احترافية للمراجعة والنسخ اليدوي إلى LinkedIn.
 
 **س: كيف يختلف عن أدوات النشر التقليدية مثل Buffer أو Hootsuite؟**
-ج: الأدوات التقليدية هي مجرد 'مجدول' (Scheduler) للمحتوى الذي تكتبه أنت. أما منصتنا فهي 'صانع محتوى' (Content Creator). نحن نفهم الكود الخاص بك، بنية مشروعك، والتقنيات المستخدمة، ونبني قصة احترافية حولها بالنيابة عنك، ثم نتيح لك جدولتها أو نشرها فوراً.
+ج: الأدوات التقليدية هي مجرد 'مجدول' (Scheduler) للمحتوى الذي تكتبه أنت. أما منصتنا فهي 'صانع مسودات' (Draft Creator). نحن نفهم سياق مستودعك وبنيته وتقنياته ونبني قصة احترافية حولها، ثم نتيح لك مراجعتها ونسخها يدوياً.
 
 **س: من هو الجمهور المستهدف لهذه الأداة؟**
 ج: مهندسو البرمجيات، قادة الفرق التقنية (Tech Leads)، المؤسسون التقنيون، والمساهمون في المصادر المفتوحة الذين يرغبون في بناء علامة تجارية شخصية قوية (Personal Brand) دون إهدار ساعات في كتابة المحتوى.
@@ -94,10 +94,10 @@ A: Yes, we provide custom solutions for tech companies aiming to automate their 
 
 ### النشر والجدولة
 **س: كيف يتم النشر على حساب LinkedIn الخاص بي؟**
-ج: نستخدم منصة LinkedIn API الرسمية. بمجرد ربط حسابك، نرسل المحتوى مباشرة إلى ملفك الشخصي كمنشور نصي، ولا نحتفظ ببيانات تسجيل الدخول الخاصة بك بل نستخدم رموز وصول آمنة (OAuth).
+ج: النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. يتم حفظ المحتوى كمسودة للمراجعة والنسخ اليدوي.
 
 **س: هل يمكنني جدولة المنشورات للأوقات المزدحمة؟**
-ج: نعم، النظام يوفر ميزة الجدولة الذكية. يمكنك اختيار وقت محدد في المستقبل، وسيقوم المحرك بالنشر تلقائياً بالنيابة عنك دون تدخل منك.
+ج: الجدولة التلقائية على LinkedIn غير مطبقة في النسخة التجريبية الحالية.
 
 **س: هل تدعم الأداة النشر بملفات الميديا أو الصور؟**
 ج: النسخة الحالية تركز على صناعة النصوص التقنية العميقة التي تتفوق في خوارزميات LinkedIn. النشر المتعدد الوسائط قيد التطوير وسيصدر قريباً.
@@ -110,13 +110,13 @@ A: Yes, we provide custom solutions for tech companies aiming to automate their 
 ج: قطعاً لا. نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط لاستخراج البيانات الوصفية وبناء المحتوى، ثم يتم التخلص منها.
 
 **س: هل بياناتي مشفرة؟**
-ج: نعم، كافة بيانات الاتصال والتخزين في قاعدة البيانات مشفرة بالكامل باستخدام معايير التشفير العسكرية (AES-256) المتوافقة مع معايير الصناعة.
+ج: يوفر Firebase حماية النقل والتخزين على مستوى المنصة، لكن النسخة التجريبية لا تطبق خزنة رموز مخصصة على مستوى التطبيق.
 
 **س: كيف تحمون حساب LinkedIn الخاص بي من الحظر؟**
-ج: نحن نستخدم الـ API الرسمي والموثق من LinkedIn، ونلتزم بحدود النشر (Rate limits) لضمان أن حسابك آمن 100% ولا يتعرض لأي عقوبات.
+ج: النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية، لذلك لا ندّعي إدارة حدود واجهة LinkedIn أو سلامة النشر.
 
 **س: هل يمكنني حذف بياناتي وارتباطاتي نهائياً؟**
-ج: نعم، وفقاً لمعايير اللائحة العامة لحماية البيانات (GDPR)، توفر لك المنصة زراً واحداً لـ 'حذف الحساب' يمسح جميع منشوراتك، ارتباطاتك بـ GitHub و LinkedIn، وكل ما يتعلق بك من خوادمنا بشكل نهائي ولا رجعة فيه.
+ج: ميزة الحذف الحالية في النسخة التجريبية لا تضمن بعد إزالة البيانات من كل المجموعات. راجع التنفيذ قبل الاعتماد عليها كمحو كامل.
 
 ### الميزات المتقدمة وتخصيص القوالب
 **س: هل توفر الأداة قوالب (Templates) جاهزة؟**
@@ -126,7 +126,7 @@ A: Yes, we provide custom solutions for tech companies aiming to automate their 
 ج: نعم! يمكنك من خلال الإعدادات طلب توليد المنشور باللغة العربية، الإنجليزية، أو الألمانية، بغض النظر عن لغة الكود المصدري أو ملف الـ README.
 
 **س: كيف تفيد الأداة في تحسين محركات البحث الشخصية (SEO) الخاصة بي؟**
-ج: النشر المستمر لمحتوى تقني غني بالكلمات المفتاحية الصحيحة (والذي نولده لك) يجعل حسابك على LinkedIn يظهر في نتائج البحث الأولى للشركات والمستقطبين (Recruiters) الذين يبحثون عن خبراتك.
+ج: تساعدك المسودات التقنية الغنية بالكلمات المفتاحية على إعداد محتوى يمكنك مراجعته ونشره يدوياً على LinkedIn؛ ولا يوفر التطبيق تحليلات رسمية من LinkedIn.
 
 ### الدعم والتواصل والمطورين
 **س: من يقف خلف تطوير هذه الأداة؟**

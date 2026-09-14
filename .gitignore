@@ -6,7 +6,15 @@ coverage/
 *.log
 .env*
 !.env.example
+*.pem
+*.key
+*.p12
+service-account*.json
+firebase-adminsdk*.json
+.firebase/
+*.sqlite
+*.sqlite3
+*.db
 
 # Local Database Stores (contain developer connection tokens)
 db.json
-

@@ -25,8 +25,16 @@ service cloud.firestore {
       // Settings Schema Validation
       match /settings/{document=**} {
         allow read, delete: if request.auth != null && request.auth.uid == userId;
-        allow create, update: if request.auth != null && request.auth.uid == userId
+        // Entitlements and roles are server-managed. Firebase Admin writes bypass
+        // these client rules; ordinary clients cannot create or change them.
+        allow create: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.keys().hasNone(['plan', 'role', 'isFounder', 'isPaidSubscription'])
           // Ensure strings if present
+          && (!('githubUsername' in request.resource.data) || request.resource.data.githubUsername is string)
+          && (!('githubToken' in request.resource.data) || request.resource.data.githubToken is string)
+          && (!('linkedinToken' in request.resource.data) || request.resource.data.linkedinToken is string);
+        allow update: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasNone(['plan', 'role', 'isFounder', 'isPaidSubscription'])
           && (!('githubUsername' in request.resource.data) || request.resource.data.githubUsername is string)
           && (!('githubToken' in request.resource.data) || request.resource.data.githubToken is string)
           && (!('linkedinToken' in request.resource.data) || request.resource.data.linkedinToken is string);

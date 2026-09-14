@@ -43,7 +43,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>2. تشفير وإدارة الرموز الأمنية (Tokens)</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            تُخزن رموز الوصول (OAuth Tokens) الخاصة بحسابي LinkedIn و GitHub في بيئة قاعدة بيانات مشفرة بالكامل ومعزولة. لا يتم تمرير هذه الرموز أو كشفها لأي طرف ثالث، وتُستخدم حصرياً لإرسال طلبات النشر المعتمدة من قبلك بشكل مباشر.
+            هذه نسخة تجريبية نشطة. تبقى أسرار Gemini على الخادم، لكن تُحفظ رموز GitHub حالياً ضمن إعدادات المستخدم لدعم التدفق المصادق عليه الحالي؛ ولا يمثل ذلك خزنة رموز إنتاجية مخصصة.
           </p>
         </div>
 
@@ -54,11 +54,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>3. الامتثال للائحة حماية البيانات العامة (GDPR) وحق الإلغاء</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            نحن نضمن للمستخدمين الأوروبيين والعالميين كافة حقوقهم بموجب قوانين الخصوصية، بما في ذلك:
+            هذه نسخة تجريبية نشطة ولا تدّعي حالياً امتثالاً كاملاً للـ GDPR أو محواً كاملاً من كل مجموعات البيانات:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pr-2">
-            <li><strong>الحق في النسيان (حق المحو):</strong> يمكنك في أي وقت حذف حسابك وكافة بياناتك المسجلة، بما في ذلك المنشورات والرموز الأمنية، بضغطة زر واحدة من خلال خيار "منطقة الخطر" في صفحة الإعدادات، مما يزيل كافة سجلاتك نهائياً من خوادمنا.</li>
-            <li><strong>حق الانسحاب والعدول (EU Withdrawal):</strong> للمستخدمين في الاتحاد الأوروبي الحق الكامل في إلغاء وتجميد حساباتهم واسترجاع معلوماتهم المترابطة دون أي شروط معقدة.</li>
+            <li><strong>حالة الحذف:</strong> لا يضمن زر الحذف الحالي إزالة البيانات من كل المجموعات بعد. يجب التحقق من التنفيذ قبل الاعتماد عليه كمحو كامل.</li>
+            <li><strong>حالة النسخة التجريبية:</strong> ما زالت سياسات الاحتفاظ وطلبات الخصوصية الشاملة قيد التنفيذ والتحقق.</li>
           </ul>
         </div>
       </div>
@@ -99,7 +99,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>2. Token-Verwaltung und Verschlüsselung</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Sämtliche OAuth-Zugriffstoken für GitHub und LinkedIn werden unter Verwendung moderner Verschlüsselungsstandards in einer isolierten Datenbankumgebung gesichert. Sie werden niemals an Dritte weitergegeben.
+            Dies ist eine aktive Beta. Gemini-Schlüssel bleiben auf dem Server, GitHub-Integrationstoken werden für den aktuellen authentifizierten Client-Ablauf jedoch in den Benutzereinstellungen gespeichert; dies ist keine dedizierte Produktions-Token-Vault.
           </p>
         </div>
 
@@ -110,11 +110,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>3. DSGVO-Rechte & EU-Widerrufsrecht</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Wir erfüllen alle datenschutzrechtlichen Anforderungen der Europäischen Union:
+            Dies ist eine aktive Beta und beansprucht derzeit weder vollständige DSGVO-Konformität noch vollständige Löschung aus jeder Datensammlung:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-            <li><strong>Recht auf Vergessenwerden (Löschung):</strong> Über die Schaltfläche "Konto löschen" im Einstellungsbereich können Sie Ihr Konto sowie alle Posts, Konfigurationen und Token augenblicklich und unwiderruflich von unseren Systemen entfernen.</li>
-            <li><strong>EU-Widerrufsrecht:</strong> Nutzer aus der EU haben ein gesetzliches Widerrufsrecht, das die sofortige Löschung erhobener Verknüpfungen und Daten ohne Angabe von Gründen ermöglicht.</li>
+            <li><strong>Löschstatus:</strong> Die aktuelle Löschfunktion garantiert noch nicht die Entfernung aus jeder Sammlung. Prüfen Sie die Implementierung vor einer vollständigen Löschung.</li>
+            <li><strong>Beta-Status:</strong> Umfassende Aufbewahrungs- und Datenschutzprozesse sind noch in Arbeit und müssen noch verifiziert werden.</li>
           </ul>
         </div>
       </div>
@@ -140,11 +140,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           <span>1. Repository Read-Only Access & Code Retention Policy</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          We maintain a zero-retention security model for our users' proprietary intellectual property. When authorized via GitHub OAuth:
+          This active beta may persist repository-derived context and drafts. Review the current implementation before relying on it for a zero-retention guarantee:
         </p>
         <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
           <li>The platform accesses files and metadata exclusively in read-only mode to understand release tags, language breakdowns, and project milestones.</li>
-          <li><strong>No Code Caching:</strong> Your proprietary source code is never cached, stored, indexed, or saved to any database on our side. It is parsed strictly on-the-fly inside ephemeral memory enclaves and discarded immediately upon draft synthesis.</li>
+          <li><strong>Processing status:</strong> Repository content is processed for analysis and generation, while derived context and drafts may be persisted by the application.</li>
         </ul>
       </div>
 
@@ -155,7 +155,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           <span>2. Authentication Token Security & Encryption Standards</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Both LinkedIn and GitHub integration credentials (OAuth Refresh and Access Tokens) are encrypted in transit and at rest using enterprise-grade keys before being safely saved inside our secure isolated Firestore environment. These credentials are used solely to proxy direct publication actions instructed by you.
+          This is an active beta. Gemini secrets stay server-side, but GitHub integration tokens are currently stored in the user's settings for the existing authenticated client flow. This is a known limitation, not a dedicated production token vault.
         </p>
       </div>
 
@@ -166,11 +166,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           <span>3. GDPR Rights (Right to Erasure) & EU Withdrawal Rights</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          We strictly follow the European Union's General Data Protection Regulation (GDPR) standards, empowering you with the following rights:
+          This beta does not claim complete GDPR compliance or complete erasure across every stored collection. The current delete action should be treated as incomplete until the remaining data paths are implemented and verified:
         </p>
         <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-          <li><strong>Right to be Forgotten:</strong> You can permanently delete your user account, drafted articles, scheduled posts, and connected API access credentials via the "Danger Zone - Permanently Delete Account" trigger inside settings. This request instantly purges all trace database schemas.</li>
-          <li><strong>EU Right of Withdrawal:</strong> EU citizens hold the fundamental right to revoke this service consent and terminate associated integrations at any point, with zero residual data retention.</li>
+          <li><strong>Deletion status:</strong> The current delete action does not yet guarantee removal from every collection or zero residual retention. Review the implementation before relying on it for complete erasure.</li>
+          <li><strong>Beta status:</strong> Comprehensive retention and privacy-request workflows remain to be implemented and verified.</li>
         </ul>
       </div>
     </div>

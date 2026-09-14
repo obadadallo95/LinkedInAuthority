@@ -1,5 +1,6 @@
 import { getGeminiClient, callGeminiWithRetry } from '../repositoryIntelligence/gemini';
 import { GroundedDeepGithubContext, VerifiedLink } from './githubDeepFetcher';
+import { UserTier } from '../entitlements';
 
 export interface ProductProfile {
   name: string;
@@ -73,8 +74,8 @@ const synthesizerSchema = {
   required: ["hasMeaningfulContent", "technicalDecisions", "challengesSolved", "newFeatures", "summary"]
 };
 
-export async function synthesizeDeepContext(deepContext: GroundedDeepGithubContext): Promise<SynthesizedContext> {
-  const client = getGeminiClient('pro');
+export async function synthesizeDeepContext(deepContext: GroundedDeepGithubContext, tier: UserTier = 'free'): Promise<SynthesizedContext> {
+  const client = getGeminiClient(tier);
   if (!client) {
     throw new Error("Gemini API client is not configured.");
   }

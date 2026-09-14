@@ -1,13 +1,25 @@
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAdminFirestore } from '../server/services/firestoreAdmin';
+import { execFileSync } from 'child_process';
+
+const projectId = process.env.E2E_FIREBASE_PROJECT_ID?.trim();
+const testUserId = process.env.E2E_TEST_USER_ID?.trim();
+const repoOwner = process.env.E2E_REPO_OWNER?.trim();
+const repoName = process.env.E2E_REPO_NAME?.trim();
+const cronUrl = process.env.E2E_CRON_URL?.trim();
+const cronSecretName = process.env.E2E_CRON_SECRET_NAME?.trim() || 'cron_secret';
+const cronSecretVersion = process.env.E2E_CRON_SECRET_VERSION?.trim() || 'latest';
+
+if (!projectId || !testUserId || !repoOwner || !repoName || !cronUrl) {
+  throw new Error('Set E2E_FIREBASE_PROJECT_ID, E2E_TEST_USER_ID, E2E_REPO_OWNER, E2E_REPO_NAME, and E2E_CRON_URL before running this script.');
+}
 
 if (getApps().length === 0) {
-  initializeApp({ projectId: 'linkedin-content-generat-71303' });
+  initializeApp({ projectId });
 }
 
 async function runE2E() {
   const db = getAdminFirestore();
-  const testUserId = 'prod-e2e-verification-user';
 
   const now = new Date();
   const utcDay = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
@@ -22,13 +34,13 @@ async function runE2E() {
     language: 'en'
   });
 
-  const projectRef = userRef.collection('projects').doc('obadadallo_KeyFixer');
+  const projectRef = userRef.collection('projects').doc(`${repoOwner}_${repoName}`);
 
   await projectRef.set({
-    owner: 'obadadallo',
-    repo: 'KeyFixer',
-    fullName: 'obadadallo/KeyFixer',
-    description: 'Automatic keyboard layout fixer',
+    owner: repoOwner,
+    repo: repoName,
+    fullName: `${repoOwner}/${repoName}`,
+    description: 'E2E verification repository',
     language: 'TypeScript',
     monitoringEnabled: true,
     monitoringConfig: {
@@ -43,16 +55,30 @@ async function runE2E() {
   console.log("Project configured in Firestore. Triggering production cron endpoint...");
 
   // 2. Call production cron endpoint using the secret
-  const { execSync } = await import('child_process');
-  const secret = execSync('gcloud secrets versions access 2 --secret=cron_secret --project=linkedin-content-generat-71303').toString().trim();
+  const secret = execFileSync('gcloud', [
+    'secrets', 'versions', 'access', cronSecretVersion,
+    `--secret=${cronSecretName}`,
+    `--project=${projectId}`
+  ], { encoding: 'utf8' }).trim();
 
-  const response = execSync(`curl -s -X POST https://lgc-backend--linkedin-content-generat-71303.us-central1.hosted.app/api/cron/process-weekly -H "Authorization: Bearer ${secret}" -H "Content-Type: application/json"`).toString();
+  const response = await fetch(cronUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  const responseText = await response.text();
 
-  console.log("Cron response:", response);
-  const parsedRes = JSON.parse(response);
+  let parsedRes: any;
+  try {
+    parsedRes = JSON.parse(responseText);
+  } catch {
+    throw new Error(`Cron endpoint returned a non-JSON response (HTTP ${response.status}).`);
+  }
 
-  if (!parsedRes.success || parsedRes.processed < 1) {
-    throw new Error(`Cron processing did not process the project. Response: ${response}`);
+  if (!response.ok || !parsedRes.success || parsedRes.processed < 1) {
+    throw new Error(`Cron processing did not process the project (HTTP ${response.status}).`);
   }
 
   // 3. Inspect the saved draft in Firestore
