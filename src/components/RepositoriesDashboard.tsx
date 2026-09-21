@@ -294,7 +294,10 @@ export const RepositoriesDashboard = ({
               <div role="alert" className="text-center py-20 glass-panel rounded-2xl border border-amber-500/20 bg-amber-500/5">
                 <RefreshCw className="w-12 h-12 text-amber-400 mx-auto mb-4" />
                 <p className="text-slate-200 font-bold mb-2">{isAr ? 'تعذر تحميل المستودعات' : isDe ? 'Repositories konnten nicht geladen werden' : 'Repositories could not be loaded'}</p>
-                <p className="text-slate-400 text-sm mb-5">{isAr ? 'تحقق من الاتصال أو أعد المحاولة. لن يتم طلب بيانات GitHub من المتصفح مباشرة.' : isDe ? 'Prüfe die Verbindung und versuche es erneut. GitHub wird nicht direkt aus dem Browser angefragt.' : 'Check the connection and try again. GitHub is never queried directly from the browser.'}</p>
+                <p className="text-slate-400 text-sm mb-3">{isAr ? 'تحقق من الاتصال أو أعد المحاولة. لن يتم طلب بيانات GitHub من المتصفح مباشرة.' : isDe ? 'Prüfe die Verbindung und versuche es erneut. GitHub wird nicht direkt aus dem Browser angefragt.' : 'Check the connection and try again. GitHub is never queried directly from the browser.'}</p>
+                {typeof reposLoadError === 'string' && reposLoadError && (
+                  <p className="text-[11px] text-amber-300/80 mb-5 break-words" dir="ltr">{reposLoadError}</p>
+                )}
                 <button onClick={() => refreshRepos?.(true)} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">
                   {isAr ? 'إعادة المحاولة' : isDe ? 'Erneut versuchen' : 'Retry'}
                 </button>

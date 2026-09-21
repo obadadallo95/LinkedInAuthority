@@ -150,7 +150,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       await setDoc(settingsRef, {
         githubUsername: "",
         githubProfile: null,
+        githubPermissions: 'public',
       }, { merge: true });
+      setSettings(previous => ({
+        ...previous,
+        githubUsername: '',
+        githubProfile: null,
+        githubPermissions: 'public',
+      }));
     }
   };
 

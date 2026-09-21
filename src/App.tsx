@@ -71,7 +71,7 @@ function App() {
   // Repositories state
   const [repos, setRepos] = useState<any[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
-  const [reposLoadError, setReposLoadError] = useState(false);
+  const [reposLoadError, setReposLoadError] = useState<string | null>(null);
   const [orgFilter, setOrgFilter] = useState<string>('Personal');
   const [orgs, setOrgs] = useState<any[]>([]);
   const [repoSearch, setRepoSearch] = useState("");
@@ -145,13 +145,13 @@ function App() {
     if (demoMode) {
       setRepos(AUTHENTICATED_DEMO_REPOSITORIES);
       setOrgs([]);
-      setReposLoadError(false);
+      setReposLoadError(null);
       setLoadingRepos(false);
       return;
     }
     if (!settings.githubUsername) return;
     setLoadingRepos(true);
-    setReposLoadError(false);
+    setReposLoadError(null);
     try {
       if (isBrowserE2E) {
         setRepos([{ id: 'e2e-authority-fixture', name: 'authority-fixture', full_name: 'e2e-user/authority-fixture', owner: { login: 'e2e-user' }, description: 'A fixture repository for authenticated browser testing.', language: 'TypeScript', updated_at: '2026-09-20T12:00:00Z', stargazers_count: 7 }]);
@@ -171,12 +171,22 @@ function App() {
         fetch(`/api/integrations/github/repos?username=${encodeURIComponent(settings.githubUsername)}`, { headers: authHeaders }),
         fetch(`/api/integrations/github/orgs?username=${encodeURIComponent(settings.githubUsername)}`, { headers: authHeaders }),
       ]);
-      if (!reposResponse.ok || !orgsResponse.ok) throw new Error('GitHub data unavailable');
+      if (!reposResponse.ok || !orgsResponse.ok) {
+        const failedResponse = !reposResponse.ok ? reposResponse : orgsResponse;
+        let serverMessage = '';
+        try {
+          const payload = await failedResponse.json();
+          serverMessage = typeof payload?.error === 'string' ? payload.error : '';
+        } catch {
+          // Keep the client-side fallback below when the response is not JSON.
+        }
+        throw new Error(serverMessage || `GitHub data unavailable (${failedResponse.status})`);
+      }
       setRepos(await reposResponse.json().then((data) => data.repos || []));
       setOrgs(await orgsResponse.json().then((data) => data.orgs || []));
     } catch (err) {
       console.error("Failed to fetch live repos:", err);
-      setReposLoadError(true);
+      setReposLoadError(err instanceof Error ? err.message : 'GitHub data unavailable');
       if (forceClearCache) setRepos([]);
     } finally {
       setLoadingRepos(false);
@@ -188,7 +198,7 @@ function App() {
     if (demoMode) {
       setRepos(AUTHENTICATED_DEMO_REPOSITORIES);
       setOrgs([]);
-      setReposLoadError(false);
+      setReposLoadError(null);
       setLoadingRepos(false);
       return;
     }

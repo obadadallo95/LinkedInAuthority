@@ -76,10 +76,12 @@ async function startServer() {
     next();
   });
 
-  // Rate Limiting for authenticated API routes (keyed by Firebase Auth user UID or IP)
-  const authLimiter = rateLimit({
+  // AI requests are intentionally capped separately from normal workspace
+  // traffic. Repository refreshes, settings reads, and disconnects are
+  // authenticated too, but they must not consume the AI request budget.
+  const aiLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50, // Limit each user to 50 authenticated API requests per hour
+    max: 50, // Limit each user to 50 AI requests per hour
     // Count malformed and failed authenticated requests too. The capability
     // ledger separately enforces the stricter AI cost/request limits, while
     // this guard prevents cheap invalid-request abuse from bypassing the
@@ -88,6 +90,21 @@ async function startServer() {
       return (req as any).user?.uid || ipKeyGenerator(req.ip || "0.0.0.0");
     },
     message: { error: "لقد تجاوزت الحد المسموح به من الطلبات لهذه الساعة (50 طلب). يرجى الانتظار والتجربة لاحقاً." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Keep a broader abuse guard for non-AI authenticated surfaces without
+  // making a long repository-review session unable to refresh or disconnect
+  // GitHub. This limiter is process-local, so it is only a safety guard; the
+  // server-side capability ledger remains authoritative for AI usage.
+  const workspaceApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    keyGenerator: (req: express.Request) => {
+      return (req as any).user?.uid || ipKeyGenerator(req.ip || "0.0.0.0");
+    },
+    message: { error: "Too many workspace requests. Please try again shortly." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -145,14 +162,21 @@ async function startServer() {
     }
   });
 
-  // Apply the same abuse guard to every authenticated API surface, not only AI.
-  // Capability-specific usage ledgers remain the source of truth for AI cost limits.
-  app.use("/api", authLimiter);
+  for (const aiPath of [
+    '/analyze-repo',
+    '/generate-post',
+    '/analyze-commits',
+    '/generate-hashtags',
+    '/optimize-post',
+    '/deep-scan',
+  ]) {
+    app.use(`/api${aiPath}`, aiLimiter);
+  }
   app.use("/api", aiRoutes);
-  app.use("/api/integrations", integrationRoutes);
-  app.use("/api/account", accountRoutes);
-  app.use("/api/automation", automationRoutes);
-  app.use("/api/product-events", productEventRoutes);
+  app.use("/api/integrations", workspaceApiLimiter, integrationRoutes);
+  app.use("/api/account", workspaceApiLimiter, accountRoutes);
+  app.use("/api/automation", workspaceApiLimiter, automationRoutes);
+  app.use("/api/product-events", workspaceApiLimiter, productEventRoutes);
 
   // Serve the versioned worker explicitly so Vite/static middleware cannot
   // return a stale legacy unregistering worker during upgrades.

@@ -183,6 +183,7 @@ describe('SettingsContext', () => {
     expect(firestore.setDoc).toHaveBeenCalledWith('mock-doc-ref', {
       githubUsername: '',
       githubProfile: null,
+      githubPermissions: 'public',
     }, { merge: true });
   });
 
