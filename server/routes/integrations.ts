@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { deleteGithubCredential, getGithubCredentialForUser, GithubCredentialUnavailableError, saveGithubCredential } from '../services/githubCredentials';
+import { deleteGithubCredential, getGithubCredentialForUser, GithubCredentialUnavailableError, saveGithubCredential, setGithubAccessScope } from '../services/githubCredentials';
 import { recordProductEvent } from '../services/productTelemetry';
 import { fetchWithTimeout } from '../services/github';
 
@@ -57,6 +57,21 @@ router.post('/github/connect', async (req: any, res) => {
   } catch (error) {
     console.error('GitHub credential connection failed:', error instanceof Error ? error.message : 'unknown error');
     return res.status(503).json({ error: 'GitHub connection is temporarily unavailable.' });
+  }
+});
+
+router.patch('/github/scope', async (req: any, res) => {
+  if (!req.user?.uid) return res.status(401).json({ error: 'Unauthorized' });
+  const scope = req.body?.scope;
+  if (scope !== 'public' && scope !== 'all') {
+    return res.status(400).json({ error: 'A valid GitHub access scope is required.' });
+  }
+  try {
+    await setGithubAccessScope(req.user.uid, scope);
+    invalidateGithubListCache(req.user.uid);
+    return res.json({ githubPermissions: scope });
+  } catch {
+    return res.status(503).json({ error: 'GitHub access scope is temporarily unavailable.' });
   }
 });
 

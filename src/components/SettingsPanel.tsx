@@ -33,11 +33,16 @@ export const SettingsPanel = ({
     if (!auth.currentUser) return;
     setPermissionState('saving');
     try {
-      const { db, doc, setDoc } = await loadFirestoreClient();
-      const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
-      await setDoc(settingsRef, {
-        [field]: value
-      }, { merge: true });
+      if (field !== 'githubPermissions' || (value !== 'public' && value !== 'all')) {
+        throw new Error('Invalid GitHub access scope');
+      }
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch('/api/integrations/github/scope', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ scope: value }),
+      });
+      if (!response.ok) throw new Error('GitHub access scope update failed');
       setPermissionState('saved');
       addConnectionLog(
         'github.scope',

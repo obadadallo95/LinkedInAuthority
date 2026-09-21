@@ -76,7 +76,12 @@ describe('GitHub credential encryption', () => {
 
     expect(credentialDelete).toHaveBeenCalledOnce();
     expect(settingsSet).toHaveBeenCalledWith(
-      { githubToken: expect.anything() },
+      {
+        githubToken: expect.anything(),
+        githubUsername: '',
+        githubProfile: null,
+        githubPermissions: 'public',
+      },
       { merge: true },
     );
   });

@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-const { mockFetch, mockGetCredential, mockSaveCredential, mockDeleteCredential, MockGithubCredentialUnavailableError } = vi.hoisted(() => ({
+const { mockFetch, mockGetCredential, mockSaveCredential, mockDeleteCredential, mockSetScope, MockGithubCredentialUnavailableError } = vi.hoisted(() => ({
   mockFetch: vi.fn(),
   mockGetCredential: vi.fn().mockResolvedValue(undefined),
   mockSaveCredential: vi.fn(),
   mockDeleteCredential: vi.fn(),
+  mockSetScope: vi.fn(),
   MockGithubCredentialUnavailableError: class extends Error {},
 }));
 
@@ -15,6 +16,7 @@ vi.mock('../../server/services/githubCredentials', () => ({
   GithubCredentialUnavailableError: MockGithubCredentialUnavailableError,
   saveGithubCredential: mockSaveCredential,
   deleteGithubCredential: mockDeleteCredential,
+  setGithubAccessScope: mockSetScope,
 }));
 
 vi.mock('../../server/services/productTelemetry', () => ({
@@ -61,6 +63,16 @@ describe('GitHub integration boundary', () => {
         && !(options?.headers || {}).Authorization
         && options?.signal instanceof AbortSignal;
     })).toBe(true);
+  });
+
+  it('saves the GitHub access scope through the authenticated server boundary', async () => {
+    const response = await request(app)
+      .patch('/api/integrations/github/scope')
+      .send({ scope: 'public' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ githubPermissions: 'public' });
+    expect(mockSetScope).toHaveBeenCalledWith('integration-user', 'public');
   });
 
   it('rejects malformed repository identifiers before any upstream request', async () => {

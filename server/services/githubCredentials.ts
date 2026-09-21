@@ -122,5 +122,17 @@ export async function deleteGithubCredential(userId: string) {
   // a reconnect/disconnect cycle until the reviewed migration runs.
   await userRef.collection('settings').doc('current').set({
     githubToken: FieldValue.delete(),
+    githubUsername: '',
+    githubProfile: null,
+    githubPermissions: 'public',
   }, { merge: true });
+}
+
+export async function setGithubAccessScope(userId: string, scope: 'public' | 'all') {
+  await getAdminFirestore()
+    .collection('users')
+    .doc(userId)
+    .collection('settings')
+    .doc('current')
+    .set({ githubPermissions: scope }, { merge: true });
 }

@@ -145,13 +145,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         });
         if (!response.ok) throw new Error('GitHub disconnect failed');
       }
-      const { db, doc, setDoc } = await loadFirestoreClient();
-      const settingsRef = doc(db, "users", user.uid, "settings", "current");
-      await setDoc(settingsRef, {
-        githubUsername: "",
-        githubProfile: null,
-        githubPermissions: 'public',
-      }, { merge: true });
       setSettings(previous => ({
         ...previous,
         githubUsername: '',

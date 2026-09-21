@@ -77,8 +77,6 @@ describe('SettingsContext', () => {
 
   it('subscribes to settings when user is present', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
-    (firestore.doc as any).mockReturnValue('mock-doc-ref');
-
     render(
       <SettingsProvider>
         <TestComponent />
@@ -180,11 +178,7 @@ describe('SettingsContext', () => {
       btn.click();
     });
 
-    expect(firestore.setDoc).toHaveBeenCalledWith('mock-doc-ref', {
-      githubUsername: '',
-      githubProfile: null,
-      githubPermissions: 'public',
-    }, { merge: true });
+    expect(firestore.setDoc).not.toHaveBeenCalled();
   });
 
   it('evaluates normal user as Free tier (isPro === false)', async () => {
