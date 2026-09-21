@@ -20,8 +20,10 @@ const auth = getAuth(app);
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
-// Public repository analysis does not require GitHub's broad full-repository
-// scope. Private-repository support remains a documented beta limitation.
+// Request GitHub's repository scope so an explicit "public and private"
+// setting can actually authorize private-repository listing and analysis.
+// The server still gates use of this credential behind githubPermissions=all.
+githubProvider.addScope('repo');
 
 export const firestoreDatabaseId = configData.firestoreDatabaseId;
 
