@@ -48,7 +48,6 @@ export interface Log {
 }
 
 export interface UserSettings {
-  githubToken?: string;
   githubUsername?: string;
   globalWorkforceStatus?: "active" | "paused";
   stripeThreshold?: number;

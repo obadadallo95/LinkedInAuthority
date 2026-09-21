@@ -12,8 +12,8 @@ const faqs = {
       category: "تحليل المستودعات",
       icon: FileText,
       questions: [
-        { q: "كيف يعمل تحليل الأكواد؟", a: "يقوم النظام بقراءة الملفات الأساسية في المستودع مثل README وملفات الإعدادات لفهم هيكل المشروع دون تخزين الشفرة المصدرية." },
-        { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "لا، نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط." }
+        { q: "كيف يعمل تحليل الأكواد؟", a: "يختار النظام ملفات وأدلة مهمة بميزانية محدودة لفهم هيكل المشروع؛ قد تُحفظ مقتطفات evidence في snapshot للتحليل المتكرر." },
+        { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "قد تُحفظ مقتطفات محدودة من الملفات المختارة ومراجع الأدلة داخل snapshot للتحليل؛ النسخة التجريبية لا تضمن احتفاظًا صفريًا." }
       ]
     },
     {
@@ -28,8 +28,8 @@ const faqs = {
       category: "الخصوصية والأمان",
       icon: Shield,
       questions: [
-        { q: "هل يمكنني حذف بياناتي؟", a: "نعم، يمكنك مسح كافة بياناتك ومنشوراتك وارتباطات حسابك بشكل نهائي من خلال خيار 'حذف الحساب' في صفحة الإعدادات." },
-        { q: "هل بياناتي مشفرة؟", a: "نعم، كافة بيانات الاتصال مع قاعدة البيانات مشفرة باستخدام معايير الصناعة." }
+        { q: "هل يمكنني حذف بياناتي؟", a: "يوفر الإصدار التجريبي مسار حذف موثقاً يحذف بيانات Firebase وحساب المصادقة بشكل تكراري. يلزم التحقق من المشروع المنشور ومراجعة الاحتفاظ قبل تقديم ادعاء تنظيمي بالمحو الكامل." },
+        { q: "هل بياناتي مشفرة؟", a: "يوفر Firebase حماية النقل والتخزين على مستوى المنصة، كما تُخزن بيانات اعتماد GitHub الجديدة مشفرة في سجل خادمي خاص. لا تعتبر النسخة التجريبية ذلك ضماناً شاملاً لكل مسارات البيانات." }
       ]
     }
   ],
@@ -38,8 +38,8 @@ const faqs = {
       category: "Repository Analysis",
       icon: FileText,
       questions: [
-        { q: "How does code analysis work?", a: "The system reads core files like README and configs to understand project structure without storing your source code." },
-        { q: "Do you store my code?", a: "No, we do not store any source code on our servers. Processing is strictly real-time." }
+        { q: "How does code analysis work?", a: "The system selects bounded core files and configs to understand project structure; selected evidence snippets may be stored in repository snapshots." },
+        { q: "Do you store my code?", a: "Bounded snippets from selected evidence files and their references may be stored in repository snapshots; this beta does not promise zero retention." }
       ]
     },
     {
@@ -54,8 +54,8 @@ const faqs = {
       category: "Privacy & Security",
       icon: Shield,
       questions: [
-        { q: "Can I delete my data?", a: "The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure." },
-        { q: "Is my data encrypted?", a: "Transport and platform-level storage protections are provided by Firebase, but this beta does not implement a dedicated application-level token vault." }
+        { q: "Can I delete my data?", a: "The beta provides an authenticated account-deletion flow that recursively removes the user's Firebase data and Auth account. Deployed-project verification and retention review are still required before making a regulatory erasure claim." },
+        { q: "Is my data encrypted?", a: "Firebase provides transport and platform-level storage protections. New GitHub credentials are additionally encrypted server-side with AES-256-GCM in an Admin-only record; this beta does not promise zero retention for repository-derived context or drafts." }
       ]
     }
   ],
@@ -64,8 +64,8 @@ const faqs = {
       category: "Repository Analyse",
       icon: FileText,
       questions: [
-        { q: "Wie funktioniert die Code-Analyse?", a: "Das System liest Kerndateien wie README und Konfigurationen, um die Projektstruktur zu verstehen, ohne Ihren Quellcode zu speichern." },
-        { q: "Speichern Sie meinen Code?", a: "Nein, wir speichern keinen Quellcode auf unseren Servern. Die Verarbeitung erfolgt streng in Echtzeit." }
+        { q: "Wie funktioniert die Code-Analyse?", a: "Das System wählt begrenzte Kerndateien wie README und Konfigurationen aus, um die Projektstruktur zu verstehen; ausgewählte Evidenz-Ausschnitte können in Repository-Snapshots gespeichert werden." },
+        { q: "Speichern Sie meinen Code?", a: "Begrenzte Ausschnitte ausgewählter Evidenzdateien und abgeleiteter Kontext können in Repository-Snapshots gespeichert werden; diese Beta verspricht keine Null-Aufbewahrung." }
       ]
     },
     {
@@ -80,8 +80,8 @@ const faqs = {
       category: "Datenschutz & Sicherheit",
       icon: Shield,
       questions: [
-        { q: "Kann ich meine Daten löschen?", a: "Ja, Sie können alle Ihre Daten, Beiträge und Kontoverknüpfungen dauerhaft über die Option 'Konto löschen' in den Einstellungen löschen." },
-        { q: "Sind meine Daten verschlüsselt?", a: "Firebase bietet Schutz für Übertragung und Speicherung auf Plattformebene; diese Beta enthält jedoch keine eigene Token-Vault für Anwendungsschlüssel." }
+        { q: "Kann ich meine Daten löschen?", a: "Die Beta bietet einen authentifizierten Löschvorgang, der die Firebase-Daten des Benutzers und das Auth-Konto rekursiv entfernt. Eine Prüfung der bereitgestellten Umgebung und der Aufbewahrung ist vor regulatorischen Aussagen erforderlich." },
+        { q: "Sind meine Daten verschlüsselt?", a: "Firebase bietet Schutz für Übertragung und Speicherung auf Plattformebene. Neue GitHub-Zugangsdaten werden zusätzlich serverseitig mit AES-256-GCM in einem Admin-only-Datensatz verschlüsselt; diese Beta verspricht keine Null-Aufbewahrung für abgeleiteten Kontext oder Entwürfe." }
       ]
     }
   ]

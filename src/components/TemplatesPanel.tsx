@@ -3,15 +3,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, Search, Trash2, BookOpen, Layers, 
   ArrowRight, Check, Copy, RefreshCw, FileText,
-  User, Bookmark, HelpCircle
+  Link2, Bookmark, HelpCircle
 } from 'lucide-react';
 import { t } from '../constants';
 
 interface TemplatesPanelProps {
   lang: 'ar' | 'en' | 'de';
   posts: any[];
-  handleUseTemplate: (template: any) => void;
-  handleDeletePost: (id: string) => void;
+  postsError?: boolean;
+  handleUseTemplate: (template: any) => void | Promise<void>;
+  handleDeletePost: (id: string) => void | Promise<void>;
   setActiveTab: (tab: any) => void;
   showToast: (msg: string) => void;
 }
@@ -19,7 +20,8 @@ interface TemplatesPanelProps {
 const customI18n: Record<string, any> = {
   ar: {
     templatesTitle: "مكتبة القوالب الذكية",
-    templatesDesc: "اختر قالباً احترافياً، قم بتخصيص متغيراته فوراً، وابدأ بالنشر بسرعة لزيادة التفاعل العضوي.",
+    templatesDesc: "اختر قالباً احترافياً، خصّص متغيراته، ثم استخدمه كنقطة بداية لمسودة تراجعها وتنسخها يدوياً.",
+    templateTrustNote: "القالب نقطة بداية فقط؛ استبدل كل متغير بحقيقة موثقة من مشروعك قبل الحفظ أو النسخ.",
     searchPlaceholder: "ابحث عن قالب...",
     filterAll: "الكل",
     filterBuiltIn: "القوالب الجاهزة",
@@ -27,10 +29,14 @@ const customI18n: Record<string, any> = {
     useTemplateBtn: "استخدام القالب وإنشاء مسودة",
     variablesTitle: "تخصيص المتغيرات",
     previewTitle: "معاينة المنشور المخصّص",
+    previewLabel: "مسودة منشور LinkedIn",
+    previewSub: "للمراجعة والنسخ اليدوي",
     copiedToast: "تم نسخ النص إلى الحافظة!",
     noCustomTemplates: "لم تقم بحفظ أي قوالب مخصصة حتى الآن.",
     noCustomTemplatesAdvice: "أثناء تعديل أي مسودة في الصفحة الرئيسية، يمكنك الضغط على 'حفظ كقالب' لتظهر هنا للاستخدام المتكرر.",
     deleteTemplateConfirm: "هل أنت متأكد من حذف هذا القالب؟",
+    templateActionError: "تعذر تنفيذ العملية على القالب. حاول مرة أخرى.",
+    deleteTemplateLabel: "حذف القالب",
     builtInBadge: "جاهز",
     customBadge: "مخصص",
     textCopied: "تم النسخ",
@@ -40,6 +46,7 @@ const customI18n: Record<string, any> = {
   en: {
     templatesTitle: "Smart Templates Library",
     templatesDesc: "Select a professional post template, customize its placeholders in real-time, and draft in seconds.",
+    templateTrustNote: "Templates are writing scaffolds, not evidence. Replace every placeholder with a verified project fact before saving or copying.",
     searchPlaceholder: "Search templates...",
     filterAll: "All",
     filterBuiltIn: "Built-in",
@@ -47,10 +54,14 @@ const customI18n: Record<string, any> = {
     useTemplateBtn: "Use Template & Create Draft",
     variablesTitle: "Customize Placeholders",
     previewTitle: "Customized Post Preview",
+    previewLabel: "LinkedIn draft",
+    previewSub: "Review and copy manually",
     copiedToast: "Text copied to clipboard!",
     noCustomTemplates: "No custom templates saved yet.",
     noCustomTemplatesAdvice: "While editing any draft in the Home tab, you can click 'Save as Template' to make it available here.",
     deleteTemplateConfirm: "Are you sure you want to delete this template?",
+    templateActionError: "The template action could not be completed. Try again.",
+    deleteTemplateLabel: "Delete template",
     builtInBadge: "Built-in",
     customBadge: "Custom",
     textCopied: "Copied",
@@ -60,6 +71,7 @@ const customI18n: Record<string, any> = {
   de: {
     templatesTitle: "Vorlagen-Bibliothek",
     templatesDesc: "Wählen Sie eine professionelle Beitragsvorlage, passen Sie die Platzhalter an und erstellen Sie Entwürfe.",
+    templateTrustNote: "Vorlagen sind nur Schreibgerüste, keine Belege. Ersetzen Sie jeden Platzhalter vor dem Speichern oder Kopieren durch eine geprüfte Projektangabe.",
     searchPlaceholder: "Vorlagen suchen...",
     filterAll: "Alle",
     filterBuiltIn: "Standard",
@@ -67,10 +79,14 @@ const customI18n: Record<string, any> = {
     useTemplateBtn: "Vorlage verwenden & Entwurf erstellen",
     variablesTitle: "Platzhalter anpassen",
     previewTitle: "Vorschau des angepassten Beitrags",
+    previewLabel: "LinkedIn-Entwurf",
+    previewSub: "Prüfen und manuell kopieren",
     copiedToast: "In Zwischenablage kopiert!",
     noCustomTemplates: "Noch keine eigenen Vorlagen gespeichert.",
     noCustomTemplatesAdvice: "Klicken Sie beim Bearbeiten im Home-Tab auf 'Als Vorlage speichern', um sie hier zu sichern.",
     deleteTemplateConfirm: "Möchten Sie diese Vorlage wirklich löschen?",
+    templateActionError: "Die Vorlagenaktion konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
+    deleteTemplateLabel: "Vorlage löschen",
     builtInBadge: "Standard",
     customBadge: "Eigene",
     textCopied: "Kopiert",
@@ -82,12 +98,14 @@ const customI18n: Record<string, any> = {
 export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
   lang,
   posts,
+  postsError = false,
   handleUseTemplate,
   handleDeletePost,
   setActiveTab,
   showToast
 }) => {
   const isAr = lang === 'ar';
+  const isDe = lang === 'de';
   const custom = customI18n[lang] || customI18n['en'];
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,6 +113,7 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('static-temp-1');
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Static built-in templates
   const staticTemplates = useMemo(() => [
@@ -104,9 +123,9 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
       isBuiltIn: true,
       repoName: isAr ? 'إطلاق مشروع جديد 🚀' : 'Project Launch Announcement 🚀',
       text: isAr 
-        ? `يسعدني الإعلان عن إطلاق [اسم المشروع] 🚀!\n\nبعد أشهر من العمل الجاد، أصبح المشروع متاحاً للجميع. يهدف هذا المشروع إلى حل [المشكلة] من خلال [الحل].\n\nأود أن أشكر كل من ساهم في هذا الإنجاز. يمكنكم تجربته من هنا: [الرابط]\n\n#إطلاق_مشروع #تقنية #تطوير_برمجيات` 
-        : `I am thrilled to announce the launch of [Project Name] 🚀!\n\nAfter months of hard work, coffee, and late-night coding, we are finally live. This project solves [Problem] by [Solution].\n\nI want to thank everyone who supported this journey. Check it out here: [Link]\n\n#Launch #Tech #Innovation #BuildInPublic`,
-      cardConfig: { title: isAr ? 'إطلاق مشروع جديد' : 'New Project Launch', metrics: isAr ? 'الإصدار 1.0' : 'Version 1.0', subtitle: isAr ? 'متاح الآن' : 'Available Now', theme: 'purple' }
+        ? `تحديث موثق من مشروع [اسم المشروع] 🚀\n\nما الذي تغيّر: [التغيير الموثق].\nلماذا يهم: [الأثر الذي تدعمه الأدلة].\n\nالمصدر للمراجعة: [الرابط]\n\n#هندسة_برمجيات #بناء_علناً #كتابة_تقنية`
+        : `A verified project update from [Project Name] 🚀\n\nWhat changed: [Verified change].\nWhy it matters: [Impact you can support with evidence].\n\nSource for review: [Link]\n\n#SoftwareEngineering #BuildInPublic #TechnicalWriting`,
+      cardConfig: { title: isAr ? 'إطلاق مشروع جديد' : 'New Project Launch', metrics: isAr ? '[الإصدار الموثق]' : '[Verified Version]', subtitle: isAr ? 'أضف دليلاً' : 'Add evidence', theme: 'purple' }
     },
     {
       id: 'static-temp-2',
@@ -114,8 +133,8 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
       isBuiltIn: true,
       repoName: isAr ? 'مشاركة معرفة تقنية (مقال) 🛠️' : 'Technical Deep Dive 🛠️',
       text: isAr 
-        ? `🛠️ كيف قمنا بتحسين أداء تطبيقنا بنسبة 50%؟\n\nفي مقالنا الهندسي الجديد، نستعرض بالتفصيل التغييرات المعمارية التي قمنا بها لتوسيع نطاق [اسم المشروع]. إليك أهم النقاط:\n\n1. [النقطة الأولى]\n2. [النقطة الثانية]\n3. [النقطة الثالثة]\n\nلقراءة التفاصيل التقنية كاملة، تفضل بزيارة الرابط: [الرابط]\n\n#هندسة_برمجيات #برمجة #تطوير`
-        : `🛠️ How we reduced our latency by 50% using [Technology].\n\nIn our latest engineering blog post, we dive deep into the architecture changes we made to scale [Project Name]. Here are the key takeaways:\n\n1. [Key Point 1]\n2. [Key Point 2]\n3. [Key Point 3]\n\nRead the full post here: [Link]\n\n#Engineering #SoftwareDevelopment #Tech`,
+        ? `🛠️ درس تقني من مشروع [اسم المشروع]\n\nالسؤال أو القيد الهندسي: [السؤال أو القيد].\nالتغيير المدعوم بالدليل: [تغيير تدعمه commit أو diff أو وثيقة].\nما تعلمناه: [درس محدد].\n\nالدليل للمراجعة: [الرابط]\n\n#هندسة_برمجيات #تطوير #قيادة_تقنية`
+        : `🛠️ A technical lesson from [Project Name]\n\nEngineering question: [Question or constraint].\nEvidence-backed change: [Change supported by a commit, diff, or document].\nWhat we learned: [Specific lesson].\n\nEvidence to review: [Link]\n\n#Engineering #SoftwareDevelopment #TechnicalLeadership`,
       cardConfig: { title: isAr ? 'نظرة متعمقة' : 'Deep Dive', metrics: isAr ? 'أداء' : 'Performance', subtitle: isAr ? 'هندسة البرمجيات' : 'Software Engineering', theme: 'emerald' }
     },
     {
@@ -124,8 +143,8 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
       isBuiltIn: true,
       repoName: isAr ? 'مساهمة مفتوحة المصدر 🌟' : 'Open Source Release 🌟',
       text: isAr
-        ? `🌟 متحمس جداً للإعلان أن [اسم المشروع] أصبح الآن مفتوح المصدر!\n\nنحن نؤمن بأهمية بناء المشاريع مع المجتمع. سواء كنت مطوراً متمرساً أو في بداية طريقك، نرحب بمساهماتك.\n\nتفضل بزيارة المستودع على جيتهاب وشاركنا في بناء شيء رائع: [الرابط]\n\n#مفتوح_المصدر #جيتهاب #مجتمع_المطورين`
-        : `🌟 Excited to share that [Project Name] is now open source!\n\nWe believe in building together with the community. Whether you are a seasoned developer or just starting out, we welcome your contributions.\n\nCheck out the repo and let’s build something amazing together: [Link]\n\n#OpenSource #GitHub #DeveloperCommunity`,
+        ? `🌟 تحديث موثق من مستودع [اسم المشروع]\n\nالحالة الموثقة: [إصدار عام أو مساهمة أو تغيير في المستودع].\nما يمكن للمساهمين مراجعته: [قسم موثق أو issue أو pull request أو commit].\nطريقة المراجعة: [الرابط]\n\n#مفتوح_المصدر #جيتهاب #مجتمع_المطورين`
+        : `🌟 A repository update from [Project Name]\n\nVerified status: [Public release, contribution, or repository change].\nWhat contributors can inspect: [Documented area, issue, pull request, or commit].\nHow to review it: [Link]\n\n#OpenSource #GitHub #DeveloperCommunity`,
       cardConfig: { title: isAr ? 'مفتوح المصدر' : 'Open Source', metrics: isAr ? 'مجتمع' : 'Community', subtitle: isAr ? 'شاركنا البناء' : 'Build with us', theme: 'blue' }
     },
     {
@@ -134,9 +153,9 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
       isBuiltIn: true,
       repoName: isAr ? 'الاحتفال بإنجاز (أرقام) 🎉' : 'Milestone Celebration 🎉',
       text: isAr
-        ? `🎉 لقد وصلنا للتو إلى [رقم] مستخدم في [اسم المشروع]!\n\nأود أن أتوقف لحظة لشكر كل من دعمنا في هذه الرحلة. عندما بدأت في بناء هذا، لم أتخيل أبداً أننا سنصل إلى هذا الإنجاز بهذه السرعة.\n\nالخطوة القادمة: [الميزة القادمة]. ابقوا معنا!\n\n#إنجاز #شكراً #تطوير`
-        : `🎉 We just hit [Number] users on [Project Name]!\n\nI want to take a moment to thank everyone who has supported this journey. When I started building this, I never imagined we would reach this milestone so quickly.\n\nNext up: [Next Feature]. Stay tuned!\n\n#Milestone #BuildInPublic #Tech`,
-      cardConfig: { title: isAr ? 'إنجاز جديد' : 'Milestone Reached', metrics: '100K+', subtitle: isAr ? 'مستخدم نشط' : 'Active Users', theme: 'rose' }
+        ? `🎉 إنجاز قابل للقياس في [اسم المشروع]\n\nالمؤشر: [الرقم]\nتاريخ القياس: [التاريخ]\nالمصدر أو طريقة القياس: [الرابط أو ملاحظة القياس]\nالتجربة التالية: [الميزة أو السؤال الهندسي التالي]\n\n#هندسة_برمجيات #بناء_علناً #تطوير_المنتج`
+        : `🎉 A measured milestone for [Project Name]\n\nMetric: [Number]\nMeasured on: [Date]\nSource or method: [Link or measurement note]\nNext experiment: [Next Feature or engineering question]\n\n#Engineering #BuildInPublic #ProductDevelopment`,
+      cardConfig: { title: isAr ? 'إنجاز جديد' : 'Milestone Reached', metrics: isAr ? '[رقم موثق]' : '[Verified Number]', subtitle: isAr ? 'أضف دليلاً' : 'Add evidence', theme: 'rose' }
     }
   ], [isAr]);
 
@@ -203,23 +222,35 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleUse = () => {
+  const handleUse = async () => {
     if (!currentTemplate) return;
+    setActionError(null);
     // Call parents method but with customized text applied
-    handleUseTemplate({
-      ...currentTemplate,
-      text: customizedText
-    });
-    // Safely redirect to Home tab
-    setActiveTab('home');
+    try {
+      await handleUseTemplate({
+        ...currentTemplate,
+        text: customizedText
+      });
+      // A template becomes a draft; take the user to the real review surface.
+      setActiveTab('drafts');
+    } catch (error) {
+      console.error('Template draft creation failed:', error);
+      setActionError(custom.templateActionError);
+    }
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm(custom.deleteTemplateConfirm)) {
-      handleDeletePost(id);
-      if (selectedTemplateId === id) {
-        setSelectedTemplateId('static-temp-1');
+      setActionError(null);
+      try {
+        await handleDeletePost(id);
+        if (selectedTemplateId === id) {
+          setSelectedTemplateId('static-temp-1');
+        }
+      } catch (error) {
+        console.error('Template deletion failed:', error);
+        setActionError(custom.templateActionError);
       }
     }
   };
@@ -235,8 +266,24 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
             <span>{custom.templatesTitle}</span>
           </h2>
           <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">{custom.templatesDesc}</p>
+          <p className="text-[10px] text-indigo-300/80 max-w-2xl leading-relaxed">{custom.templateTrustNote}</p>
         </div>
       </div>
+
+      {postsError && (
+        <div className="w-full rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-start text-sm text-amber-200" role="alert">
+          {isAr
+            ? 'تعذر تحميل قوالبك المخصصة. القوالب الجاهزة متاحة، ويمكنك إعادة تحميل الصفحة لاحقاً.'
+            : isDe
+              ? 'Eigene Vorlagen konnten nicht geladen werden. Standardvorlagen bleiben verfügbar; versuche es später erneut.'
+              : 'Your custom templates could not be loaded. Built-in templates remain available; try again later.'}
+        </div>
+      )}
+      {actionError && (
+        <div className="w-full rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-start text-sm text-rose-200" role="alert">
+          {actionError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-stretch">
         
@@ -296,9 +343,20 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
                 return (
                   <div
                     key={template.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    aria-label={template.repoName}
                     onClick={() => {
                       setSelectedTemplateId(template.id);
                       setVariables({}); // Reset custom inputs when changing template
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedTemplateId(template.id);
+                        setVariables({});
+                      }
                     }}
                     className={`p-4 rounded-xl border text-start cursor-pointer transition-all duration-300 relative group overflow-hidden
                       ${isSelected 
@@ -320,6 +378,7 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
                       {!template.isBuiltIn && (
                         <button
                           onClick={(e) => handleDelete(template.id, e)}
+                          aria-label={`${custom.deleteTemplateLabel}: ${template.repoName}`}
                           className="p-1 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-md transition-all shrink-0 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -395,12 +454,12 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
                 {/* Post Preview Card */}
                 <div className="flex-1 bg-slate-950 rounded-xl border border-white/5 p-4.5 font-sans flex flex-col justify-between overflow-y-auto max-h-[350px]">
                   <div className="flex items-center gap-2.5 mb-3.5">
-                    <div className="w-9 h-9 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-md">
-                      <User className="w-4 h-4 text-indigo-400" />
+                    <div className="w-9 h-9 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-md" aria-hidden="true">
+                      <Link2 className="w-4 h-4 text-indigo-400" />
                     </div>
                     <div>
-                      <span className="block text-xs font-extrabold text-white tracking-wide">Me</span>
-                      <span className="block text-[9.5px] text-slate-400 font-bold mt-0.5">Software Architect • LinkedIn</span>
+                      <span className="block text-xs font-extrabold text-white tracking-wide">{custom.previewLabel}</span>
+                      <span className="block text-[9.5px] text-slate-400 font-bold mt-0.5">{custom.previewSub}</span>
                     </div>
                   </div>
 

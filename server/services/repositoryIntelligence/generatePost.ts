@@ -2,6 +2,7 @@ import { getGeminiClient, callGeminiWithRetry } from './gemini';
 import { getGenerateSystemPrompt, getGenerateLanguageInstruction } from './prompts';
 import { generateSchema } from './schemas';
 import { AnalysisTokenPayload, CandidateAngle, GenerateResponse } from './types';
+import { auditDraftClaims } from '../deepIntelligence/claimAudit';
 
 export async function generatePostFromAngle(
   tokenPayload: AnalysisTokenPayload, 
@@ -127,12 +128,20 @@ export async function generatePostFromAngle(
   }
 
   const evidence = tokenPayload.atomicFacts.filter(f => usedEvidenceIds.includes(f.id));
+  const claimAudit = auditDraftClaims(result.post, evidence.map(fact => ({
+    id: fact.id || 'unknown',
+    sourceType: fact.source.toLowerCase().startsWith('commit') ? 'commit' : 'file',
+    reference: fact.source,
+    excerpt: fact.fact,
+  })));
+  warnings.push(...claimAudit.warnings);
 
   return {
     post: result.post,
     suggestedComment: result.suggestedComment,
     evidence,
     usedEvidenceIds,
-    warnings
+    warnings,
+    claimAudit,
   };
 }

@@ -1,115 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
-export const RepoSparkline = ({ username, repo, token, className = "h-6 w-16" }: { username: string; repo: string; token: string; className?: string }) => {
-  const [data, setData] = useState<number[]>([]);
+/**
+ * Activity preview deliberately does not call GitHub from every repository card.
+ * Activity and meaningful-change evidence are fetched by the bounded analysis
+ * flow, where they can be authenticated, rate-limited, and grounded in a draft.
+ */
+export const RepoSparkline = ({ lang = 'en', className = 'h-6 w-16' }: { lang?: 'ar' | 'en' | 'de'; className?: string }) => {
   const [loading, setLoading] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
-    let observer: IntersectionObserver;
-    let isMounted = true;
-
-    const loadData = async () => {
-      try {
-        const headers: Record<string, string> = {
-          "Accept": "application/vnd.github.v3+json",
-        };
-        if (token) {
-          headers["Authorization"] = `token ${token}`;
-        }
-        // fetch participation stats (last 52 weeks)
-        const res = await fetch(`https://api.github.com/repos/${username}/${repo}/stats/participation`, { headers });
-        if (res.ok) {
-          const stats = await res.json();
-          if (stats.all && isMounted) {
-            // take last 4 weeks (approx 30 days)
-            setData(stats.all.slice(-4));
-          }
-        } else if (res.status === 202) {
-          if (isMounted) setData([1,2,1,0]); // mock data if computing
-        }
-      } catch (e) {
-        // ignore
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    if (containerRef.current) {
-      observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          loadData();
-          observer.disconnect();
-        }
-      });
-      observer.observe(containerRef.current);
-    }
-
-    return () => {
-      isMounted = false;
-      if (observer) observer.disconnect();
-    };
-  }, [username, repo, token]);
+    const timer = window.setTimeout(() => setLoading(false), 120);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   if (loading) {
-    return <div ref={containerRef} className={`${className} bg-slate-800/50 animate-pulse rounded-md`}></div>;
+    return <div className={`${className} bg-slate-800/50 animate-pulse rounded-md`} aria-label="Loading activity preview" />;
   }
-
-  if (data.length === 0 || data.every(d => d === 0)) {
-    return <div ref={containerRef} className={`${className} text-[9px] text-slate-500 font-medium flex items-center justify-center`}>No activity</div>;
-  }
-
-  const max = Math.max(...data, 1);
-  const min = 0;
-  
-  // Create points for SVG path
-  const width = 100; // use percentage mapping internally
-  const height = 40;
-  const step = width / (data.length - 1 || 1);
-  
-  const points = data.map((val, i) => {
-    const x = i * step;
-    const y = height - Math.max(((val - min) / (max - min)) * height, 2);
-    return `${x},${y}`;
-  });
-  
-  const pathData = `M ${points[0]} ` + points.slice(1).map((p, i) => `L ${p}`).join(' ');
 
   return (
-    <div ref={containerRef} className={`${className} relative`} title="Commit activity (last 30 days)">
-      <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
-        {/* Glow effect */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke="rgba(99, 102, 241, 0.4)"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="blur-[2px]"
-        />
-        {/* Main line */}
-        <path
-          d={pathData}
-          fill="none"
-          stroke="#818cf8"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {/* Area fill under curve */}
-        <path
-          d={`${pathData} L ${width},${height} L 0,${height} Z`}
-          fill="url(#sparkline-gradient)"
-          opacity="0.2"
-        />
-        <defs>
-          <linearGradient id="sparkline-gradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-        </defs>
-      </svg>
+    <div className={`${className} flex items-center justify-center text-[9px] font-medium text-slate-500 text-center`} title="Activity is checked during repository analysis">
+      {lang === 'ar' ? 'يُفحص النشاط عند التحليل' : lang === 'de' ? 'Aktivität wird bei der Analyse geprüft' : 'Activity checked on analyze'}
     </div>
   );
 };

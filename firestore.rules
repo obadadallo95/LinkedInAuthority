@@ -7,8 +7,11 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // User must only access their own data
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Do not grant access at the user-document level. Firestore evaluates
+      // overlapping matches with OR semantics, so a broad parent allow would
+      // bypass the server-only rules for credentials, telemetry, snapshots,
+      // checkpoints, and audit history below. Each owned surface opts in
+      // explicitly instead.
 
       match /agents/{agentId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -19,7 +22,10 @@ service cloud.firestore {
       }
 
       match /auditLogs/{logId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        // Audit history is server-authored through Firebase Admin. Clients may
+        // inspect their history but must not rewrite it.
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
       }
 
       // Settings Schema Validation
@@ -28,16 +34,16 @@ service cloud.firestore {
         // Entitlements and roles are server-managed. Firebase Admin writes bypass
         // these client rules; ordinary clients cannot create or change them.
         allow create: if request.auth != null && request.auth.uid == userId
-          && request.resource.data.keys().hasNone(['plan', 'role', 'isFounder', 'isPaidSubscription'])
+          && !request.resource.data.keys().hasAny(['plan', 'role', 'isFounder', 'isPaidSubscription'])
           // Ensure strings if present
           && (!('githubUsername' in request.resource.data) || request.resource.data.githubUsername is string)
-          && (!('githubToken' in request.resource.data) || request.resource.data.githubToken is string)
-          && (!('linkedinToken' in request.resource.data) || request.resource.data.linkedinToken is string);
+          && !('githubToken' in request.resource.data)
+          && !('linkedinToken' in request.resource.data);
         allow update: if request.auth != null && request.auth.uid == userId
-          && request.resource.data.diff(resource.data).affectedKeys().hasNone(['plan', 'role', 'isFounder', 'isPaidSubscription'])
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'role', 'isFounder', 'isPaidSubscription'])
           && (!('githubUsername' in request.resource.data) || request.resource.data.githubUsername is string)
-          && (!('githubToken' in request.resource.data) || request.resource.data.githubToken is string)
-          && (!('linkedinToken' in request.resource.data) || request.resource.data.linkedinToken is string);
+          && !('githubToken' in request.resource.data)
+          && !('linkedinToken' in request.resource.data);
       }
 
       // Posts Schema Validation
@@ -46,7 +52,9 @@ service cloud.firestore {
         allow create, update: if request.auth != null && request.auth.uid == userId
           // Prevent arbitrary field types
           && (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 5000))
-          && (!('status' in request.resource.data) || request.resource.data.status in ['draft', 'published', 'scheduled', 'failed', 'template'])
+          // The legacy posts collection is still used for templates, but this
+          // product never publishes or schedules LinkedIn content.
+          && (!('status' in request.resource.data) || request.resource.data.status in ['draft', 'failed', 'template'])
           && (!('repoName' in request.resource.data) || request.resource.data.repoName is string)
           // Ensure nested map is a map
           && (!('cardConfig' in request.resource.data) || request.resource.data.cardConfig is map);
@@ -54,16 +62,87 @@ service cloud.firestore {
 
       // Projects Subcollection Rules
       match /projects/{projectId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId
+          // Enabling monitoring must go through the server entitlement check.
+          && (!('monitoringEnabled' in request.resource.data) || request.resource.data.monitoringEnabled == false)
+          && !request.resource.data.keys().hasAny([
+            'processingLease', 'lastProcessed', 'lastProcessedCommit', 'lastProcessedAt',
+            'lastObservedActivity', 'lastContentGeneratedFrom'
+          ]);
+        allow update: if request.auth != null && request.auth.uid == userId
+          // Clients may pause monitoring, but may not enable or re-enable it
+          // outside the server-side tier/atomic-limit route.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['monitoringEnabled']) || request.resource.data.monitoringEnabled == false)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'processingLease', 'lastProcessed', 'lastProcessedCommit', 'lastProcessedAt',
+            'lastObservedActivity', 'lastContentGeneratedFrom'
+          ]);
       }
 
       // Drafts Subcollection Rules
       match /drafts/{draftId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Deletion goes through the authenticated Admin route so nested
+        // revision history is removed as well; a client delete would orphan
+        // those subcollections.
+        allow delete: if false;
+        allow create: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.status == 'draft'
+          && request.resource.data.projectId is string
+          && request.resource.data.projectId.size() <= 220
+          && request.resource.data.type in ['repo_analysis', 'commit_update']
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 300
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 100000
+          && (!('isAutomated' in request.resource.data) || request.resource.data.isAutomated == false)
+          && (!('metadata' in request.resource.data) || request.resource.data.metadata is map)
+          && (!('sourceData' in request.resource.data) || request.resource.data.sourceData is map);
+        allow update: if request.auth != null && request.auth.uid == userId
+          && resource.data.status == 'draft'
+          && request.resource.data.status == 'draft'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'content', 'title', 'updatedAt', 'revision', 'metadata', 'sourceData'
+          ])
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 100000
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 300
+          && (!('revision' in request.resource.data) || request.resource.data.revision is number);
+
+        // A revision is append-only from the client perspective. The parent
+        // draft remains the authority, while an existing version cannot be
+        // overwritten or deleted by a browser session.
+        match /versions/{versionId} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow create: if request.auth != null && request.auth.uid == userId
+            && versionId.matches('^[0-9]{1,12}$')
+            && request.resource.data.content is string
+            && request.resource.data.content.size() <= 100000
+            && request.resource.data.revision is number
+            && ((versionId == '0' && request.resource.data.source == 'original')
+              || (versionId != '0' && request.resource.data.source == 'manual'));
+          allow update, delete: if false;
+        }
       }
       
       match /logs/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      match /privateCredentials/{document=**} {
+        allow read, write: if false;
+      }
+
+      match /repositorySnapshots/{repositoryId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+        match /{document=**} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          allow write: if false;
+        }
       }
     }
   }

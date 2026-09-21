@@ -10,6 +10,23 @@ import { faqsData as faqs } from '../data/faqs';
 
 export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) => {
   const isAr = lang === 'ar';
+  const ui = lang === 'ar'
+    ? {
+        assistant: 'مساعد الدعم الفني', subtitle: 'إجابات سريعة لمساعدتك', search: 'ابحث في الأسئلة الشائعة...', all: 'الكل',
+        empty: 'لا توجد نتائج مطابقة لبحثك.', moreHelp: 'تحتاج إلى مساعدة إضافية؟', contact: 'تواصل مع المطور مباشرة',
+        close: 'إغلاق مركز المساعدة', toggle: 'مركز المساعدة والأسئلة الشائعة',
+      }
+    : lang === 'de'
+      ? {
+          assistant: 'Support-Assistent', subtitle: 'Schnelle Antworten für deinen nächsten Schritt', search: 'Antworten suchen …', all: 'Alle',
+          empty: 'Keine passenden Ergebnisse gefunden.', moreHelp: 'Brauchst du weitere Hilfe?', contact: 'Entwickler direkt kontaktieren',
+          close: 'Hilfezentrum schließen', toggle: 'Hilfe- und FAQ-Zentrum öffnen',
+        }
+      : {
+          assistant: 'Support Assistant', subtitle: 'Instant answers to guide you', search: 'Search answers...', all: 'All',
+          empty: 'No matching results found.', moreHelp: 'Need more help?', contact: 'Contact Developer Directly',
+          close: 'Close help center', toggle: 'Help & FAQ Center',
+        };
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -70,16 +87,18 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
-                    {isAr ? 'مساعد الدعم الفني' : 'Support Assistant'}
+                    {ui.assistant}
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
                   </h3>
                   <p className="text-[10px] text-slate-400 font-medium">
-                    {isAr ? 'إجابات سريعة لمساعدتك' : 'Instant answers to guide you'}
+                    {ui.subtitle}
                   </p>
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setIsOpen(false)}
+                aria-label={ui.close}
                 className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -95,7 +114,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isAr ? 'ابحث في الأسئلة الشائعة...' : 'Search answers...'}
+                  placeholder={ui.search}
                   className={`w-full bg-slate-950 border border-white/5 rounded-xl py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors ${isAr ? 'pr-9 pl-3' : 'pl-9 pr-3'}`}
                 />
               </div>
@@ -110,7 +129,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                       : 'bg-slate-950 border-transparent text-slate-400 hover:text-white'
                   }`}
                 >
-                  {isAr ? 'الكل' : 'All'}
+                  {ui.all}
                 </button>
                 {categories.map((cat, idx) => (
                   <button
@@ -131,7 +150,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
               <div className="space-y-2 flex-1">
                 {filteredFaqs.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 text-xs">
-                    {isAr ? 'لا توجد نتائج مطابقة لبحثك.' : 'No matching results found.'}
+                    {ui.empty}
                   </div>
                 ) : (
                   filteredFaqs.map((faq, index) => {
@@ -141,7 +160,10 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                     return (
                       <div key={index} className="bg-slate-950/60 border border-white/5 rounded-xl overflow-hidden transition-all duration-200">
                         <button
+                          type="button"
                           onClick={() => toggleExpand(id)}
+                          aria-expanded={isExpanded}
+                          aria-controls={`faq-answer-${id}`}
                           className="w-full p-3 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors"
                         >
                           <span className="text-xs font-bold text-white leading-snug">
@@ -155,6 +177,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                         <AnimatePresence initial={false}>
                           {isExpanded && (
                             <motion.div
+                              id={`faq-answer-${id}`}
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
@@ -177,7 +200,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
             {/* Quick Footer inside FAQ */}
             <div className="p-4 bg-slate-950 border-t border-white/5 flex flex-col items-center justify-center gap-2">
               <span className="text-[10px] text-slate-400">
-                {isAr ? 'تحتاج إلى مساعدة إضافية؟' : 'Need more help?'}
+                {ui.moreHelp}
               </span>
               <a 
                 href="https://obadadallo.web.app/contact/"
@@ -185,7 +208,7 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
                 rel="noopener noreferrer"
                 className="w-full text-center py-2 px-4 rounded-xl text-xs font-bold bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/40 transition-all"
               >
-                {isAr ? 'تواصل مع المطور مباشرة' : 'Contact Developer Directly'}
+                {ui.contact}
               </a>
             </div>
           </motion.div>
@@ -194,9 +217,12 @@ export const FloatingHelpWidget: React.FC<FloatingHelpWidgetProps> = ({ lang }) 
 
       {/* Main Floating Trigger Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={ui.toggle}
+        aria-expanded={isOpen}
         className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 border border-indigo-400/25 transition-all duration-200 hover:scale-110 active:scale-95 group shrink-0 cursor-pointer relative"
-        title={isAr ? 'مركز المساعدة والأسئلة الشائعة' : 'Help & FAQ Center'}
+        title={ui.toggle}
       >
         <span className="absolute inset-0 bg-indigo-500 rounded-full blur-sm opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
         <HelpCircle className="w-6 h-6 group-hover:rotate-6 transition-transform duration-200 relative z-10" />

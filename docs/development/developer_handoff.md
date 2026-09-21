@@ -4,7 +4,7 @@ LinkedIn Authority is an active-development React/Vite and Express beta. The rep
 
 ## Local setup
 
-Requirements: Node.js 20+ and npm.
+Requirements: Node.js 22+ and npm (`.nvmrc` is included).
 
 ```bash
 npm install
@@ -34,7 +34,7 @@ Configure `GEMINI_API_KEY`, `ANALYSIS_SIGNING_SECRET`, and `CRON_SECRET`. The cr
 
 - Direct LinkedIn publishing, LinkedIn OAuth, and official LinkedIn analytics are not implemented.
 - Automation stores drafts after repository activity changes; it does not publish externally.
-- GitHub integration tokens remain in the current user settings flow as a documented beta limitation.
+- New GitHub credentials use the encrypted server-side integration flow; legacy user-settings token records remain a documented migration limitation.
 - Entitlement fields are written through the Admin SDK and protected from ordinary client writes.
 
 For the current endpoint list and data model, see the [API reference](../api/API.md) and [persistence guide](../architecture/database_schema.md).

@@ -32,7 +32,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pr-2">
             <li>تنحصر الصلاحيات المطلوبة في قراءة البيانات العامة والملفات التعريفية للمشاريع فقط.</li>
-            <li><strong>لا يتم حفظ الأكواد:</strong> لا نقوم بنسخ أو تخزين أو الاحتفاظ بأي شفرة برمجية على الإطلاق في خوادمنا أو قواعد بياناتنا. تتم معالجة محتوى الملفات بشكل لحظي لتوليد مسودات المنشورات ثم إزالتها فوراً من الذاكرة العشوائية المؤقتة.</li>
+            <li><strong>حفظ محدود للأدلة:</strong> قد تُحفظ مقتطفات محدودة من الملفات المختارة ومراجعها داخل snapshots لدعم التحليل المتكرر. لا تضمن النسخة التجريبية الحالية احتفاظًا صفريًا أو حذفًا شاملًا.</li>
           </ul>
         </div>
 
@@ -43,7 +43,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>2. تشفير وإدارة الرموز الأمنية (Tokens)</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            هذه نسخة تجريبية نشطة. تبقى أسرار Gemini على الخادم، لكن تُحفظ رموز GitHub حالياً ضمن إعدادات المستخدم لدعم التدفق المصادق عليه الحالي؛ ولا يمثل ذلك خزنة رموز إنتاجية مخصصة.
+            هذه نسخة تجريبية نشطة. تُرسل بيانات اعتماد GitHub مرة واحدة إلى نقطة خادم مصادق عليها وتُحفظ مشفرة في سجل خاص لا يقرأه العميل؛ تبقى أسرار Gemini على الخادم. تتطلب السجلات القديمة ترحيلًا مُراجعًا قبل Public Beta.
           </p>
         </div>
 
@@ -54,11 +54,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>3. الامتثال للائحة حماية البيانات العامة (GDPR) وحق الإلغاء</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            هذه نسخة تجريبية نشطة ولا تدّعي حالياً امتثالاً كاملاً للـ GDPR أو محواً كاملاً من كل مجموعات البيانات:
+            هذه نسخة تجريبية نشطة ولا تدّعي حالياً امتثالاً كاملاً للـ GDPR أو ضماناً تنظيمياً بالمحو الكامل قبل التحقق من المشروع المنشور:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pr-2">
-            <li><strong>حالة الحذف:</strong> لا يضمن زر الحذف الحالي إزالة البيانات من كل المجموعات بعد. يجب التحقق من التنفيذ قبل الاعتماد عليه كمحو كامل.</li>
-            <li><strong>حالة النسخة التجريبية:</strong> ما زالت سياسات الاحتفاظ وطلبات الخصوصية الشاملة قيد التنفيذ والتحقق.</li>
+            <li><strong>حالة الحذف:</strong> يطلب المسار حذفاً إدارياً تكرارياً لوثيقة المستخدم وبيانات Firebase Auth؛ يبقى التحقق في المشروع المنشور ومراجعة الاحتفاظ مطلوبين.</li>
+            <li><strong>حالة النسخة التجريبية:</strong> سياسات الاحتفاظ وطلبات الخصوصية الشاملة قيد التحقق.</li>
           </ul>
         </div>
       </div>
@@ -88,7 +88,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
             <li>Der Zugriff beschränkt sich ausschließlich auf das Lesen von Metadaten und Strukturdateien, um Projekt-Milestones zu verstehen.</li>
-            <li><strong>Keine Speicherung von Code:</strong> Wir spiegeln, speichern oder cachen niemals Ihren Quellcode auf unseren Servern. Die Verarbeitung erfolgt rein flüchtig im RAM zur Inhaltserstellung.</li>
+            <li><strong>Verarbeitung:</strong> Ausgewählte, begrenzte Evidenz-Ausschnitte und abgeleiteter Kontext können in Repository-Snapshots gespeichert werden; diese Beta verspricht keine Null-Aufbewahrung.</li>
           </ul>
         </div>
 
@@ -99,7 +99,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             <span>2. Token-Verwaltung und Verschlüsselung</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Dies ist eine aktive Beta. Gemini-Schlüssel bleiben auf dem Server, GitHub-Integrationstoken werden für den aktuellen authentifizierten Client-Ablauf jedoch in den Benutzereinstellungen gespeichert; dies ist keine dedizierte Produktions-Token-Vault.
+            Dies ist eine aktive Beta. GitHub-Zugangsdaten werden einmalig an den authentifizierten Server-Endpunkt gesendet und verschlüsselt in einem für den Client unzugänglichen privaten Datensatz gespeichert. Bestehende Legacy-Datensätze erfordern vor der Public Beta eine geprüfte Migration; Gemini-Schlüssel bleiben serverseitig.
           </p>
         </div>
 
@@ -113,8 +113,8 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
             Dies ist eine aktive Beta und beansprucht derzeit weder vollständige DSGVO-Konformität noch vollständige Löschung aus jeder Datensammlung:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-            <li><strong>Löschstatus:</strong> Die aktuelle Löschfunktion garantiert noch nicht die Entfernung aus jeder Sammlung. Prüfen Sie die Implementierung vor einer vollständigen Löschung.</li>
-            <li><strong>Beta-Status:</strong> Umfassende Aufbewahrungs- und Datenschutzprozesse sind noch in Arbeit und müssen noch verifiziert werden.</li>
+            <li><strong>Löschstatus:</strong> Der Löschpfad fordert eine administrative rekursive Löschung der Benutzerdaten und des Firebase-Auth-Kontos an; die Prüfung der bereitgestellten Umgebung und der Aufbewahrung bleibt erforderlich.</li>
+            <li><strong>Beta-Status:</strong> Umfassende Aufbewahrungs- und Datenschutzprozesse müssen noch verifiziert werden.</li>
           </ul>
         </div>
       </div>
@@ -155,7 +155,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           <span>2. Authentication Token Security & Encryption Standards</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          This is an active beta. Gemini secrets stay server-side, but GitHub integration tokens are currently stored in the user's settings for the existing authenticated client flow. This is a known limitation, not a dedicated production token vault.
+          This is an active beta. GitHub credentials are sent once to the server when connected and stored encrypted in an Admin-only private record. Existing legacy records require migration before Public Beta; Gemini secrets remain server-side.
         </p>
       </div>
 
@@ -166,11 +166,11 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ lang }) => {
           <span>3. GDPR Rights (Right to Erasure) & EU Withdrawal Rights</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          This beta does not claim complete GDPR compliance or complete erasure across every stored collection. The current delete action should be treated as incomplete until the remaining data paths are implemented and verified:
+          This beta does not claim complete GDPR compliance or a regulatory guarantee of erasure until the deployed project and retention behavior are verified:
         </p>
         <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-          <li><strong>Deletion status:</strong> The current delete action does not yet guarantee removal from every collection or zero residual retention. Review the implementation before relying on it for complete erasure.</li>
-          <li><strong>Beta status:</strong> Comprehensive retention and privacy-request workflows remain to be implemented and verified.</li>
+          <li><strong>Deletion status:</strong> Account deletion requests Admin recursive deletion across the user document and Firebase Auth; retention policy and production verification are still incomplete.</li>
+          <li><strong>Beta status:</strong> Comprehensive retention and privacy-request workflows remain to be verified.</li>
         </ul>
       </div>
     </div>

@@ -1,7 +1,7 @@
 {
   "name": "LinkedIn Authority",
   "short_name": "LinkedIn Authority",
-  "description": "Enterprise-grade AI-powered content automation platform for engineering leaders.",
+  "description": "Evidence-backed technical draft workspace for turning meaningful GitHub work into reviewable LinkedIn drafts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -13,12 +13,12 @@ We use `vitest` as our core test runner. It provides native TypeScript support a
 
 ## What We Test
 ### 1. The "Happy Path"
-Every core feature (e.g., Analyzing a repo, generating a post, publishing to LinkedIn) MUST have a test that verifies a user can complete the action from start to finish without errors.
+Every implemented core feature (e.g., analyzing a repo and generating a draft) MUST have a test that verifies a user can complete the action from start to finish without errors. LinkedIn publishing is explicitly out of scope until its OAuth and consent model is implemented.
 
 ### 2. Edge Cases & Error Handling
 We must test how the system reacts to failures:
 - What happens if the GitHub Repo URL is invalid?
-- What happens if the LinkedIn API rejects our OAuth token?
+- What happens when an authenticated integration request is rejected or a credential is unavailable?
 - What happens if Gemini AI times out?
 
 The UI should display appropriate error boundaries or modals (e.g., `ErrorModal`), and the backend should gracefully return 400/500 level status codes instead of crashing.
@@ -26,8 +26,9 @@ The UI should display appropriate error boundaries or modals (e.g., `ErrorModal`
 ## Continuous Integration (CI)
 All Pull Requests must pass the testing pipeline before they can be merged into `main`.
 1. GitHub Actions will run `npm install`.
-2. It will execute `npm run build` to ensure TypeScript compilation passes.
-3. It will execute `npm run test` to verify no regressions were introduced.
+2. It will run `npm audit --audit-level=high` and fail the PR when high/critical dependency vulnerabilities are present.
+3. It will execute `npm run build` to ensure TypeScript compilation passes.
+4. It will execute `npm run test` to verify no regressions were introduced.
 
 ## Mocking Strategy Overview
 Because we are building a tool that heavily relies on external APIs (GitHub, LinkedIn, Google AI, Firebase), we must strictly mock these boundaries.

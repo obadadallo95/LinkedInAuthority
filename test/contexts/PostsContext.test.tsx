@@ -1,21 +1,15 @@
 /// <reference types="@testing-library/jest-dom" />
 import React, { useEffect } from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PostsProvider, usePosts } from '../../src/contexts/PostsContext';
 import { useAuth } from '../../src/application/AuthContext';
 import * as firestore from 'firebase/firestore';
 
-// Mock useAuth
-vi.mock('../../src/application/AuthContext', () => ({
-  useAuth: vi.fn(),
-}));
-
-// Mock Firebase Firestore
-vi.mock('firebase/firestore', () => ({
+const firestoreMocks = vi.hoisted(() => ({
   collection: vi.fn(),
   doc: vi.fn(),
-  query: vi.fn((ref) => ref),
+  query: vi.fn((ref: any) => ref),
   orderBy: vi.fn(),
   limit: vi.fn(),
   onSnapshot: vi.fn(),
@@ -25,16 +19,32 @@ vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(),
 }));
 
-vi.mock('../../src/infrastructure/firebase/config', () => ({
-  db: {},
+// Mock useAuth
+vi.mock('../../src/application/AuthContext', () => ({
+  useAuth: vi.fn(),
 }));
 
+// Mock Firebase Firestore
+vi.mock('firebase/firestore', () => ({
+  ...firestoreMocks,
+}));
+
+vi.mock('../../src/infrastructure/firebase/config', () => ({
+  app: {},
+  firestoreDatabaseId: undefined,
+}));
+
+vi.mock('../../src/infrastructure/firebase/firestoreClient', () => {
+  return { loadFirestoreClient: vi.fn(async () => ({ db: {}, ...firestoreMocks })) };
+});
+
 const TestComponent = () => {
-  const { posts, loadingPosts, updatePostText, deletePost } = usePosts();
+  const { posts, loadingPosts, postsError, updatePostText, deletePost } = usePosts();
   return (
     <div>
       <div data-testid="loading">{loadingPosts ? 'Loading' : 'Loaded'}</div>
       <div data-testid="posts-count">{posts.length}</div>
+      <div data-testid="posts-error">{postsError ? 'Error' : 'No Error'}</div>
       <button onClick={() => updatePostText('post-1', 'New Text')}>Update Post</button>
       <button onClick={() => deletePost('post-1')}>Delete Post</button>
     </div>
@@ -66,7 +76,7 @@ describe('PostsContext', () => {
     expect(screen.getByTestId('posts-count')).toHaveTextContent('0');
   });
 
-  it('subscribes to posts when user is present', () => {
+  it('subscribes to posts when user is present', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
 
     render(
@@ -75,11 +85,11 @@ describe('PostsContext', () => {
       </PostsProvider>
     );
 
-    expect(firestore.collection).toHaveBeenCalledWith(expect.anything(), 'users', 'user-123', 'posts');
+    await waitFor(() => expect(firestore.collection).toHaveBeenCalledWith(expect.anything(), 'users', 'user-123', 'posts'));
     expect(firestore.onSnapshot).toHaveBeenCalled();
   });
 
-  it('updates state when onSnapshot triggers', () => {
+  it('updates state when onSnapshot triggers', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
 
     let snapshotCallback: any;
@@ -96,6 +106,7 @@ describe('PostsContext', () => {
 
     // Initial state before snapshot resolves might be loading=true
     
+    await waitFor(() => expect(snapshotCallback).toBeTypeOf('function'));
     // Trigger snapshot
     act(() => {
       const mockQuerySnap = {
@@ -108,6 +119,31 @@ describe('PostsContext', () => {
 
     expect(screen.getByTestId('loading')).toHaveTextContent('Loaded');
     expect(screen.getByTestId('posts-count')).toHaveTextContent('1');
+  });
+
+  it('exposes listener errors instead of presenting a failed load as an empty library', async () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
+
+    let errorCallback: any;
+    (firestore.onSnapshot as any).mockImplementation((ref: any, cb: any, onError: any) => {
+      errorCallback = onError;
+      return mockUnsubscribe;
+    });
+
+    render(
+      <PostsProvider>
+        <TestComponent />
+      </PostsProvider>
+    );
+
+    await waitFor(() => expect(errorCallback).toBeTypeOf('function'));
+    act(() => {
+      errorCallback(new Error('offline'));
+    });
+
+    expect(screen.getByTestId('loading')).toHaveTextContent('Loaded');
+    expect(screen.getByTestId('posts-count')).toHaveTextContent('0');
+    expect(screen.getByTestId('posts-error')).toHaveTextContent('Error');
   });
 
   it('calls updateDoc when updatePostText is called', async () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, BarChart3, Settings, Sparkles, FileText, HelpCircle, Activity } from 'lucide-react';
+import { Home, Settings, Sparkles, FileText, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 import { t } from '../../constants';
 
@@ -19,18 +19,20 @@ export const MobileNav: React.FC<MobileNavProps> = ({ lang, activeTab, setActive
       <div className="grid grid-cols-5 h-full w-full items-center justify-items-center relative" dir={isAr ? 'rtl' : 'ltr'}>
         <button 
           onClick={() => setActiveTab('home')}
+          aria-label={isAr ? 'المستودعات' : 'Repositories'}
           className={`relative flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${activeTab === 'home' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           {activeTab === 'home' && (
              <motion.div layoutId="mobileNavIndicator" className="absolute top-0 w-8 h-1 bg-indigo-500 rounded-b-full" />
           )}
           <Home className="w-5 h-5 z-10" />
-          <span className="text-[10px] font-bold tracking-wider z-10">{isAr ? 'المستودعات' : 'Repos'}</span>
+          <span className="text-[10px] font-bold tracking-wider z-10">{isAr ? 'المستودعات' : lang === 'de' ? 'Repos' : 'Repos'}</span>
         </button>
 
 
         <button 
           onClick={() => setActiveTab('templates')}
+          aria-label={lang === 'ar' ? 'القوالب' : lang === 'de' ? 'Vorlagen' : 'Templates'}
           className={`relative flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${activeTab === 'templates' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           {activeTab === 'templates' && (
@@ -42,6 +44,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ lang, activeTab, setActive
 
         <button 
           onClick={() => setActiveTab('automations')}
+          aria-label={(t[lang] as any).navAutomations || 'Automations'}
           className={`relative flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${activeTab === 'automations' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           {activeTab === 'automations' && (
@@ -53,17 +56,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({ lang, activeTab, setActive
 
         <button 
           onClick={() => setActiveTab('drafts')}
+          aria-label={isAr ? 'المسودات' : lang === 'de' ? 'Entwürfe' : 'Drafts'}
           className={`relative flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${activeTab === 'drafts' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           {activeTab === 'drafts' && (
              <motion.div layoutId="mobileNavIndicator" className="absolute top-0 w-8 h-1 bg-indigo-500 rounded-b-full" />
           )}
           <FileText className="w-5 h-5 z-10" />
-          <span className="text-[10px] font-bold tracking-wider z-10">{isAr ? 'المسودات' : 'Drafts'}</span>
+          <span className="text-[10px] font-bold tracking-wider z-10">{isAr ? 'المسودات' : lang === 'de' ? 'Entwürfe' : 'Drafts'}</span>
         </button>        
         
         <button 
           onClick={() => setActiveTab('settings')}
+          aria-label={lang === 'ar' ? 'الإعدادات' : lang === 'de' ? 'Einstellungen' : 'Settings'}
           className={`relative flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${activeTab === 'settings' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
         >
           {activeTab === 'settings' && (
@@ -76,4 +81,3 @@ export const MobileNav: React.FC<MobileNavProps> = ({ lang, activeTab, setActive
     </div>
   );
 };
-

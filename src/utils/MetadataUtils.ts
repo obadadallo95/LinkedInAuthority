@@ -14,8 +14,8 @@ export interface MetadataOptions {
   type?: 'website' | 'article' | 'software';
 }
 
-const DEFAULT_DESCRIPTION = "Enterprise-grade AI-powered content automation platform for engineering leaders and developers. Transform GitHub repositories, source files, and development milestones into high-impact LinkedIn content.";
-const DEFAULT_KEYWORDS = "LinkedIn Automation, B2B Content Creation, Developer Advocacy, GitHub Content Engine, Professional Brand Automation, AI Code Summarizer";
+const DEFAULT_DESCRIPTION = "Evidence-backed drafting workspace for engineering leaders and developers. Turn meaningful GitHub work into editable LinkedIn drafts for human review and manual copying.";
+const DEFAULT_KEYWORDS = "Evidence-backed drafts, B2B technical content, Developer Advocacy, GitHub project intelligence, Professional brand writing, AI code analysis";
 const APP_BASE_URL = "https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe-west2.run.app";
 
 /**
@@ -23,7 +23,7 @@ const APP_BASE_URL = "https://ais-pre-rezh6fuwx34odyux6epmmf-435808307626.europe
  */
 export function updatePageMetadata(options: MetadataOptions = {}) {
   const {
-    title = "LinkedIn Authority Engine | Professional B2B Content Automation",
+    title = "LinkedIn Authority Engine | Evidence-backed technical drafts",
     description = DEFAULT_DESCRIPTION,
     keywords = DEFAULT_KEYWORDS,
     path = "",
@@ -101,10 +101,10 @@ export function injectJSONLD(schema: object) {
 export const SchemaTemplates = {
   getSoftwareApplicationSchema: (lang: 'ar' | 'en' | 'de' = 'en') => {
     const desc = lang === 'ar' 
-      ? 'منصة أتمتة محتوى مهنية للشركات والمطورين لتحويل مستودعات GitHub إلى منشورات LinkedIn رائدة.'
+      ? 'مساحة عمل مهنية للمطورين لتحويل أعمال GitHub المهمة إلى مسودات LinkedIn موثقة قابلة للمراجعة والنسخ اليدوي.'
       : lang === 'de'
-      ? 'Eine professionelle B2B-Content-Automatisierungsplattform für Entwickler und Unternehmen zur Umwandlung von GitHub-Repositories in LinkedIn-Beiträge.'
-      : 'An enterprise B2B content automation system designed to help engineering organizations and developers transform their GitHub repositories into professional, authoritative LinkedIn posts.';
+      ? 'Ein evidenzbasierter Arbeitsbereich für Entwickler, der wichtige GitHub-Arbeit in bearbeitbare LinkedIn-Entwürfe zur manuellen Prüfung umwandelt.'
+      : 'An evidence-backed drafting workspace that helps engineering organizations and developers turn meaningful GitHub work into editable LinkedIn drafts for human review.';
 
     return {
       "@context": "https://schema.org",
@@ -131,20 +131,20 @@ export const SchemaTemplates = {
 
   getFAQSchema: (lang: 'ar' | 'en' | 'de' = 'en') => {
     const arQuestions = [
-      { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "لا، نحن لا نقوم بتخزين أي شفرة مصدرية على خوادمنا. المعالجة تتم بشكل لحظي فقط لتوليد مسودات المنشورات المهنية." },
-      { q: "هل يمكنني حذف بياناتي؟", a: "ميزة الحذف الحالية في النسخة التجريبية لا تضمن بعد إزالة البيانات من كل المجموعات. راجع التنفيذ قبل الاعتماد عليها كمحو كامل." },
+      { q: "هل تقومون بتخزين الكود الخاص بي؟", a: "قد تُحفظ مقتطفات محدودة من الملفات المختارة ومراجع الأدلة داخل snapshots؛ النسخة التجريبية لا تضمن احتفاظًا صفريًا." },
+      { q: "هل يمكنني حذف بياناتي؟", a: "يوفر الإصدار التجريبي مسار حذف تكرارياً لبيانات Firebase وحساب المصادقة؛ يلزم التحقق من المشروع المنشور ومراجعة الاحتفاظ قبل تقديم ادعاء تنظيمي بالمحو الكامل." },
       { q: "كيف يتم النشر على حسابي في LinkedIn؟", a: "النشر المباشر على LinkedIn غير مطبق في النسخة التجريبية الحالية. يتم حفظ المحتوى كمسودة للمراجعة والنسخ اليدوي." }
     ];
 
     const deQuestions = [
-      { q: "Speichern Sie meinen Code?", a: "Nein, wir speichern keinen Quellcode auf unseren Servern. Die Verarbeitung erfolgt rein flüchtig im RAM zur Inhaltserstellung." },
-      { q: "Kann ich meine Daten löschen?", a: "Die Löschfunktion der aktuellen Beta garantiert noch nicht die Entfernung aus jeder Sammlung. Prüfen Sie die Implementierung vor einer vollständigen Löschung." },
+      { q: "Speichern Sie meinen Code?", a: "Begrenzte Ausschnitte ausgewählter Evidenzdateien und abgeleiteter Kontext können in Repository-Snapshots gespeichert werden; diese Beta verspricht keine Null-Aufbewahrung." },
+      { q: "Kann ich meine Daten löschen?", a: "Die Beta bietet einen rekursiven Löschvorgang für Firebase-Daten und das Auth-Konto; eine Prüfung der bereitgestellten Umgebung und der Aufbewahrung ist vor regulatorischen Aussagen erforderlich." },
       { q: "Wie funktioniert das Posten auf LinkedIn?", a: "Direktes LinkedIn-Posting ist in der aktuellen Beta nicht implementiert. Inhalte werden zur manuellen Prüfung und zum Kopieren als Entwurf gespeichert." }
     ];
 
     const enQuestions = [
-      { q: "Do you store my code?", a: "No, we do not store any source code on our servers. Processing is strictly transient and runs inside ephemeral memory enclaves." },
-      { q: "Can I delete my data?", a: "The current beta's delete action does not yet guarantee removal from every collection. Review the implementation before relying on it for complete erasure." },
+      { q: "Do you store my code?", a: "Bounded snippets from selected evidence files may be stored in repository snapshots; this beta does not promise zero retention." },
+      { q: "Can I delete my data?", a: "The beta provides a recursive deletion flow for Firebase data and the Auth account; deployed-project verification and retention review are still required before making a regulatory erasure claim." },
       { q: "How does LinkedIn publishing work?", a: "Direct LinkedIn publishing is not implemented in the current beta. Generated content is saved as a draft for manual review and copying." }
     ];
 

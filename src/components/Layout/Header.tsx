@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, ChevronDown, GitBranch, Share2, Bell, ShieldCheck, LogOut, MessageSquare, Globe, Activity, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, ChevronDown, GitBranch, Share2, Bell, ShieldCheck, LogOut, MessageSquare, Globe, Zap } from 'lucide-react';
 import { t } from '../../constants';
 import { useAuth } from '../../application/AuthContext';
-import { fetchRateLimit } from '../../services/githubService';
 
 interface HeaderProps {
   lang: 'ar' | 'en' | 'de';
@@ -13,6 +12,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, onDisconnect }) => {
   const isAr = lang === 'ar';
+  const isDe = lang === 'de';
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const { signOut, user } = useAuth();
@@ -25,33 +25,20 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
     settings?.role === 'founder'
   );
 
-  // New GitHub Rate Limit states
-  const [rateLimit, setRateLimit] = useState<{ limit: number; remaining: number; reset: number } | null>(null);
-  const [loadingRate, setLoadingRate] = useState(false);
-
-  const getRateLimitInfo = async () => {
-    setLoadingRate(true);
-    try {
-      const res = await fetchRateLimit(settings?.githubToken);
-      if (res) {
-        setRateLimit(res);
-      }
-    } catch (err) {
-      console.error("Error fetching rate limit in Header:", err);
-    } finally {
-      setLoadingRate(false);
-    }
-  };
-
-  useEffect(() => {
-    getRateLimitInfo();
-    const interval = setInterval(getRateLimitInfo, 60000);
-    return () => clearInterval(interval);
-  }, [settings?.githubToken]);
-
   // Active status color states
   const ghConnected = !!settings?.githubUsername;
-  const liConnected = !!settings?.githubToken;
+  const liConnected = false;
+  const copy = {
+    live: isAr ? '● متصل' : isDe ? '● Verbunden' : '● Connected',
+    disconnected: isAr ? '○ غير متصل' : isDe ? '○ Nicht verbunden' : '○ Not connected',
+    plan: isAr ? 'نوع الحساب' : isDe ? 'Tarif' : 'Plan',
+    founder: isAr ? 'المؤسس (PRO)' : isDe ? 'Founder (PRO)' : 'Founder (PRO)',
+    free: isAr ? 'مجاني' : isDe ? 'Kostenlos' : 'Free',
+    identity: isAr ? 'مركز الهوية' : isDe ? 'Identitätsbereich' : 'Identity center',
+    authorized: isAr ? 'جلسة موثقة' : isDe ? 'Autorisierte Sitzung' : 'Authorized session',
+    disconnect: isAr ? 'فصل GitHub' : isDe ? 'GitHub trennen' : 'Disconnect GitHub',
+    signOut: isAr ? 'تسجيل الخروج' : isDe ? 'Abmelden' : 'Sign out',
+  };
 
   return (
     <header className="h-16 sm:h-16 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 glass-panel backdrop-blur-2xl z-[300] sticky top-0 shadow-sm">
@@ -109,28 +96,6 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
       {/* Action panel (Language + User Dropdown) */}
       <div className="flex items-center gap-1.5 sm:gap-3">
         
-        {/* GitHub API Rate Limit display */}
-        {rateLimit && (
-          <div 
-            onClick={getRateLimitInfo}
-            title={isAr ? `حد طلبات GitHub المتبقي: ${rateLimit.remaining} من ${rateLimit.limit}. انقر للتحديث يدوياً` : `GitHub API Rate Limit: ${rateLimit.remaining}/${rateLimit.limit} remaining. Click to refresh.`}
-            className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer hover:scale-[1.03] transition-all shrink-0 select-none
-              ${rateLimit.remaining > 15 
-                ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/10 hover:bg-emerald-500/10' 
-                : rateLimit.remaining > 5
-                ? 'bg-amber-500/5 text-amber-400 border-amber-500/10 hover:bg-amber-500/10'
-                : 'bg-rose-500/5 text-rose-400 border-rose-500/10 hover:bg-rose-500/10 animate-pulse'
-              }
-            `}
-          >
-            <Activity className={`w-3.5 h-3.5 shrink-0 ${loadingRate ? 'animate-spin text-indigo-400' : 'text-indigo-400'}`} />
-            <span className="text-[10px] font-black tracking-tight font-mono leading-none flex items-center gap-1">
-              <span className="hidden sm:inline">GH: </span>
-              {rateLimit.remaining}/{rateLimit.limit}
-            </span>
-          </div>
-        )}
-
         {/* Modern & Premium Language Dropdown */}
         <div className="relative">
           <button 
@@ -209,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                 {settings?.githubProfile?.name || settings?.githubUsername || user?.displayName || 'Developer'}
               </span>
               <span className="text-[10px] text-slate-400 leading-tight">
-                {liConnected ? 'LinkedIn Active' : ghConnected ? 'GitHub Active' : 'Offline'}
+                {liConnected ? copy.live : ghConnected ? copy.live : copy.disconnected}
               </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 transition-transform duration-200 shrink-0" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }} />
@@ -220,9 +185,9 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
               ${isAr ? 'left-0' : 'right-0'}
             `}>
               <div className="px-2 py-1.5 border-b border-white/5 mb-2">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Identity Center</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{copy.identity}</p>
                 <p className="text-xs font-black text-slate-200 mt-0.5">
-                  {settings?.githubProfile?.name || settings?.githubUsername || user?.displayName || 'Authorized Session'}
+                  {settings?.githubProfile?.name || settings?.githubUsername || user?.displayName || copy.authorized}
                 </p>
               </div>
 
@@ -231,13 +196,13 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                 <div className="flex items-center justify-between text-[11px] p-2 hover:bg-white/5 rounded-lg text-slate-300">
                   <span className="flex items-center gap-2"><GitBranch className="w-3.5 h-3.5 text-slate-400" /> GitHub</span>
                   <span className={ghConnected ? "text-emerald-400 font-bold" : "text-slate-500"}>
-                    {ghConnected ? "● Live" : "○ Disconnected"}
+                    {ghConnected ? copy.live : copy.disconnected}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[11px] p-2 hover:bg-white/5 rounded-lg text-slate-300">
-                  <span className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-indigo-400" /> {isAr ? 'نوع الحساب' : 'Plan'}</span>
+                  <span className="flex items-center gap-2"><Zap className="w-3.5 h-3.5 text-indigo-400" /> {copy.plan}</span>
                   <span className={isPro ? "text-indigo-400 font-bold" : "text-slate-500"}>
-                    {settings?.isFounder ? (isAr ? 'المؤسس (PRO)' : 'Founder (PRO)') : isPro ? 'PRO' : (isAr ? 'مجاني' : 'Free')}
+                    {settings?.isFounder ? copy.founder : isPro ? 'PRO' : copy.free}
                   </span>
                 </div>
               </div>
@@ -249,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                     onClick={() => { onDisconnect('github'); setDropdownOpen(false); }}
                     className="w-full text-left flex items-center justify-between p-2 hover:bg-rose-500/10 text-rose-300 rounded-lg text-[11px] transition-all cursor-pointer"
                   >
-                    <span>Disconnect GitHub</span>
+                    <span>{copy.disconnect}</span>
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -259,7 +224,7 @@ export const Header: React.FC<HeaderProps> = ({ lang, settings, onToggleLang, on
                   onClick={() => { signOut(); setDropdownOpen(false); }}
                   className="w-full text-left flex items-center justify-between p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
                 >
-                  <span>Sign Out</span>
+                  <span>{copy.signOut}</span>
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>

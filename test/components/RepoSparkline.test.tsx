@@ -17,8 +17,14 @@ describe('RepoSparkline Component', () => {
   });
 
   it('renders a loading pulse state initially', () => {
-    const { container } = render(<RepoSparkline username="testuser" repo="testrepo" token="" />);
+    const { container } = render(<RepoSparkline />);
     const pulseDiv = container.querySelector('.animate-pulse');
     expect(pulseDiv).toBeInTheDocument();
+  });
+
+  it('does not issue per-card GitHub activity requests', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    render(<RepoSparkline />);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

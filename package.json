@@ -2,6 +2,9 @@
   "name": "linkedin-authority",
   "private": true,
   "version": "0.1.0-beta.1",
+  "engines": {
+    "node": ">=22"
+  },
   "description": "GitHub repository analysis and AI-assisted technical post drafting beta",
   "author": "Obada Dallo",
   "repository": {
@@ -17,10 +20,19 @@
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
+    "test:production-smoke": "node scripts/production-smoke.mjs",
+    "test:deployed-smoke": "node scripts/deployed-smoke.mjs",
+    "closed-beta:preflight": "node scripts/closed-beta-preflight.mjs",
+    "migrate:github-credentials": "tsx scripts/migrate-legacy-github-credentials.ts",
+    "set-beta-operator-claim": "tsx scripts/set-beta-operator-claim.ts",
+    "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-linkedin-authority \"vitest run --config vitest.rules.config.ts --reporter=dot\""
   },
   "dependencies": {
+    "@google-cloud/firestore": "^9.2.0",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
@@ -43,6 +55,8 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/express": "^4.17.21",

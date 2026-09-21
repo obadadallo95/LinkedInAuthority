@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, Bot, Globe, Check, Sparkles, Lock, ArrowLeft,
   User, RefreshCw, Zap, Target, AlertTriangle, BrainCircuit, ShieldCheck, Workflow, Activity,
-  ThumbsUp, MessageSquare, Repeat2, Send, Copy
+  Copy, FileCheck2, Link2
 } from 'lucide-react';
 import { useAuth } from '../application/AuthContext';
 import { t } from '../locales';
@@ -29,8 +29,24 @@ const LinkedinIcon = ({ className, size = 24 }: { className?: string, size?: num
 
 type DemoPhase = 'idle' | 'analyzing' | 'needs_context' | 'angles' | 'adaptive_question' | 'generating' | 'result';
 
+function getSafeDemoErrorMessage(lang: 'en' | 'ar' | 'de', status?: number, reason?: string) {
+  if (status === 429 || reason === 'rate_limited') {
+    return lang === 'ar'
+      ? 'تم الوصول إلى حد العرض اليومي. حاول مجدداً غداً.'
+      : lang === 'de'
+        ? 'Das tägliche Demo-Limit wurde erreicht. Versuchen Sie es morgen erneut.'
+        : 'The daily demo limit was reached. Please try again tomorrow.';
+  }
+
+  return lang === 'ar'
+    ? 'تعذر تشغيل العرض الآن. تحقق من الاتصال وحاول مرة أخرى.'
+    : lang === 'de'
+      ? 'Die Demo ist derzeit nicht verfügbar. Prüfen Sie die Verbindung und versuchen Sie es erneut.'
+      : 'The demo is temporarily unavailable. Check your connection and try again.';
+}
+
 export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', onToggleLang: (target?: 'en' | 'ar' | 'de') => void }) => {
-  const { signInWithGoogle, signInWithGithub } = useAuth();
+  const { signInWithGoogle, signInWithGithub, authError, clearAuthError } = useAuth();
   const [view, setView] = useState<'landing' | 'login'>('landing');
   
   const [demoStep, setDemoStep] = useState<1 | 2 | 3>(1);
@@ -43,6 +59,9 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
   const [demoResult, setDemoResult] = useState<any>(null);
   const [demoError, setDemoError] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
+  const [hasCopiedComment, setHasCopiedComment] = useState(false);
+  const [copyError, setCopyError] = useState('');
+  const [commentCopyError, setCommentCopyError] = useState('');
   const trackEditTimeout = useRef<any>(null);
 
   // Modals
@@ -57,6 +76,13 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
 
   const isRtl = lang === 'ar';
   const T = t[lang] || t['ar'];
+  const audienceLabel = {
+    'Software Engineers': lang === 'ar' ? 'المهندسون البرمجيون' : lang === 'de' ? 'Softwareentwickler' : 'Software Engineers',
+    'CTOs/Tech Leads': lang === 'ar' ? 'مديرو التقنية والقادة التقنيون' : lang === 'de' ? 'CTOs / technische Leads' : 'CTOs / Tech Leads',
+    'Recruiters/HR': lang === 'ar' ? 'التوظيف والموارد البشرية' : lang === 'de' ? 'Recruiting / HR' : 'Recruiters / HR',
+    'General Public': lang === 'ar' ? 'الجمهور العام' : lang === 'de' ? 'Allgemeine Öffentlichkeit' : 'General Public',
+  }[targetAudience] || targetAudience;
+  const linkedInDraftAudience = lang === 'ar' ? `لجمهور: ${audienceLabel}` : lang === 'de' ? `Für: ${audienceLabel}` : `For: ${audienceLabel}`;
 
   const demoRef = useRef<HTMLDivElement>(null);
 
@@ -81,18 +107,43 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
     }
   };
 
-  const handleCopy = () => {
+  const getClipboardError = () => lang === 'ar'
+    ? 'تعذر النسخ. حدّد النص وانسخه يدوياً.'
+    : lang === 'de'
+      ? 'Kopieren fehlgeschlagen. Markieren Sie den Text und kopieren Sie ihn manuell.'
+      : 'Copy failed. Select the text and copy it manually.';
+
+  const handleCopy = async () => {
     if (!demoResult?.post) return;
-    navigator.clipboard.writeText(demoResult.post);
-    setHasCopied(true);
-    trackEvent('generated_post_copied', { length: demoResult.post.length });
-    setTimeout(() => setHasCopied(false), 2000);
+    setCopyError('');
+    try {
+      await navigator.clipboard.writeText(demoResult.post);
+      setHasCopied(true);
+      trackEvent('generated_post_copied', { length: demoResult.post.length });
+      window.setTimeout(() => setHasCopied(false), 2000);
+    } catch {
+      setHasCopied(false);
+      setCopyError(getClipboardError());
+    }
+  };
+
+  const handleCommentCopy = async () => {
+    if (!demoResult?.suggestedComment) return;
+    setCommentCopyError('');
+    try {
+      await navigator.clipboard.writeText(demoResult.suggestedComment);
+      setHasCopiedComment(true);
+      window.setTimeout(() => setHasCopiedComment(false), 2000);
+    } catch {
+      setHasCopiedComment(false);
+      setCommentCopyError(getClipboardError());
+    }
   };
 
   const handleWizardGenerate = async () => {
     if (!demoUrl) return;
     
-    if (demoUrl.length > 5) trackEvent('repository_url_entered', { url: demoUrl });
+    if (demoUrl.length > 5) trackEvent('repository_url_entered', { hasUrl: true });
     trackEvent('repository_analysis_started');
 
     setDemoStep(3);
@@ -114,7 +165,11 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to analyze repository');
+      if (!res.ok) {
+        const error: any = new Error('Demo analysis request failed');
+        error.status = res.status;
+        throw error;
+      }
       
       const analysisToken = data.analysisToken || '';
       const angles = data.angles || [];
@@ -139,7 +194,11 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       });
       
       const genData = await genRes.json();
-      if (!genRes.ok) throw new Error(genData.error || 'Failed to generate post');
+      if (!genRes.ok) {
+        const error: any = new Error('Demo generation request failed');
+        error.status = genRes.status;
+        throw error;
+      }
       
       setDemoResult({
         repository: data.repository,
@@ -152,10 +211,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
       setPhase('result');
       trackEvent('post_generation_succeeded');
     } catch (e: any) {
-      setDemoError(e.message);
+      const status = Number(e?.status) || undefined;
+      const reason = status === 429 ? 'rate_limited' : 'request_failed';
+      setDemoError(getSafeDemoErrorMessage(lang, status, reason));
       setDemoStep(2);
       setPhase('idle');
-      trackEvent('post_generation_failed', { error: e.message });
+      trackEvent('post_generation_failed', { reason, status });
     }
   };
 
@@ -283,7 +344,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
               {/* Error */}
               <AnimatePresence>
                 {demoError && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl text-center flex items-center justify-center gap-2">
+                  <motion.div role="alert" aria-live="assertive" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl text-center flex items-center justify-center gap-2">
                     <span className="font-bold">Error:</span> {demoError}
                   </motion.div>
                 )}
@@ -476,25 +537,21 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                         className="bg-white border border-slate-200 rounded-2xl shadow-xl relative group overflow-hidden font-sans"
                         dir={lang === 'ar' ? 'rtl' : 'ltr'}
                       >
-                        {/* Fake LinkedIn Header */}
+                        {/* LinkedIn-targeted draft preview; it is not presented as already published. */}
                         <div className="p-4 md:p-5 pb-2">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
-                                <span className="text-white font-bold text-lg">UD</span>
+                                <LinkedinIcon size={22} className="text-white" aria-hidden="true" />
                               </div>
                               <div>
-                                <h4 className="text-[15px] font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors cursor-pointer">{lang === 'ar' ? 'أنت (المستخدم)' : 'You (User)'}</h4>
-                                <p className="text-[12px] text-slate-500 mt-0.5">Software Engineer • 1st</p>
-                                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
-                                  <span>1m •</span>
-                                  <Globe size={10} />
-                                </div>
+                                <h4 className="text-[15px] font-bold text-slate-900 leading-tight">{lang === 'ar' ? 'مسودة منشور LinkedIn' : lang === 'de' ? 'LinkedIn-Entwurf' : 'LinkedIn draft'}</h4>
+                                <p className="text-[12px] text-slate-500 mt-0.5">{linkedInDraftAudience}</p>
                               </div>
                             </div>
-                            <div className="text-slate-400 self-start">
-                              <LinkedinIcon size={24} className="text-[#0a66c2]" />
-                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1">
+                              {lang === 'ar' ? 'للمراجعة والنسخ' : lang === 'de' ? 'Prüfen und kopieren' : 'Review and copy'}
+                            </span>
                           </div>
                           
                           <div className="relative group/post">
@@ -505,6 +562,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                             />
                             <div className={`absolute top-2 ${lang === 'ar' ? 'left-2' : 'right-2'} opacity-0 group-hover/post:opacity-100 transition-opacity`}>
                                 <button
+                                  type="button"
                                   onClick={handleCopy}
                                   className="p-2 bg-slate-800 text-white rounded-md shadow-md hover:bg-slate-700 flex items-center gap-1.5 text-xs font-bold"
                                 >
@@ -512,28 +570,37 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                                   {hasCopied ? (lang === 'ar' ? 'تم النسخ' : 'Copied') : T.demoCopyBtn}
                                 </button>
                             </div>
+                            {copyError && (
+                              <p role="alert" className="mt-2 text-xs text-red-600">{copyError}</p>
+                            )}
                           </div>
                         </div>
 
-                        {/* Suggested Comment Block */}
+                        {/* Optional verified-link note */}
                         {demoResult.suggestedComment ? (
                           <div className="px-4 md:px-5 pb-4">
                             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 relative group/comment">
                               <div className="flex items-center gap-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[9px] text-white font-bold">UD</div>
-                                <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}</span>
+                                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600" aria-hidden="true"><Link2 size={12} /></div>
+                                <span className="text-xs font-bold text-slate-700">{lang === 'ar' ? 'ملاحظة روابط اختيارية' : 'Optional Link Note'}</span>
                               </div>
                               <p className={`text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap ${lang === 'ar' ? 'pr-8 pl-8' : 'pl-8 pr-8'}`}>{demoResult.suggestedComment}</p>
                               <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(demoResult.suggestedComment);
-                                  alert(lang === 'ar' ? "تم نسخ التعليق!" : "Comment copied!");
-                                }}
+                                type="button"
+                                onClick={handleCommentCopy}
                                 className={`absolute top-4 ${lang === 'ar' ? 'left-4' : 'right-4'} p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors opacity-0 group-hover/comment:opacity-100`}
                                 title={lang === 'ar' ? 'نسخ التعليق' : 'Copy comment'}
                               >
-                                <Copy size={14} />
+                                {hasCopiedComment ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                               </button>
+                              {hasCopiedComment && (
+                                <span role="status" aria-live="polite" className="sr-only">
+                                  {lang === 'ar' ? 'تم نسخ ملاحظة الروابط' : lang === 'de' ? 'Link-Hinweis kopiert' : 'Link note copied'}
+                                </span>
+                              )}
+                              {commentCopyError && (
+                                <p role="alert" className="mt-2 text-xs text-red-600">{commentCopyError}</p>
+                              )}
                             </div>
                           </div>
                         ) : (
@@ -547,24 +614,12 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                           </div>
                         )}
 
-                        {/* Fake Actions Bar */}
-                        <div className="px-4 md:px-5 py-2 border-t border-slate-100 flex items-center justify-between text-slate-500" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
-                            <ThumbsUp size={18} />
-                            <span className="hidden sm:inline">{lang === 'ar' ? 'أعجبني' : 'Like'}</span>
-                          </button>
-                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
-                            <MessageSquare size={18} />
-                            <span className="hidden sm:inline">{lang === 'ar' ? 'تعليق' : 'Comment'}</span>
-                          </button>
-                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
-                            <Repeat2 size={18} />
-                            <span className="hidden sm:inline">{lang === 'ar' ? 'إعادة نشر' : 'Repost'}</span>
-                          </button>
-                          <button className="flex items-center justify-center gap-1.5 hover:bg-slate-100 py-3 flex-1 rounded-lg transition-colors text-sm font-medium">
-                            <Send size={18} />
-                            <span className="hidden sm:inline">{lang === 'ar' ? 'إرسال' : 'Send'}</span>
-                          </button>
+                        {/* Review-first status bar: this demo never publishes to LinkedIn. */}
+                        <div className="px-4 md:px-5 py-3 border-t border-slate-100 flex items-center gap-2 text-slate-500" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                          <FileCheck2 size={16} className="text-emerald-600" />
+                          <span className="text-xs font-semibold">
+                            {lang === 'ar' ? 'مسودة قابلة للمراجعة والنسخ اليدوي — لا يوجد نشر تلقائي' : 'Reviewable draft for manual copying — no automatic publishing'}
+                          </span>
                         </div>
 
                         {/* Action Footer for generator */}
@@ -693,7 +748,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                         <ShieldCheck size={20} />
                       </div>
                       <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{T.sectionCompareUs4}</h3>
-                      <p className="text-sm text-slate-400 font-light leading-relaxed">No hallucinations. Every claim is cryptographically backed by commits.</p>
+                      <p className="text-sm text-slate-400 font-light leading-relaxed">{lang === 'ar' ? 'مسودات مرتبطة بالأدلة مع مراجع للمصادر وتحذيرات واضحة للادعاءات التي تحتاج إلى سياق بشري.' : lang === 'de' ? 'Evidenzbasierte Entwürfe mit Quellenverweisen und sichtbaren Warnungen für prüfbedürftige Aussagen.' : 'Evidence-aware drafts with source references and visible review warnings for claims that need human context.'}</p>
                     </div>
                   </div>
                 </div>
@@ -804,13 +859,24 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
                 <h2 className="text-2xl font-extrabold text-white mb-2">{T.landingLoginBtn}</h2>
                 <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
                   {lang === 'ar' 
-                    ? 'قم بتسجيل الدخول بأمان لربط حساباتك وإعداد قنوات البث التلقائي.' 
-                    : 'Sign in securely to link your accounts and configure your automation settings.'}
+                    ? 'قم بتسجيل الدخول بأمان لربط GitHub وإعداد مراقبة إنشاء المسودات.'
+                    : lang === 'de'
+                      ? 'Melde dich sicher an, um GitHub zu verbinden und die Erstellung von Entwürfen zu konfigurieren.'
+                      : 'Sign in securely to connect GitHub and configure draft-generation monitoring.'}
                 </p>
               </div>
 
               {/* Login Actions */}
               <div className="space-y-4">
+                {authError && (
+                  <div role="alert" aria-live="assertive" className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" aria-hidden="true" />
+                    <span className="flex-1 leading-relaxed">{authError}</span>
+                    <button type="button" onClick={clearAuthError} className="text-xs font-bold underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-rose-300">
+                      {lang === 'ar' ? 'إخفاء' : lang === 'de' ? 'Ausblenden' : 'Dismiss'}
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={async () => {
                     try {
@@ -877,7 +943,7 @@ export const LandingPage = ({ lang, onToggleLang }: { lang: 'en' | 'ar' | 'de', 
               {/* Security Badge */}
               <div className="mt-6 flex items-center justify-center gap-2 text-[10px] text-slate-500 bg-slate-950/50 p-2.5 rounded-lg border border-white/5">
                 <Check size={12} className="text-indigo-400" />
-                <span>{lang === 'ar' ? 'ربط آمن بنظام تشفير وقواعد أمان صارمة' : 'Secured with Enterprise-Grade TLS Encryption'}</span>
+                  <span>{lang === 'ar' ? 'اتصال مصادق عليه مع حماية النقل' : lang === 'de' ? 'Authentifizierte Verbindung mit Transportschutz' : 'Authenticated connection with transport protection'}</span>
               </div>
             </motion.div>
           </motion.div>

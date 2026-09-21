@@ -2,7 +2,7 @@
 
 This document explains the technical architecture, state flow, and styling principles for the primary client-side components powering **LinkedIn Authority [PRO]**.
 
-> **Current-status note:** This document contains historical/planned UI descriptions. The current beta is draft-first; LinkedIn publishing and official analytics are not implemented.
+> **Current-status note:** This document contains historical/planned component descriptions. The authoritative current route inventory is `docs/architecture/pages_overview.md`. The live beta is draft-first; LinkedIn publishing, LinkedIn scheduling, and official LinkedIn analytics are not implemented. Historical `PostsHub`/`AnalyticsPanel` descriptions below must not be treated as shipped product contracts.
 
 ---
 
@@ -20,16 +20,16 @@ The `RepositoriesDashboard` acts as the entry hub for code-driven content genera
 ```
 
 ### Architectural Key Points:
-- **Repository List & Metadata**: Displays repo tags, programming languages, star counts, fork counts, and public status.
-- **Sparkline Engagement Feed**: Incorporates `RepoSparkline.tsx` to visualize small, micro-level code-commit frequency sparklines inside the grid, giving visual rhythm.
+- **Repository List & Metadata**: Displays repository identity, language, description, and bounded metadata available from the GitHub integration.
+- **Evidence boundary**: Repository cards are entry points to analysis; they do not claim LinkedIn reach, engagement, or publishing performance.
 - **Live Search & Filter Matrix**: Filters repositories dynamically by text matching and language tags instantly, handling large counts with smooth transition animations.
 - **Action Gateways**: Integrates directly with `GeneratorModal.tsx` to launch the automated prompt customization modal for templates and locales.
 
 ---
 
-## 2. PostsHub (`/src/components/PostsHub.tsx`)
+## 2. Historical PostsHub (`/src/components/PostsHub.tsx`)
 
-The `PostsHub` is the centralized cockpit for managing drafted, scheduled, and published LinkedIn posts. It connects local state and Firestore collections to coordinate updates across different view lists.
+The old `PostsHub` description is retained only as historical context. The live product uses `DraftsDashboard` as the authoritative review surface. It stores editable drafts, evidence, claim warnings, revisions, and manual-copy actions; it does not publish or schedule LinkedIn posts.
 
 ```text
                                +-------------------+
@@ -54,7 +54,7 @@ The `PostsHub` is the centralized cockpit for managing drafted, scheduled, and p
 
 ---
 
-## 3. AnalyticsPanel (`/src/components/Analytics/AnalyticsPanel.tsx`)
+## 3. Historical AnalyticsPanel (`/src/components/Analytics/AnalyticsPanel.tsx`)
 
 An enterprise-grade, high-fidelity business dashboard that displays simulated and actual LinkedIn metrics, organic growth calculations, predictive impact analyses, and activity heatmaps.
 

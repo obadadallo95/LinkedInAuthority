@@ -9,12 +9,16 @@ import {
   ActivityDeltaResult,
   VerifiedLink,
   VerifiedLinkType,
+  RepositoryMap,
+  PreviousRepositorySnapshot,
   extractVerifiedLinks,
   classifyUrl
 } from './githubDeepFetcher';
 import { synthesizeDeepContext, SynthesizedContext, ProductProfile } from './synthesizer';
 import { generateDeepPost, DeepGeneratedPost, DeepPostOptions, selectCallToAction, SelectedCTA } from './deepPostGenerator';
+import { ClaimAudit, EvidenceItem } from './claimAudit';
 import { UserTier } from '../entitlements';
+import { TelemetryContext } from '../repositoryIntelligence/modelRouting';
 
 export { 
   fetchLatestCommit,
@@ -37,9 +41,13 @@ export type {
   ProductProfile,
   VerifiedLink,
   VerifiedLinkType,
+  RepositoryMap,
+  PreviousRepositorySnapshot,
   DeepGeneratedPost,
   DeepPostOptions,
-  SelectedCTA
+  SelectedCTA,
+  ClaimAudit,
+  EvidenceItem
 };
 
 export interface DeepScanResult {
@@ -51,13 +59,15 @@ export async function performDeepScan(
   repoUrl: string, 
   token?: string,
   options?: ActivityCheckOptions,
-  tier: UserTier = 'free'
+  tier: UserTier = 'free',
+  previousSnapshot?: PreviousRepositorySnapshot,
+  telemetryContext?: TelemetryContext,
 ): Promise<DeepScanResult> {
   // 1. Fetch Grounded Context (Identity + Monitored Streams)
-  const githubContext = await fetchDeepGithubContext(repoUrl, token, options);
+  const githubContext = await fetchDeepGithubContext(repoUrl, token, options, previousSnapshot);
 
   // 2. Synthesize Grounded Context using AI
-  const synthesizedContext = await synthesizeDeepContext(githubContext, tier);
+  const synthesizedContext = await synthesizeDeepContext(githubContext, tier, telemetryContext);
 
   return {
     githubContext,

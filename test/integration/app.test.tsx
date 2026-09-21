@@ -7,6 +7,11 @@ import App from '../../src/App';
 import { AuthProvider } from '../../src/application/AuthContext';
 import { SettingsProvider } from '../../src/contexts/SettingsContext';
 import { PostsProvider } from '../../src/contexts/PostsContext';
+import * as firestore from 'firebase/firestore';
+
+const firestoreClientMock = vi.hoisted(() => ({
+  loadFirestoreClient: vi.fn(),
+}));
 
 // 1. Mock Firebase
 vi.mock('firebase/firestore', () => ({
@@ -39,6 +44,8 @@ vi.mock('firebase/firestore', () => ({
   getDoc: vi.fn(),
 }));
 
+vi.mock('../../src/infrastructure/firebase/firestoreClient', () => firestoreClientMock);
+
 let authCallbacks: any[] = [];
 let currentUser: any = null;
 
@@ -49,10 +56,11 @@ vi.mock('firebase/auth', () => {
   return {
     getAuth: vi.fn(),
     signInWithPopup: vi.fn(async () => {
-      currentUser = { uid: 'user-123', displayName: 'Test User' };
+      currentUser = { uid: 'user-123', displayName: 'Test User', getIdToken: vi.fn(async () => 'test-id-token') };
       authCallbacks.forEach(cb => cb(currentUser));
       return { user: currentUser };
     }),
+    getAdditionalUserInfo: vi.fn(() => ({ isNewUser: false })),
     GoogleAuthProvider: MockProvider,
     GithubAuthProvider: class extends MockProvider {
       static credentialFromResult = vi.fn(() => ({ accessToken: 'mock-token' }));
@@ -87,6 +95,7 @@ global.fetch = mockFetch;
 describe('LinkedIn Authority - End-to-End Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    firestoreClientMock.loadFirestoreClient.mockResolvedValue({ db: {}, ...firestore });
     localStorage.setItem('linkedin_auth_lang', 'en');
     mockFetch.mockImplementation(async (url) => {
       if (url === 'https://api.github.com/user') {
@@ -113,6 +122,12 @@ describe('LinkedIn Authority - End-to-End Integration', () => {
             warnings: []
           })
         };
+      }
+      if (url.includes('/api/integrations/github/repos')) {
+        return { ok: true, json: async () => ({ repos: [] }) };
+      }
+      if (url.includes('/api/integrations/github/orgs')) {
+        return { ok: true, json: async () => ({ orgs: [] }) };
       }
       return {
         ok: false,

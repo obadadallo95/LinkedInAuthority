@@ -1,18 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../application/AuthContext';
-import { db } from '../infrastructure/firebase/config';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { loadFirestoreClient } from '../infrastructure/firebase/firestoreClient';
+import { isBrowserE2E } from '../utils/e2e';
 
 export interface UserSettings {
   githubUsername: string;
-  githubToken: string;
-  linkedinToken: string;
   githubProfile: any | null;
   linkedinProfile: any | null;
   githubPermissions?: 'all' | 'public';
-  linkedinPublish?: boolean;
-  linkedinComment?: boolean;
-  linkedinFollow?: boolean;
   onboardingSkipped?: boolean;
   isPaidSubscription?: boolean;
   plan?: 'free' | 'pro';
@@ -24,9 +19,10 @@ export interface SettingsContextType {
   settings: UserSettings;
   isPro: boolean;
   loadingSettings: boolean;
+  settingsError: boolean;
   isOnboardingComplete: boolean;
-  saveSettings: (ghUsernameInput: string, ghTokenInput: string, liTokenInput: string) => Promise<void>;
-  disconnectChannel: (platform: 'github' | 'linkedin') => Promise<void>;
+  saveSettings: (ghUsernameInput: string) => Promise<void>;
+  disconnectChannel: (platform: 'github') => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -35,103 +31,125 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [settings, setSettings] = useState<UserSettings>({
     githubUsername: "",
-    githubToken: "",
-    linkedinToken: "",
     githubProfile: null,
     linkedinProfile: null,
     githubPermissions: 'public',
-    linkedinPublish: true,
-    linkedinComment: false,
-    linkedinFollow: false,
   });
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [settingsError, setSettingsError] = useState(false);
 
   useEffect(() => {
     if (!user?.uid) {
       setSettings({
         githubUsername: "",
-        githubToken: "",
-        linkedinToken: "",
         githubProfile: null,
         linkedinProfile: null,
         githubPermissions: 'public',
-        linkedinPublish: true,
-        linkedinComment: false,
-        linkedinFollow: false,
       });
       setLoadingSettings(false);
+      setSettingsError(false);
+      return;
+    }
+
+    if (isBrowserE2E) {
+      try {
+        const stored = localStorage.getItem('linkedin-e2e-settings');
+        setSettings({
+          githubUsername: 'e2e-user',
+          githubProfile: { login: 'e2e-user', name: 'E2E Reviewer' },
+          linkedinProfile: null,
+          githubPermissions: 'public',
+          onboardingSkipped: true,
+          ...(stored ? JSON.parse(stored) : {}),
+        });
+      } catch {
+        setSettings({ githubUsername: 'e2e-user', githubProfile: null, linkedinProfile: null, onboardingSkipped: true });
+      }
+      setLoadingSettings(false);
+      setSettingsError(false);
       return;
     }
 
     setLoadingSettings(true);
-    const settingsRef = doc(db, "users", user.uid, "settings", "current");
-    
-    const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setSettings(docSnap.data() as UserSettings);
-      } else {
-        setSettings({
-          githubUsername: "",
-          githubToken: "",
-          linkedinToken: "",
-          githubProfile: null,
-          linkedinProfile: null,
-          githubPermissions: 'public',
-          linkedinPublish: true,
-          linkedinComment: false,
-          linkedinFollow: false,
-        });
-      }
+    setSettingsError(false);
+    let cancelled = false;
+    let unsubscribe = () => {};
+    void loadFirestoreClient().then(({ db, doc, onSnapshot }) => {
+      if (cancelled) return;
+      const settingsRef = doc(db, "users", user.uid, "settings", "current");
+      unsubscribe = onSnapshot(settingsRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserSettings & { githubToken?: unknown; linkedinToken?: unknown };
+          const { githubToken: _legacyToken, linkedinToken: _legacyLinkedInToken, ...safeSettings } = data;
+          setSettings(safeSettings as UserSettings);
+        } else {
+          setSettings({
+            githubUsername: "",
+            githubProfile: null,
+            linkedinProfile: null,
+            githubPermissions: 'public',
+          });
+        }
+        setLoadingSettings(false);
+        setSettingsError(false);
+      }, (error) => {
+        console.error("Settings listener error:", error);
+        setLoadingSettings(false);
+        setSettingsError(true);
+      });
+    }).catch((error) => {
+      if (cancelled) return;
+      console.error("Settings client load error:", error);
       setLoadingSettings(false);
-    }, (error) => {
-      console.error("Settings listener error:", error);
-      setLoadingSettings(false);
+      setSettingsError(true);
     });
 
-    return () => unsubscribe();
+    return () => { cancelled = true; unsubscribe(); };
   }, [user?.uid]);
 
-  const saveSettings = async (ghUsernameInput: string, ghTokenInput: string, liTokenInput: string) => {
+  const saveSettings = async (ghUsernameInput: string) => {
     if (!user?.uid) throw new Error("No authenticated user");
 
-    let githubProfile = null;
-    if (ghUsernameInput) {
-      try {
-        const res = await fetch(`https://api.github.com/users/${ghUsernameInput}`);
-        if (res.ok) {
-          githubProfile = await res.json();
-        }
-      } catch (err) {
-        console.error("Failed to fetch Github profile:", err);
-      }
+    if (isBrowserE2E) {
+      localStorage.setItem('linkedin-e2e-settings', JSON.stringify({ githubUsername: ghUsernameInput, onboardingSkipped: true }));
+      setSettings(previous => ({ ...previous, githubUsername: ghUsernameInput, onboardingSkipped: true }));
+      return;
     }
 
+    const { db, doc, setDoc } = await loadFirestoreClient();
     const settingsRef = doc(db, "users", user.uid, "settings", "current");
     await setDoc(settingsRef, {
       githubUsername: ghUsernameInput,
-      githubToken: ghTokenInput,
-      // LinkedIn publishing is not implemented in this beta. Do not persist
-      // a token for an unused integration flow.
-      linkedinToken: "",
-      githubProfile,
+      // Profile metadata is optional; repository loading is server-backed and
+      // should not spend a separate GitHub request just to save a username.
+      githubProfile: null,
       linkedinProfile: null,
     }, { merge: true });
   };
 
-  const disconnectChannel = async (platform: 'github' | 'linkedin') => {
+  const disconnectChannel = async (platform: 'github') => {
     if (!user?.uid) throw new Error("No authenticated user");
+
+    if (isBrowserE2E) {
+      localStorage.removeItem('linkedin-e2e-settings');
+      setSettings(previous => ({ ...previous, githubUsername: '', githubProfile: null }));
+      return;
+    }
     
-    const settingsRef = doc(db, "users", user.uid, "settings", "current");
     if (platform === 'github') {
+      if (typeof user.getIdToken === 'function') {
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/integrations/github', {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!response.ok) throw new Error('GitHub disconnect failed');
+      }
+      const { db, doc, setDoc } = await loadFirestoreClient();
+      const settingsRef = doc(db, "users", user.uid, "settings", "current");
       await setDoc(settingsRef, {
         githubUsername: "",
-        githubToken: "",
         githubProfile: null,
-      }, { merge: true });
-    } else {
-      await setDoc(settingsRef, {
-        linkedinToken: "",
-        linkedinProfile: null,
       }, { merge: true });
     }
   };
@@ -148,7 +166,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SettingsContext.Provider value={{ settings, isPro, loadingSettings, isOnboardingComplete, saveSettings, disconnectChannel }}>
+    <SettingsContext.Provider value={{ settings, isPro, loadingSettings, settingsError, isOnboardingComplete, saveSettings, disconnectChannel }}>
       {children}
     </SettingsContext.Provider>
   );

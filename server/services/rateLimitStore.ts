@@ -28,10 +28,9 @@ export class MemoryRateLimitStore implements RateLimitStore {
 
 export class FirestoreRateLimitStore implements RateLimitStore {
   async checkAndIncrement(key: string, type: 'analyze' | 'generate' | 'deep-scan', limit: number, windowMs: number): Promise<boolean> {
-    const db = getAdminFirestore();
-    const docRef = db.collection('rate_limits').doc(`${key}_${type}`);
-    
     try {
+      const db = getAdminFirestore();
+      const docRef = db.collection('rate_limits').doc(`${key}_${type}`);
       return await db.runTransaction(async (transaction) => {
         const doc = await transaction.get(docRef);
         const now = Date.now();
@@ -55,14 +54,15 @@ export class FirestoreRateLimitStore implements RateLimitStore {
         return true;
       });
     } catch (e) {
-      console.error("Firestore rate limit error, falling back to allow:", e);
-      // Fail open if Firestore is unreachable to prevent blocking users due to infrastructure issues
-      return true;
+      console.error("Firestore rate limit unavailable; denying request safely:", e);
+      // Cost and abuse controls must fail closed. Operators can restore service or
+      // explicitly select the in-memory store for local development/test runs.
+      return false;
     }
   }
 }
 
 // Export a singleton instance based on environment
-export const rateLimitStore = process.env.NODE_ENV === 'test' 
+export const rateLimitStore = process.env.NODE_ENV === 'test' || process.env.E2E_BROWSER_TEST === 'true'
   ? new MemoryRateLimitStore() 
   : new FirestoreRateLimitStore();

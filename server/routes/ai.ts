@@ -6,22 +6,45 @@ import { signAnalysisToken, verifyAnalysisToken } from "../services/repositoryIn
 import { performDeepScan } from "../services/deepIntelligence";
 import { generateDeepPost } from "../services/deepIntelligence/deepPostGenerator";
 import { Type } from "@google/genai";
-import { rateLimitStore } from "../services/rateLimitStore";
-import { getUserTier } from "../services/entitlements";
+import { EntitlementUnavailableError, getUserTier, UserTier } from "../services/entitlements";
+import { getGithubCredentialForUser, GithubCredentialUnavailableError } from "../services/githubCredentials";
+import { getLatestRepositorySnapshot, persistRepositorySnapshot } from "../services/repositoryIntelligence/snapshotStore";
+import { consumeAiCapability } from "../services/usageLedger";
+import { recordProductEvent } from "../services/productTelemetry";
 
 const router = Router();
 
 const SUPPORTED_LANGUAGES = ["ar", "en", "de"];
 const SUPPORTED_INTENTS = ["auto", "project", "technical_decision", "challenge_lesson", "progress_update"];
+const SUPPORTED_OPTIMIZATIONS = new Set([
+  'style-influencer', 'style-minimalist', 'style-academic', 'style-storyteller', 'style-cynical',
+  'add-ascii-architecture', 'add-tech-quiz', 'optimize-seo-pillars', 'unicode', 'hook', 'custom'
+]);
+
+async function resolveTierOr503(uid: string, res: any): Promise<UserTier | null> {
+  try {
+    return await getUserTier(uid);
+  } catch (error) {
+    if (error instanceof EntitlementUnavailableError || (error as any)?.code === 'ENTITLEMENTS_UNAVAILABLE') {
+      res.status(503).json({ error: 'Usage controls are temporarily unavailable. Please try again later.' });
+      return null;
+    }
+    throw error;
+  }
+}
 
 // Validate username and repo name against standard GitHub naming rules
 function isValidGitHubName(name: string): boolean {
   return /^[a-zA-Z0-9_.-]+$/.test(name);
 }
 
+function isOptionalBoundedString(value: unknown, maxLength: number): boolean {
+  return value === undefined || (typeof value === 'string' && value.length <= maxLength);
+}
+
 // Endpoint for registered users to analyze a repo and get angles
 router.post("/analyze-repo", async (req: any, res: any) => {
-  const { username, token, repo, projectDescription, lang, intent } = req.body;
+  const { username, repo, projectDescription, lang, intent } = req.body;
   
   if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
     return res.status(400).json({ error: "Missing or invalid repository information" });
@@ -33,7 +56,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
   if (!SUPPORTED_INTENTS.includes(safeIntent) && safeIntent !== 'auto') {
     return res.status(400).json({ error: "Unsupported intent" });
   }
-  if (projectDescription && projectDescription.length > 200) {
+  if (!isOptionalBoundedString(projectDescription, 200)) {
     return res.status(400).json({ error: "Project description exceeds 200 characters" });
   }
 
@@ -41,19 +64,21 @@ router.post("/analyze-repo", async (req: any, res: any) => {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-    const allowed = await rateLimitStore.checkAndIncrement(uid, 'analyze', 50, 60 * 60 * 1000); // 50 per hour
-    if (!allowed) {
-      return res.status(429).json({ error: "Hourly limit of 50 analyses reached." });
-    }
+    const tier = await resolveTierOr503(uid, res);
+    if (!tier) return;
     const repoUrl = `https://github.com/${username}/${repo}`;
-    // Pass the user's Github token if available
-    const ghContext = await fetchGithubContext(repoUrl, token);
+    const ghContext = await fetchGithubContext(repoUrl, await getGithubCredentialForUser(uid));
     
     if (ghContext.hasWeakRepo && !projectDescription) {
       return res.json({ needsUserContext: true });
     }
 
-    const tier = await getUserTier(uid);
+    // Reserve usage only once the request has enough grounded context to call AI.
+    const allowed = await consumeAiCapability(uid, 'repo.analysis', tier);
+    if (!allowed) {
+      return res.status(429).json({ error: "Repository analysis usage limit reached." });
+    }
+
     const result = await analyzeRepositoryAngles(repoUrl, ghContext, projectDescription, safeIntent, lang, tier);
     
     // Generate Analysis Token for authenticated user
@@ -70,13 +95,18 @@ router.post("/analyze-repo", async (req: any, res: any) => {
       userId: req.user?.uid
     });
 
+    void recordProductEvent(uid, 'analysis_completed', { language: lang || 'en', intent: safeIntent, mode: 'manual' });
     res.json({
       repository: result.repository,
       angles: result.angles,
       analysisToken
     });
   } catch (err: any) {
-    console.error("AI Analyze Error:", err);
+    if (err instanceof GithubCredentialUnavailableError) {
+      return res.status(503).json({ error: 'Private GitHub access is unavailable. Reconnect GitHub or use public repositories.' });
+    }
+    console.error("AI Analyze Error:", err instanceof Error ? err.name : "unknown");
+    void recordProductEvent(req.user?.uid, 'analysis_failed', { language: lang || 'en', intent: intent || 'auto', mode: 'manual' });
     const errorMessage = handleGeminiError(err, lang || 'en');
     res.status(500).json({ error: errorMessage });
   }
@@ -84,7 +114,7 @@ router.post("/analyze-repo", async (req: any, res: any) => {
 
 // Endpoint for registered users to generate a post from an angle
 router.post("/generate-post", async (req: any, res: any) => {
-  const { username, token, repo, projectDescription, analysisToken, angleId, customAngle, humanContext, lang } = req.body;
+  const { username, repo, projectDescription, analysisToken, angleId, customAngle, humanContext, lang } = req.body;
   
   if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
     return res.status(400).json({ error: "Missing or invalid repository information" });
@@ -98,21 +128,20 @@ router.post("/generate-post", async (req: any, res: any) => {
   if (angleId && customAngle) {
     return res.status(400).json({ error: "Provide either angleId OR customAngle, not both." });
   }
-  if (humanContext && humanContext.length > 200) {
-    return res.status(400).json({ error: "Human context exceeds 200 characters" });
+  if (!isOptionalBoundedString(projectDescription, 200) || !isOptionalBoundedString(humanContext, 200)) {
+    return res.status(400).json({ error: "Project description or human context exceeds 200 characters" });
   }
-  if (customAngle && customAngle.length > 200) {
+  if (!isOptionalBoundedString(customAngle, 200)) {
     return res.status(400).json({ error: "Custom angle exceeds 200 characters" });
   }
+  if (lang && !SUPPORTED_LANGUAGES.includes(lang)) return res.status(400).json({ error: "Unsupported language" });
 
   try {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-    const allowed = await rateLimitStore.checkAndIncrement(uid, 'generate', 50, 60 * 60 * 1000); // 50 per hour
-    if (!allowed) {
-      return res.status(429).json({ error: "Hourly limit of 50 generations reached." });
-    }
+    const tier = await resolveTierOr503(uid, res);
+    if (!tier) return;
     const tokenPayload = verifyAnalysisToken(analysisToken);
     
     if (tokenPayload.audience !== 'authenticated' || tokenPayload.userId !== req.user?.uid) {
@@ -120,7 +149,7 @@ router.post("/generate-post", async (req: any, res: any) => {
     }
 
     const repoUrl = `https://github.com/${username}/${repo}`;
-    const ghContext = await fetchGithubContext(repoUrl, token);
+    const ghContext = await fetchGithubContext(repoUrl, await getGithubCredentialForUser(uid));
     
     const canonicalRepo = `github.com/${ghContext.repoData.owner.login.toLowerCase()}/${ghContext.repoData.name.toLowerCase()}`;
     if (tokenPayload.repository !== canonicalRepo) {
@@ -130,7 +159,12 @@ router.post("/generate-post", async (req: any, res: any) => {
       return res.status(403).json({ error: "Language mismatch. Token was created for a different language." });
     }
 
-    const tier = await getUserTier(uid);
+    // Invalid sessions and repository mismatches must not consume AI quota.
+    const allowed = await consumeAiCapability(uid, 'post.generate', tier);
+    if (!allowed) {
+      return res.status(429).json({ error: "Post generation usage limit reached." });
+    }
+
     const result = await generatePostFromAngle(
       tokenPayload, 
       ghContext, 
@@ -141,9 +175,14 @@ router.post("/generate-post", async (req: any, res: any) => {
       lang,
       tier
     );
+    void recordProductEvent(uid, 'post_generated', { language: lang || 'en', mode: 'manual' });
     res.json(result);
   } catch (err: any) {
-    console.error("AI Generate Error:", err);
+    if (err instanceof GithubCredentialUnavailableError) {
+      return res.status(503).json({ error: 'Private GitHub access is unavailable. Reconnect GitHub or use public repositories.' });
+    }
+    console.error("AI Generate Error:", err instanceof Error ? err.name : "unknown");
+    void recordProductEvent(req.user?.uid, 'post_generation_failed', { language: lang || 'en', mode: 'manual' });
     const errorMessage = handleGeminiError(err, lang || 'en');
     
     if (errorMessage.includes('token') || errorMessage.includes('signature') || errorMessage.includes('Missing')) {
@@ -160,14 +199,24 @@ router.post("/generate-post", async (req: any, res: any) => {
 // Review Engine: Analyze Commits Endpoint (Kept as is for now, as it serves a different purpose)
 router.post("/analyze-commits", async (req: any, res: any) => {
   const { commits, repo, lang } = req.body;
-  if (!commits || !Array.isArray(commits)) {
+  if (!commits || !Array.isArray(commits) || commits.length > 100 || commits.some((commit: any) =>
+    !commit || typeof commit.sha !== 'string' || commit.sha.length > 200 || typeof commit.message !== 'string' || commit.message.length > 1000
+  )) {
     return res.status(400).json({ error: "Missing or invalid commits array" });
+  }
+  if (!isOptionalBoundedString(repo, 200) || (lang && !SUPPORTED_LANGUAGES.includes(lang))) {
+    return res.status(400).json({ error: "Invalid commit analysis parameters" });
   }
 
   const uid = req.user?.uid;
   if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-  const client = getGeminiClient(await getUserTier(uid));
+  const tier = await resolveTierOr503(uid, res);
+  if (!tier) return;
+  if (!await consumeAiCapability(uid, 'commit.analyze', tier)) {
+    return res.status(429).json({ error: "Daily commit analysis limit reached." });
+  }
+  const client = getGeminiClient(tier);
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -206,9 +255,10 @@ Respond strictly with the required JSON structure.`;
       }
     });
     
+    void recordProductEvent(uid, 'post_generated', { language: lang || 'en', mode: 'commit_analysis' });
     return res.json(result);
   } catch (err: any) {
-    console.error("Gemini commit analysis failed:", err);
+    console.error("Gemini commit analysis failed:", err instanceof Error ? err.name : "unknown");
     return res.status(500).json({ error: "Failed to generate commit analysis." });
   }
 });
@@ -216,14 +266,19 @@ Respond strictly with the required JSON structure.`;
 // Hashtag Optimization Endpoint (Kept as is)
 router.post("/generate-hashtags", async (req: any, res: any) => {
   const { text, lang } = req.body;
-  if (!text) {
+  if (typeof text !== 'string' || text.trim().length === 0 || text.length > 20000 || (lang && !SUPPORTED_LANGUAGES.includes(lang))) {
     return res.status(400).json({ error: "Missing text parameter" });
   }
 
   const uid = req.user?.uid;
   if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
-  const client = getGeminiClient(await getUserTier(uid));
+  const tier = await resolveTierOr503(uid, res);
+  if (!tier) return;
+  if (!await consumeAiCapability(uid, 'hashtags.generate', tier)) {
+    return res.status(429).json({ error: "Daily hashtag generation limit reached." });
+  }
+  const client = getGeminiClient(tier);
   if (!client) {
     return res.status(500).json({ error: "Gemini API client is not configured." });
   }
@@ -253,39 +308,104 @@ Return ONLY a JSON array of strings, where each string is a hashtag starting wit
       }
     });
 
+    void recordProductEvent(uid, 'hashtags_generated', { language: lang || 'en', characterCount: text.length, mode: 'manual' });
     return res.json(result);
   } catch (err: any) {
-    console.error("Hashtag generation error:", err);
+    console.error("Hashtag generation error:", err instanceof Error ? err.name : "unknown");
     return res.status(500).json({ error: "Failed to generate hashtags." });
+  }
+});
+
+// Evidence-preserving draft refinement. This endpoint never fetches GitHub and
+// must not invent facts; it only rewrites user-provided draft text.
+router.post("/optimize-post", async (req: any, res: any) => {
+  const { text, actionType, customPrompt, lang } = req.body || {};
+  if (typeof text !== 'string' || text.trim().length === 0 || text.length > 20000) {
+    return res.status(400).json({ error: 'Missing or invalid draft text.' });
+  }
+  if (typeof actionType !== 'string' || !SUPPORTED_OPTIMIZATIONS.has(actionType)) {
+    return res.status(400).json({ error: 'Unsupported draft refinement.' });
+  }
+  if (lang && !SUPPORTED_LANGUAGES.includes(lang)) {
+    return res.status(400).json({ error: 'Unsupported language' });
+  }
+  if (customPrompt !== undefined && (typeof customPrompt !== 'string' || customPrompt.length > 300)) {
+    return res.status(400).json({ error: 'Custom refinement is too long.' });
+  }
+
+  const uid = req.user?.uid;
+  if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+  const tier = await resolveTierOr503(uid, res);
+  if (!tier) return;
+  if (!await consumeAiCapability(uid, 'post.optimize', tier)) {
+    return res.status(429).json({ error: 'Daily AI optimization limit reached.' });
+  }
+  const client = getGeminiClient(tier);
+  if (!client) return res.status(500).json({ error: 'Gemini API client is not configured.' });
+
+  const instruction = actionType === 'custom'
+    ? customPrompt || 'Improve clarity and structure.'
+    : `Apply this bounded writing refinement: ${actionType}.`;
+  const systemInstruction = `You edit an existing technical LinkedIn draft. Preserve every factual claim, number, project name, URL, and uncertainty level from the input. Do not add achievements, metrics, outcomes, audience reactions, or claims that are not already present. If a requested refinement would require new facts, leave that part unchanged. Return only JSON with optimizedText. Write in ${lang === 'ar' ? 'professional Arabic' : lang === 'de' ? 'professional German' : 'professional English'}.`;
+  const prompt = `Refinement instruction: ${instruction}\n\nDraft:\n${text}`;
+
+  try {
+    const result = await callGeminiWithRetry(client, prompt, systemInstruction, {
+      type: Type.OBJECT,
+      properties: { optimizedText: { type: Type.STRING } },
+      required: ['optimizedText']
+    } as any, {
+      task: 'post_optimize',
+      telemetryContext: { userId: uid, feature: 'post_optimize' }
+    });
+    if (!result || typeof result.optimizedText !== 'string' || result.optimizedText.trim().length === 0) {
+      return res.status(502).json({ error: 'The draft refinement returned no usable text.' });
+    }
+    void recordProductEvent(uid, 'draft_edited', { mode: 'ai_refinement', actionType });
+    return res.json({ optimizedText: result.optimizedText });
+  } catch (error) {
+    console.error('Draft refinement failed:', error instanceof Error ? error.message : 'unknown error');
+    return res.status(500).json({ error: 'Failed to refine the draft.' });
   }
 });
 
 // Deep Scan Endpoint (Beta)
 router.post("/deep-scan", async (req: any, res: any) => {
-  const { username, repo, token, lang } = req.body;
+  const { username, repo, lang } = req.body;
 
   if (!username || !repo || typeof username !== 'string' || typeof repo !== 'string' || !isValidGitHubName(username) || !isValidGitHubName(repo)) {
     return res.status(400).json({ error: "Missing or invalid repository information" });
   }
 
   const requestedLang = lang && SUPPORTED_LANGUAGES.includes(lang) ? lang : 'en';
+  if (lang && !SUPPORTED_LANGUAGES.includes(lang)) {
+    return res.status(400).json({ error: "Unsupported language" });
+  }
 
   try {
-    const { username, repo, token, lang, intent, targetAudience } = req.body;
+    const { username, repo, lang, intent, targetAudience } = req.body;
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ error: "Unauthorized" });
 
     // Assuming Deep Scan is a premium/heavy feature, lower rate limit
-    const allowed = await rateLimitStore.checkAndIncrement(uid, 'deep-scan', 20, 60 * 60 * 1000); 
+    const tier = await resolveTierOr503(uid, res);
+    if (!tier) return;
+    const allowed = await consumeAiCapability(uid, 'repo.deep_scan', tier);
     if (!allowed) {
-      return res.status(429).json({ error: "Hourly limit of 20 deep scans reached." });
+      return res.status(429).json({ error: "Daily deep scan limit reached." });
     }
 
     const repoUrl = `https://github.com/${username}/${repo}`;
 
     // 1. Fetch & Synthesize Deep Context
-    const tier = await getUserTier(uid);
-    const scanResult = await performDeepScan(repoUrl, token, undefined, tier);
+    const previousSnapshot = await getLatestRepositorySnapshot(uid, username, repo);
+    const scanResult = await performDeepScan(repoUrl, await getGithubCredentialForUser(uid), undefined, tier, previousSnapshot, {
+      userId: uid,
+      feature: 'deep_scan',
+      repository: `${username}/${repo}`,
+      isAutomated: false,
+    });
+    await persistRepositorySnapshot(uid, scanResult.githubContext, scanResult.synthesizedContext);
 
     // 2. Generate Final Post
     const finalPost = await generateDeepPost(
@@ -298,11 +418,14 @@ router.post("/deep-scan", async (req: any, res: any) => {
         repoIdentity: scanResult.githubContext.repoIdentity ? {
           name: scanResult.githubContext.repoIdentity.name,
           description: scanResult.githubContext.repoIdentity.description
-        } : undefined
+        } : undefined,
+        userId: uid,
+        isAutomated: false
       },
       tier
     );
 
+    void recordProductEvent(uid, 'post_generated', { language: requestedLang, mode: 'deep_scan' });
     return res.json({
       success: true,
       repository: {
@@ -311,15 +434,21 @@ router.post("/deep-scan", async (req: any, res: any) => {
       },
       synthesizedContext: scanResult.synthesizedContext,
       post: finalPost.post,
-      suggestedComment: finalPost.suggestedComment
+      suggestedComment: finalPost.suggestedComment,
+      claimAudit: finalPost.claimAudit,
+      qualityEvaluation: finalPost.qualityEvaluation
     });
 
   } catch (error: any) {
-    console.error("Deep scan failed:", error);
-    let errorMessage = error.message || "Failed to perform deep scan.";
+    if (error instanceof GithubCredentialUnavailableError) {
+      return res.status(503).json({ error: 'Private GitHub access is unavailable. Reconnect GitHub or use public repositories.' });
+    }
+    console.error("Deep scan failed:", error instanceof Error ? error.name : "unknown");
+    let errorMessage = "Failed to perform deep scan.";
+    const rawErrorMessage = error instanceof Error ? error.message : String(error || '');
     
     // Check if it's a Gemini API quota error
-    if (errorMessage.includes("429") || errorMessage.includes("Quota exceeded") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+    if (rawErrorMessage.includes("429") || rawErrorMessage.includes("Quota exceeded") || rawErrorMessage.includes("RESOURCE_EXHAUSTED")) {
       errorMessage = requestedLang === 'ar' 
         ? "تم تجاوز الحد المسموح للاستخدام المجاني للذكاء الاصطناعي. يرجى المحاولة مرة أخرى بعد قليل." 
         : "AI model free tier quota exceeded. Please try again in a moment.";

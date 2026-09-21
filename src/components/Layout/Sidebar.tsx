@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Home, BarChart3, Settings, Terminal, Sparkles, FileText, HelpCircle, Activity
+  Home, Settings, Sparkles, FileText, Activity
 } from 'lucide-react';
 import { t } from '../../constants';
 
@@ -15,18 +15,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
   const [isHovered, setIsHovered] = useState(false);
   const isAr = lang === 'ar';
 
-  const counts = {
-    draft: posts.filter(p => p.status === 'draft').length,
-    scheduled: posts.filter(p => p.status === 'scheduled').length,
-    published: posts.filter(p => p.status === 'published').length,
-  };
-
   const menuItems = [
-    { id: 'home', label: isAr ? 'المستودعات' : 'Repositories', count: 0, icon: Home },
-    { id: 'drafts', label: isAr ? 'المسودات' : 'Drafts', count: 0, icon: FileText },
-    { id: 'templates', label: lang === 'ar' ? 'القوالب' : lang === 'en' ? 'Templates' : 'Vorlagen', count: 0, icon: Sparkles },
+    { id: 'home', label: lang === 'ar' ? 'المستودعات' : lang === 'de' ? 'Repositories' : 'Repositories', icon: Home },
+    { id: 'drafts', label: lang === 'ar' ? 'المسودات' : lang === 'de' ? 'Entwürfe' : 'Drafts', icon: FileText },
+    { id: 'templates', label: lang === 'ar' ? 'القوالب' : lang === 'de' ? 'Vorlagen' : 'Templates', icon: Sparkles },
     { id: 'automations', label: (t[lang] as any).navAutomations || 'Automations', count: 0, icon: Activity },
-    { id: 'settings', label: lang === 'ar' ? 'الإعدادات' : lang === 'en' ? 'Settings' : 'Einstellungen', count: 0, icon: Settings }
+    { id: 'settings', label: lang === 'ar' ? 'الإعدادات' : lang === 'de' ? 'Einstellungen' : 'Settings', icon: Settings }
   ];
 
   return (
@@ -46,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
+              aria-label={item.label}
               className={`flex items-center gap-3.5 px-3 py-3 rounded-lg cursor-pointer transition-all duration-200 ease-in-out w-full relative group hover:scale-[1.02] active:scale-[0.98]
                 ${isActive 
                   ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
@@ -60,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
                 {item.label}
               </span>
 
-              {item.count > 0 && (
+              {'count' in item && item.count > 0 && (
                 <div className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 shrink-0 ml-auto border border-indigo-500/30
                   ${isHovered ? 'block' : 'absolute top-1.5 right-1.5'}
                 `}>
@@ -73,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ lang, activeTab, setActiveTab,
                 <div className={`hidden group-hover:flex absolute top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-slate-950 border border-white/10 text-white text-[10px] font-bold z-50 shadow-xl whitespace-nowrap pointer-events-none transition-all
                   ${isAr ? 'right-20' : 'left-20'}
                 `}>
-                  {item.label} {item.count > 0 ? `(${item.count})` : ''}
+                  {item.label} {'count' in item && item.count > 0 ? `(${item.count})` : ''}
                 </div>
               )}
             </button>

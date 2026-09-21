@@ -15,8 +15,8 @@ export const PwaPrompt: React.FC<PwaPromptProps> = ({ lang }) => {
 
   useEffect(() => {
     // 1. Check if already installed / running in standalone mode
-    const checkStandalone = 
-      window.matchMedia('(display-mode: standalone)').matches || 
+    const checkStandalone =
+      (typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches) ||
       (navigator as any).standalone === true;
     
     setIsStandalone(checkStandalone);
@@ -81,7 +81,7 @@ export const PwaPrompt: React.FC<PwaPromptProps> = ({ lang }) => {
   const pwaT = {
     ar: {
       title: "الحصول على LinkedIn Authority كتطبيق هاتف 📲",
-      desc: "قم بتثبيت التطبيق على شاشتك الرئيسية للوصول الأسرع، والنشر المستقر والتنبيهات المباشرة دون فتح المتصفح.",
+      desc: "قم بتثبيت التطبيق على شاشتك الرئيسية للوصول الأسرع إلى مساحة المسودات والمراجعة دون فتح المتصفح.",
       installBtn: "ثبّت التطبيق الآن ✨",
       installedTitle: "تم تثبيته بنجاح 🟢",
       installedDesc: "أنت تعمل الآن داخل بيئة تطبيق الجوال المستقلة (Native Standalone Engine).",

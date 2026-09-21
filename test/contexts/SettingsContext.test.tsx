@@ -1,10 +1,17 @@
 /// <reference types="@testing-library/jest-dom" />
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsProvider, useSettings } from '../../src/contexts/SettingsContext';
 import { useAuth } from '../../src/application/AuthContext';
 import * as firestore from 'firebase/firestore';
+
+const firestoreMocks = vi.hoisted(() => ({
+  doc: vi.fn(),
+  onSnapshot: vi.fn(),
+  setDoc: vi.fn(),
+  getFirestore: vi.fn(),
+}));
 
 // Mock useAuth
 vi.mock('../../src/application/AuthContext', () => ({
@@ -13,28 +20,31 @@ vi.mock('../../src/application/AuthContext', () => ({
 
 // Mock Firebase Firestore
 vi.mock('firebase/firestore', () => ({
-  doc: vi.fn(),
-  onSnapshot: vi.fn(),
-  setDoc: vi.fn(),
-  getFirestore: vi.fn(),
+  ...firestoreMocks,
 }));
 
 vi.mock('../../src/infrastructure/firebase/config', () => ({
-  db: {},
+  app: {},
+  firestoreDatabaseId: undefined,
 }));
+
+vi.mock('../../src/infrastructure/firebase/firestoreClient', () => {
+  return { loadFirestoreClient: vi.fn(async () => ({ db: {}, ...firestoreMocks })) };
+});
 
 // Mock global fetch
 global.fetch = vi.fn();
 
 const TestComponent = () => {
-  const { settings, isPro, loadingSettings, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
+  const { settings, isPro, loadingSettings, settingsError, saveSettings, disconnectChannel, isOnboardingComplete } = useSettings();
   return (
     <div>
       <div data-testid="loading">{loadingSettings ? 'Loading' : 'Loaded'}</div>
       <div data-testid="gh-user">{settings.githubUsername}</div>
       <div data-testid="onboarding">{isOnboardingComplete ? 'Complete' : 'Incomplete'}</div>
       <div data-testid="is-pro">{isPro ? 'Pro' : 'Free'}</div>
-      <button onClick={() => saveSettings('testuser', 'ghtoken', 'litoken')}>Save Settings</button>
+      <div data-testid="settings-error">{settingsError ? 'Error' : 'No Error'}</div>
+      <button onClick={() => saveSettings('testuser')}>Save Settings</button>
       <button onClick={() => disconnectChannel('github')}>Disconnect GitHub</button>
     </div>
   );
@@ -65,7 +75,7 @@ describe('SettingsContext', () => {
     expect(screen.getByTestId('onboarding')).toHaveTextContent('Incomplete');
   });
 
-  it('subscribes to settings when user is present', () => {
+  it('subscribes to settings when user is present', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
     (firestore.doc as any).mockReturnValue('mock-doc-ref');
 
@@ -75,11 +85,11 @@ describe('SettingsContext', () => {
       </SettingsProvider>
     );
 
-    expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), 'users', 'user-123', 'settings', 'current');
+    await waitFor(() => expect(firestore.doc).toHaveBeenCalledWith(expect.anything(), 'users', 'user-123', 'settings', 'current'));
     expect(firestore.onSnapshot).toHaveBeenCalled();
   });
 
-  it('updates state when onSnapshot triggers with existing data', () => {
+  it('updates state when onSnapshot triggers with existing data', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
 
     let snapshotCallback: any;
@@ -94,6 +104,7 @@ describe('SettingsContext', () => {
       </SettingsProvider>
     );
 
+    await waitFor(() => expect(snapshotCallback).toBeTypeOf('function'));
     act(() => {
       const mockDocSnap = {
         exists: () => true,
@@ -107,14 +118,33 @@ describe('SettingsContext', () => {
     expect(screen.getByTestId('onboarding')).toHaveTextContent('Complete');
   });
 
-  it('calls setDoc and fetch when saveSettings is called', async () => {
-    (useAuth as any).mockReturnValue({ user: { uid: 'user-123', displayName: 'User Name', photoURL: 'url' } });
-    (firestore.doc as any).mockReturnValue('mock-doc-ref');
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ name: 'GitHub User', avatar_url: 'avatar' }),
+  it('exposes listener errors instead of falling back to empty account settings', async () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'user-123' } });
+
+    let errorCallback: any;
+    (firestore.onSnapshot as any).mockImplementation((ref: any, cb: any, onError: any) => {
+      errorCallback = onError;
+      return mockUnsubscribe;
     });
 
+    render(
+      <SettingsProvider>
+        <TestComponent />
+      </SettingsProvider>
+    );
+
+    await waitFor(() => expect(errorCallback).toBeTypeOf('function'));
+    act(() => {
+      errorCallback(new Error('offline'));
+    });
+
+    expect(screen.getByTestId('loading')).toHaveTextContent('Loaded');
+    expect(screen.getByTestId('settings-error')).toHaveTextContent('Error');
+  });
+
+  it('saves the GitHub username without an extra profile request', async () => {
+    (useAuth as any).mockReturnValue({ user: { uid: 'user-123', displayName: 'User Name', photoURL: 'url' } });
+    (firestore.doc as any).mockReturnValue('mock-doc-ref');
     render(
       <SettingsProvider>
         <TestComponent />
@@ -126,12 +156,11 @@ describe('SettingsContext', () => {
       btn.click();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('https://api.github.com/users/testuser');
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect((global.fetch as any).mock.calls.some((call: any[]) => String(call[0]).includes('/api/integrations/github/connect'))).toBe(false);
     expect(firestore.setDoc).toHaveBeenCalledWith('mock-doc-ref', {
       githubUsername: 'testuser',
-      githubToken: 'ghtoken',
-      linkedinToken: '',
-      githubProfile: { name: 'GitHub User', avatar_url: 'avatar' },
+      githubProfile: null,
       linkedinProfile: null,
     }, { merge: true });
   });
@@ -153,12 +182,11 @@ describe('SettingsContext', () => {
 
     expect(firestore.setDoc).toHaveBeenCalledWith('mock-doc-ref', {
       githubUsername: '',
-      githubToken: '',
       githubProfile: null,
     }, { merge: true });
   });
 
-  it('evaluates normal user as Free tier (isPro === false)', () => {
+  it('evaluates normal user as Free tier (isPro === false)', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'normal-user-456' } });
 
     let snapshotCallback: any;
@@ -173,6 +201,7 @@ describe('SettingsContext', () => {
       </SettingsProvider>
     );
 
+    await waitFor(() => expect(snapshotCallback).toBeTypeOf('function'));
     act(() => {
       const mockDocSnap = {
         exists: () => true,
@@ -184,7 +213,7 @@ describe('SettingsContext', () => {
     expect(screen.getByTestId('is-pro')).toHaveTextContent('Free');
   });
 
-  it('evaluates user with isFounder: true as Pro tier (isPro === true)', () => {
+  it('evaluates user with isFounder: true as Pro tier (isPro === true)', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'founder-uid-123' } });
 
     let snapshotCallback: any;
@@ -199,6 +228,7 @@ describe('SettingsContext', () => {
       </SettingsProvider>
     );
 
+    await waitFor(() => expect(snapshotCallback).toBeTypeOf('function'));
     act(() => {
       const mockDocSnap = {
         exists: () => true,
@@ -214,7 +244,7 @@ describe('SettingsContext', () => {
     expect(screen.getByTestId('is-pro')).toHaveTextContent('Pro');
   });
 
-  it('evaluates user with plan: pro or isPaidSubscription as Pro tier', () => {
+  it('evaluates user with plan: pro or isPaidSubscription as Pro tier', async () => {
     (useAuth as any).mockReturnValue({ user: { uid: 'pro-user-789' } });
 
     let snapshotCallback: any;
@@ -229,6 +259,7 @@ describe('SettingsContext', () => {
       </SettingsProvider>
     );
 
+    await waitFor(() => expect(snapshotCallback).toBeTypeOf('function'));
     act(() => {
       const mockDocSnap = {
         exists: () => true,

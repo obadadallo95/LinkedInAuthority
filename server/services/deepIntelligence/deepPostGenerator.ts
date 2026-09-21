@@ -1,12 +1,16 @@
-import { getGeminiClient, callGeminiWithRetry } from '../repositoryIntelligence/gemini';
+import { getGeminiClient, callGeminiWithRetry, handleGeminiError } from '../repositoryIntelligence/gemini';
 import { SynthesizedContext, ProductProfile } from './synthesizer';
 import { getGenerateLanguageInstruction } from '../repositoryIntelligence/prompts';
 import { VerifiedLink, VerifiedLinkType } from './linkExtractor';
 import { UserTier } from '../entitlements';
+import { auditDraftClaims, ClaimAudit } from './claimAudit';
+import { ContentEvaluation, evaluateDraftQuality } from './contentEvaluation';
 
 export interface DeepGeneratedPost {
   post: string;
   suggestedComment: string;
+  claimAudit?: ClaimAudit;
+  qualityEvaluation?: ContentEvaluation;
 }
 
 export interface DeepPostOptions {
@@ -16,6 +20,8 @@ export interface DeepPostOptions {
     name: string;
     description: string;
   };
+  userId?: string;
+  isAutomated?: boolean;
 }
 
 export interface SelectedCTA {
@@ -100,7 +106,7 @@ const deepPostSchema = {
     },
     suggestedComment: {
       type: "STRING",
-      description: "A natural first comment placed under the post containing the exact verified Call-to-Action URL, avoiding putting links in the main post to bypass LinkedIn algorithm penalties."
+      description: "An optional manual follow-up note containing the exact verified Call-to-Action URL; it must not include engagement bait."
     }
   },
   required: ["post", "suggestedComment"]
@@ -255,8 +261,8 @@ ${audienceGuidance}
 CRITICAL RULES:
 1. Grounding: The post MUST strictly represent the verified reality of the product (${profile?.name || options?.repoIdentity?.name || 'the project'}). Do NOT hallucinate unsupported capabilities or metrics.
 2. Narrative Quality: Craft a natural, high-impact founder/creator post. Avoid generic filler clichés and rigid template formatting.
-3. No URLs in the main post body (LinkedIn algorithm penalty).
-4. Suggested Comment: Write an engaging, natural first comment that seamlessly shares the EXACT verified URL: ${selectedCta.url}.
+3. Keep URLs out of the main post body unless the verified evidence or user context explicitly requires one; never claim this affects algorithmic reach.
+4. Optional Link Note: Write a concise manual follow-up note that shares the EXACT verified URL: ${selectedCta.url}. Do not ask for comments, likes, follows, or engagement.
    STRICT REQUIREMENT: Use the EXACT URL provided above (${selectedCta.url}). Do NOT change, shorten, reconstruct, or replace this URL with a different domain.
 5. Formatting: Clean paragraph spacing, readable structure, and concise sentences.
 
@@ -271,14 +277,28 @@ ${langInstruction}`;
       {
         task: 'deep_post_generation',
         telemetryContext: {
+          userId: options?.userId,
           feature: 'deep_post_generation',
-          repository: options?.repoIdentity?.name
+          repository: options?.repoIdentity?.name,
+          isAutomated: options?.isAutomated,
         }
       }
     );
-    return response as DeepGeneratedPost;
+    const generated = response as DeepGeneratedPost;
+    generated.claimAudit = auditDraftClaims(generated.post, synthesizedContext.evidence || []);
+    generated.qualityEvaluation = evaluateDraftQuality({
+      post: generated.post,
+      suggestedComment: generated.suggestedComment,
+      evidence: synthesizedContext.evidence || [],
+      repoUrl,
+      ctaUrl: selectedCta.url,
+      audience: options?.targetAudience,
+      intent: options?.intent,
+      language: lang,
+    });
+    return generated;
   } catch (error: any) {
-    console.error("Error generating deep post:", error);
-    throw new Error("Failed to generate deep post: " + error.message);
+    console.error("Error generating deep post:", error instanceof Error ? error.name : 'unknown error');
+    throw new Error(handleGeminiError(error));
   }
 }

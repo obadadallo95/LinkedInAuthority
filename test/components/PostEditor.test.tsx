@@ -124,4 +124,32 @@ describe('PostEditor', () => {
 
     expect(mockProps.handleUpdatePostText).toHaveBeenCalledWith('This is the optimized text.');
   });
+
+  it('shows an inline recovery message when refinement fails', async () => {
+    vi.useRealTimers();
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: 'provider detail must stay hidden' }),
+    });
+
+    render(<PostEditor {...mockProps} />);
+    fireEvent.click(screen.getByText('Punchy Opening Hook'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The draft could not be refined. Your text was not changed.');
+    expect(screen.getByDisplayValue('Hello world! This is a test post.')).toBeInTheDocument();
+  });
+
+  it('does not claim copy success when the editor clipboard rejects', async () => {
+    vi.useRealTimers();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('clipboard unavailable')) },
+    });
+
+    render(<PostEditor {...mockProps} />);
+    fireEvent.click(screen.getByTitle('Copy entire post text'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Copy failed. Please copy the text manually from the editor.');
+    expect(mockProps.showToast).not.toHaveBeenCalledWith('Post copied to clipboard!');
+  });
 });

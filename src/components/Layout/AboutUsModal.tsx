@@ -16,14 +16,14 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
       title: "عن المنصة",
       subtitle: "مستقبلك المهني يُصنع هنا",
       storyTitle: "القصة وراء الابتكار",
-      storyText: "في عالم يسيطر فيه الذكاء الاصطناعي، أدركنا أن المبرمجين والمهندسين يمتلكون مهارات عظيمة وأكواد عبقرية، لكنهم يفتقرون للوقت اللازم لصياغة إنجازاتهم وتحويلها إلى علامة تجارية شخصية قوية (Personal Brand). من هنا وُلد محرك LinkedIn Authority Engine، الأداة الأولى من نوعها التي تسد الفجوة بين الكود البرمجي وصناعة المحتوى الاحترافي.",
-      visionTitle: "رؤيتنا الخارقة",
-      visionText: "نحن لسنا مجرد 'أداة جدولة'. نحن نبني صانع محتوى تقني متكامل يعتمد على النماذج اللغوية الكبيرة (LLMs). هدفنا هو أن نأخذ كودك المصدري، نحلله بذكاء يشبه مهندس برمجيات خبير (Senior Engineer)، ثم نحوله إلى قصة تقنية تأسر المدراء التنفيذيين وتُبهر المبرمجين، لتتصدر نتائج البحث وتزيد فرصك المهنية.",
+      storyText: "في عالم تتسارع فيه أدوات الذكاء الاصطناعي، صُمم LinkedIn Authority Engine لمساعدة المبرمجين والمهندسين على تحويل الأدلة الهندسية المهمة إلى مسودات احترافية قابلة للمراجعة، من دون استبدال حكمهم أو نشر المحتوى نيابة عنهم.",
+      visionTitle: "رؤيتنا العملية",
+      visionText: "نحن لسنا أداة جدولة أو ناشراً آلياً. نبني مساحة عمل تقنية تعتمد على النماذج اللغوية الكبيرة (LLMs) لفهم أدلة مشروعك، ثم تحويل التغييرات الهندسية المهمة إلى مسودة موثّقة تراجعها وتحررها وتنسخها بنفسك.",
       features: [
-        { icon: Cpu, title: "تحليل ذكي معماري", desc: "يفهم التقنيات، هيكل المشروع، والهدف البرمجي دون حفظ الشفرة المصدرية." },
-        { icon: Globe, title: "تفوق لغوي متعدد", desc: "يكتب بطلاقة باللغات الإنجليزية، العربية، والألمانية مع الحفاظ على النبرة الاحترافية." },
+        { icon: Cpu, title: "تحليل ذكي معماري", desc: "يفهم التقنيات وهيكل المشروع من أدلة محدودة؛ قد تُحفظ مقتطفات مختارة في snapshots لدعم التحليل المتكرر." },
+        { icon: Globe, title: "مسودات متعددة اللغات", desc: "يدعم إنشاء مسودات بالإنجليزية والعربية والألمانية، مع ضرورة مراجعة المصطلحات والدقة قبل الاستخدام." },
         { icon: Rocket, title: "مسودات تقنية قابلة للتحرير", desc: "ينشئ مسودات تقنية للمراجعة والنسخ اليدوي؛ النشر المباشر والجدولة غير مطبقين في النسخة التجريبية." },
-        { icon: ShieldCheck, title: "حدود الأمان في النسخة التجريبية", desc: "تبقى أسرار Gemini على الخادم، بينما تبقى رموز GitHub ضمن إعدادات المستخدم لدعم التدفق الحالي." }
+        { icon: ShieldCheck, title: "حدود الأمان في النسخة التجريبية", desc: "تبقى أسرار Gemini وبيانات اعتماد GitHub الجديدة على الخادم؛ تُحفظ بيانات GitHub مشفّرة في سجل خاص لا يقرأه العميل." }
       ],
       developer: {
         title: "مهندس ومنشئ منتجات ذكاء اصطناعي (AI-First Product Builder)",
@@ -34,16 +34,16 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
     },
     en: {
       title: "About The Platform",
-      subtitle: "Your Professional Future is Built Here",
-      storyTitle: "The Story Behind the Innovation",
-      storyText: "In an AI-dominated world, we realized that engineers possess brilliant skills and exceptional code, yet lack the time to articulate their achievements into a powerful Personal Brand. Thus, the LinkedIn Authority Engine was born—the first tool of its kind to bridge the gap between raw code and professional content creation.",
-      visionTitle: "Our Groundbreaking Vision",
-      visionText: "We are not just a 'scheduler'. We are building an autonomous technical content creator powered by advanced LLMs. Our goal is to ingest your source code, analyze it with the intellect of a Senior Principal Engineer, and transform it into a compelling narrative that captivates C-level executives and awes fellow developers.",
+      subtitle: "A reviewable workspace for technical stories",
+      storyTitle: "The Story Behind the Product",
+      storyText: "LinkedIn Authority Engine helps engineers turn meaningful, bounded repository evidence into professional drafts they can review, edit, and copy manually. It supports human judgment rather than replacing it or publishing on the user's behalf.",
+      visionTitle: "Our Practical Vision",
+      visionText: "We are not a scheduler or an auto-publisher. We are building an evidence-backed technical drafting workspace powered by advanced LLMs. It interprets bounded project evidence and meaningful engineering changes, then turns them into editable drafts that you review and copy yourself.",
       features: [
-        { icon: Cpu, title: "Architectural AI Analysis", desc: "Understands your stack and project goals without ever storing your source code." },
-        { icon: Globe, title: "Multilingual Mastery", desc: "Writes flawlessly in English, Arabic, and German while maintaining professional tone." },
+        { icon: Cpu, title: "Architectural AI Analysis", desc: "Understands your stack and project goals from bounded evidence; selected snippets may be retained in snapshots for incremental analysis." },
+        { icon: Globe, title: "Multilingual Drafts", desc: "Supports English, Arabic, and German drafts; terminology and accuracy still require human review." },
         { icon: Rocket, title: "Editable Technical Drafts", desc: "Generates technical drafts for manual review and copying; direct publishing and scheduling are not implemented in the beta." },
-        { icon: ShieldCheck, title: "Beta Security Boundary", desc: "Gemini secrets stay server-side; GitHub integration tokens remain in user settings for the current client flow." }
+        { icon: ShieldCheck, title: "Beta Security Boundary", desc: "Gemini secrets stay server-side; new GitHub credentials are encrypted in an Admin-only record and legacy records require migration." }
       ],
       developer: {
         title: "AI-First Product Builder & Architect",
@@ -56,14 +56,14 @@ export const AboutUsModal: React.FC<AboutUsModalProps> = ({ isOpen, onClose, lan
       title: "Über die Plattform",
       subtitle: "Ihre berufliche Zukunft wird hier aufgebaut",
       storyTitle: "Die Geschichte hinter der Innovation",
-      storyText: "In einer von KI dominierten Welt haben wir erkannt, dass Ingenieure über brillante Fähigkeiten und außergewöhnlichen Code verfügen, aber nicht die Zeit haben, ihre Erfolge in eine starke persönliche Marke zu verwandeln. So wurde die LinkedIn Authority Engine geboren – das erste Tool seiner Art, das die Lücke zwischen Rohcode und professioneller Inhaltserstellung schließt.",
-      visionTitle: "Unsere bahnbrechende Vision",
-      visionText: "Wir sind nicht nur ein 'Planer'. Wir bauen einen autonomen Ersteller technischer Inhalte auf Basis fortschrittlicher LLMs. Unser Ziel ist es, Ihren Quellcode aufzunehmen, ihn mit dem Verstand eines Senior Principal Engineers zu analysieren und ihn in eine fesselnde Erzählung zu verwandeln, die Führungskräfte fasziniert und Entwickler beeindruckt.",
+      storyText: "LinkedIn Authority Engine hilft Ingenieuren, wichtige und begrenzte Repository-Nachweise in professionelle Entwürfe zu verwandeln, die sie selbst prüfen, bearbeiten und manuell kopieren können. Das Produkt unterstützt menschliches Urteil und veröffentlicht nicht im Namen des Nutzers.",
+      visionTitle: "Unsere praktische Vision",
+      visionText: "Wir sind kein Planer und kein Auto-Publisher. Wir bauen einen evidenzbasierten Arbeitsbereich für technische Entwürfe auf Basis fortschrittlicher LLMs. Er interpretiert begrenzte Projektnachweise und wichtige technische Änderungen und erstellt daraus bearbeitbare Entwürfe zur manuellen Prüfung und zum Kopieren.",
       features: [
-        { icon: Cpu, title: "Architektonische KI-Analyse", desc: "Versteht Ihren Stack und Ihre Projektziele, ohne jemals Ihren Quellcode zu speichern." },
-        { icon: Globe, title: "Mehrsprachige Meisterschaft", desc: "Schreibt fehlerfrei in Englisch, Arabisch und Deutsch bei Wahrung des professionellen Tons." },
+        { icon: Cpu, title: "Architektonische KI-Analyse", desc: "Versteht Stack und Projektziele anhand begrenzter Evidenz; ausgewählte Ausschnitte können für inkrementelle Analysen in Snapshots verbleiben." },
+        { icon: Globe, title: "Mehrsprachige Entwürfe", desc: "Unterstützt Entwürfe auf Englisch, Arabisch und Deutsch; Terminologie und Genauigkeit müssen geprüft werden." },
         { icon: Rocket, title: "Bearbeitbare technische Entwürfe", desc: "Erstellt technische Entwürfe zur manuellen Prüfung und zum Kopieren; direktes Posting und Planung sind in der Beta nicht implementiert." },
-        { icon: ShieldCheck, title: "Sicherheitsgrenze der Beta", desc: "Gemini-Schlüssel bleiben auf dem Server; GitHub-Integrationstoken bleiben für den aktuellen Client-Ablauf in den Benutzereinstellungen." }
+        { icon: ShieldCheck, title: "Sicherheitsgrenze der Beta", desc: "Gemini-Schlüssel und neue GitHub-Zugangsdaten bleiben serverseitig; GitHub-Zugangsdaten werden verschlüsselt in einem für den Client nicht lesbaren Datensatz gespeichert." }
       ],
       developer: {
         title: "KI-First Product Builder & Architekt",

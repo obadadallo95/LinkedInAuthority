@@ -3,6 +3,7 @@
 
 runConfig:
   concurrency: 80
+  maxInstances: 3
   minInstances: 0
   cpu: 1
   memoryMiB: 512
@@ -10,9 +11,25 @@ runConfig:
 env:
   - variable: GEMINI_API_KEY
     secret: gemini_api_key
+    availability:
+      - RUNTIME
   - variable: GEMINI_PRO_API_KEY
     secret: gemini_api_key
+    availability:
+      - RUNTIME
   - variable: ANALYSIS_SIGNING_SECRET
     secret: analysis_signing_secret
+    availability:
+      - RUNTIME
   - variable: CRON_SECRET
     secret: cron_secret
+    availability:
+      - RUNTIME
+  - variable: GITHUB_CREDENTIAL_ENCRYPTION_KEY
+    secret: github_credential_encryption_key
+    availability:
+      - RUNTIME
+  - variable: PRODUCT_TELEMETRY_ENABLED
+    value: "false"
+    availability:
+      - RUNTIME

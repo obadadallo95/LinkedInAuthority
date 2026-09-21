@@ -28,11 +28,11 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
             <span>1. إرشادات الاستخدام المهني (B2B)</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            تم تصميم منصة LinkedIn Authority كأداة أتمتة محتوى احترافية للمطورين والشركات. باستخدام هذه المنصة، يلتزم المستخدم بمراعاة شروط وأحكام الاستخدام الرسمية لشبكتي GitHub و LinkedIn. يُحظر تماماً:
+            تم تصميم منصة LinkedIn Authority كمساحة عمل للمسودات التقنية الموثقة للمطورين والشركات، وليست ناشراً أو أداة تفاعل آلي. باستخدام هذه المنصة، يلتزم المستخدم بمراعاة شروط وأحكام الاستخدام الرسمية لشبكتي GitHub و LinkedIn. يُحظر تماماً:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pr-2">
             <li>استخدام المنصة لإنشاء أو نشر محتوى مضلل، غير لائق مهنياً، أو يروج لمعلومات كاذبة.</li>
-            <li>إساءة استخدام ميزة الجدولة لإرسال رسائل عشوائية أو مكثفة (Spam) تنتهك سياسات LinkedIn الخاصة بمعدلات النشر.</li>
+            <li>استخدام المسودات الناتجة لإرسال رسائل عشوائية أو مكثفة (Spam)، أو مشاركتها يدوياً بطريقة تخالف سياسات LinkedIn.</li>
             <li>تحليل مستودعات برمجية غير مصرح للمستخدم بالوصول إليها أو استخدام شفرات برمجية تخضع لاتفاقيات عدم الإفصاح (NDA) دون إذن صريح.</li>
           </ul>
         </div>
@@ -44,10 +44,10 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
             <span>2. إخلاء المسؤولية عن المحتوى المولد بالذكاء الاصطناعي</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            تعتمد المنصة على خوارزميات الذكاء الاصطناعي (Gemini AI) لتحليل الأكواد وتوليد المنشورات. يقر المستخدم بما يلي:
+            تستخدم المنصة نماذج الذكاء الاصطناعي (Gemini AI) لتحليل أدلة محدودة من المستودع وإنشاء مسودات قابلة للمراجعة. يقر المستخدم بما يلي:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pr-2">
-            <li><strong>المسؤولية النهائية:</strong> تقع مراجعة وتدقيق وتأكيد صحة أي محتوى يتم إنشاؤه عبر المنصة قبل نشره على عاتق المستخدم بالكامل.</li>
+            <li><strong>المسؤولية النهائية:</strong> تقع مراجعة وتدقيق وتأكيد صحة أي مسودة يتم إنشاؤها عبر المنصة قبل نسخها أو مشاركتها يدوياً على عاتق المستخدم بالكامل.</li>
             <li><strong>النزاهة والموثوقية:</strong> لا نضمن دقة أو ملاءمة أو قانونية النصوص المولدة تلقائياً، والمنصة غير مسؤولة عن أي أضرار مهنية أو قانونية ناتجة عن نشر هذا المحتوى.</li>
             <li><strong>الامتثال للملكية الفكرية:</strong> يتحمل المستخدم مسؤولية التأكد من أن المنشورات الناتجة لا تفصح عن أسرار تجارية أو ملكية فكرية محمية لشركته أو لجهات خارجية.</li>
           </ul>
@@ -86,11 +86,11 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
             <span>1. Richtlinien für die professionelle B2B-Nutzung</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Die LinkedIn Authority Plattform ist als professionelles Content-Automatisierungstool für Software-Entwickler und Unternehmen konzipiert. Durch die Nutzung erklären Sie sich mit den Nutzungsbedingungen von GitHub und LinkedIn einverstanden. Folgendes ist streng untersagt:
+            Die LinkedIn Authority Plattform ist als Arbeitsbereich für evidenzbasierte technische Entwürfe für Entwickler und Unternehmen konzipiert, nicht als Auto-Publisher oder Engagement-Bot. Durch die Nutzung erklären Sie sich mit den Nutzungsbedingungen von GitHub und LinkedIn einverstanden. Folgendes ist streng untersagt:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
             <li>Nutzung der Plattform zur Erstellung irreführender, diffamierender oder unprofessioneller Inhalte.</li>
-            <li>Missbrauch der Scheduling-Funktion zum Spamming oder zur Verletzung der Veröffentlichungsrichtlinien von LinkedIn.</li>
+            <li>Verwendung der erzeugten Entwürfe für Spam oder für eine manuelle Weitergabe, die gegen die Richtlinien von LinkedIn verstößt.</li>
             <li>Analysieren von privaten Repositories ohne explizite Zugriffsberechtigungen oder Verletzung von Geheimhaltungsvereinbarungen (NDA).</li>
           </ul>
         </div>
@@ -102,10 +102,10 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
             <span>2. Haftungsausschluss für KI-generierte Inhalte</span>
           </h5>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Die Plattform nutzt künstliche Intelligenz (Gemini AI), um Codebasen zu analysieren und Beiträge zu entwerfen. Der Nutzer nimmt Folgendes zur Kenntnis:
+            Die Plattform nutzt künstliche Intelligenz (Gemini AI), um begrenzte Repository-Nachweise zu analysieren und überprüfbare Entwürfe zu erstellen. Der Nutzer nimmt Folgendes zur Kenntnis:
           </p>
           <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-            <li><strong>Endabnahmeverantwortung:</strong> Die vollständige Überprüfung und Freigabe aller automatisch generierten Beiträge vor der Veröffentlichung liegt ausschließlich in der Verantwortung des Nutzers.</li>
+            <li><strong>Endabnahmeverantwortung:</strong> Die vollständige Überprüfung und Bearbeitung jedes Entwurfs vor dem Kopieren oder manuellen Teilen liegt ausschließlich in der Verantwortung des Nutzers.</li>
             <li><strong>Gewährleistungsausschluss:</strong> Wir garantieren nicht die Richtigkeit, Eignung oder Legalität der erzeugten Texte. Es besteht keine Haftung für berufsbezogene oder rechtliche Schäden.</li>
             <li><strong>Schutz des geistigen Eigentums:</strong> Der Nutzer muss sicherstellen, dass keine geschäftskritischen Geheimnisse oder patentierten Quellcode-Fragmente ungewollt veröffentlicht werden.</li>
           </ul>
@@ -144,10 +144,10 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
           <span>1. Professional B2B Usage Guidelines</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          LinkedIn Authority Engine is designed as an automated professional branding and content generation platform for technical leaders, developers, and enterprises. By using the platform, users agree to align strictly with LinkedIn's Professional Community Policies and GitHub's Developer Guidelines. It is strictly prohibited to:
+          LinkedIn Authority Engine is an evidence-backed drafting workspace for developers, technical founders, and engineers. It creates editable drafts for human review and manual sharing; it is not a LinkedIn publisher, scheduler, engagement bot, or outreach tool. By using the platform, users agree to align strictly with LinkedIn's Professional Community Policies and GitHub's Developer Guidelines. It is strictly prohibited to:
         </p>
         <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-          <li>Generate, schedule, or publish misleading, offensive, or copyright-infringing professional materials.</li>
+          <li>Use generated drafts to create or manually share misleading, offensive, or copyright-infringing professional materials.</li>
           <li>Incorporate spamming techniques or violate API request rate limits defined by LinkedIn or GitHub.</li>
           <li>Analyze repositories or parse code structures without authorized access or in violation of existing Non-Disclosure Agreements (NDAs).</li>
         </ul>
@@ -160,10 +160,10 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ lang }) => {
           <span>2. AI Content Generation Liability & Disclaimer</span>
         </h5>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Our integrated AI models (Gemini AI) are trained to suggest, summarize, and draft professional updates based on repository files. Users explicitly acknowledge and agree to the following terms:
+          Our integrated AI models (Gemini AI) are used to suggest, summarize, and draft professional updates from bounded repository evidence. Users explicitly acknowledge and agree to the following terms:
         </p>
         <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-2">
-          <li><strong>Review and Approval:</strong> The user retains sole, final responsibility for checking, validating, and editing AI-drafted content before authorizing its publication.</li>
+          <li><strong>Review and Approval:</strong> The user retains sole, final responsibility for checking, validating, and editing an AI draft before copying or manually sharing it.</li>
           <li><strong>No Warranties:</strong> LinkedIn Authority Engine provides no guarantees concerning the absolute factual correctness, professional suitability, or legal compliance of AI outputs.</li>
           <li><strong>IP Protection:</strong> The user must ensure that AI summaries do not inadvertently leak confidential source code, trade secrets, or proprietary enterprise methodologies to public feeds.</li>
         </ul>

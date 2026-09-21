@@ -1,4 +1,4 @@
-import { GoogleGenAI, Schema } from "@google/genai";
+import { GoogleGenAI, Schema, ThinkingLevel as GeminiThinkingLevel } from "@google/genai";
 import { 
   AiTask, 
   AI_TASK_ROUTING, 
@@ -69,6 +69,7 @@ export async function callGeminiWithRetry(
   let requestedModel: string;
   let fallbackModel: string;
   let thinkingLevel: ThinkingLevel | undefined;
+  let maxOutputTokens = 2048;
 
   if (typeof taskOrOptionsOrModel === 'string') {
     if (taskOrOptionsOrModel in AI_TASK_ROUTING) {
@@ -77,6 +78,7 @@ export async function callGeminiWithRetry(
       requestedModel = routing.primaryModel;
       fallbackModel = routing.fallbackModel;
       thinkingLevel = routing.thinkingLevel;
+      maxOutputTokens = routing.maxOutputTokens;
     } else {
       // Direct model string passed (legacy compatibility)
       requestedModel = taskOrOptionsOrModel;
@@ -90,6 +92,7 @@ export async function callGeminiWithRetry(
       requestedModel = taskOrOptionsOrModel.model || routing.primaryModel;
       fallbackModel = routing.fallbackModel;
       thinkingLevel = taskOrOptionsOrModel.thinkingLevel || routing.thinkingLevel;
+      maxOutputTokens = routing.maxOutputTokens;
     } else {
       requestedModel = taskOrOptionsOrModel.model || "gemini-3.7-flash";
       fallbackModel = 'gemini-3.6-flash';
@@ -109,12 +112,15 @@ export async function callGeminiWithRetry(
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: schema,
+        maxOutputTokens,
       };
 
-      // Apply thinking configuration if specified (e.g. for gemini-3.7-flash)
-      if (thinkingLevel && currentModel.startsWith('gemini-3.7')) {
+      // Gemini 3.x uses thinkingLevel. Keep the same bounded policy when a
+      // stable fallback (for example 3.6) is selected, instead of silently
+      // reverting to the provider's default thinking level and cost.
+      if (thinkingLevel && currentModel.startsWith('gemini-3.')) {
         config.thinkingConfig = {
-          thinkingLevel,
+          thinkingLevel: GeminiThinkingLevel[thinkingLevel],
         };
       }
 
@@ -220,10 +226,11 @@ export function handleGeminiError(error: any, lang: string = 'en'): string {
   if (errStr.includes('Custom angle contradicts') || errStr.includes('Generated post contains a blocking claim')) {
     return errStr; // pass through business logic errors
   }
-  
-  if (errStr.length > 200 || errStr.includes('{')) {
-    return "An unexpected error occurred while communicating with the AI service.";
+  if (errStr.toLowerCase().includes('token') || errStr.toLowerCase().includes('signature') || errStr.toLowerCase().includes('missing analysis')) {
+    return "Invalid or expired analysis token. Please analyze again.";
   }
   
-  return errStr || "Unknown error";
+  // Never expose vendor/network error text to a browser: it may contain
+  // request metadata, internal paths, or provider-specific details.
+  return "An unexpected error occurred while communicating with the AI service.";
 }

@@ -8,6 +8,7 @@ export const RepositoriesDashboard = ({
   lang,
   repos,
   loadingRepos,
+  reposLoadError,
   repoSearch,
   setRepoSearch,
   refreshRepos,
@@ -20,6 +21,7 @@ export const RepositoriesDashboard = ({
   setActiveTab
 }: any) => {
   const isAr = lang === 'ar';
+  const isDe = lang === 'de';
   const navigate = useNavigate();
   
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'stars'>('date');
@@ -101,6 +103,13 @@ export const RepositoriesDashboard = ({
     navigate(`/repositories/${owner}/${repo.name}`);
   };
 
+  const handleRepoKeyDown = (event: React.KeyboardEvent, repo: any) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleRepoClick(repo);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 pb-12">
         
@@ -129,28 +138,29 @@ export const RepositoriesDashboard = ({
                   </span>
                 )}
                 <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-400 flex items-center gap-2 backdrop-blur-sm shadow-[0_0_10px_rgba(16,185,129,0.1)]">
-                  <Activity className="w-3.5 h-3.5" /> PRO Active
+                  <Activity className="w-3.5 h-3.5" />
+                  {isAr ? 'مسار المسودات موثّق' : 'Draft-first workflow'}
                 </span>
               </div>
             )}
           </div>
           
-          {/* Smart AI Suggestion Card inside Hero */}
+          {/* Evidence-first starting point: repository recency is not proof of a meaningful change. */}
           {!loadingRepos && mostRecentRepo && !repoSearch && (
             <div className="relative z-10 w-full lg:w-auto bg-slate-950/60 border border-indigo-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 backdrop-blur-md shadow-lg shadow-indigo-500/10">
               <div className="flex flex-col items-center sm:items-start text-center sm:text-start">
                 <p className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase tracking-wider mb-1">
-                  <Zap className="w-3.5 h-3.5" /> {isAr ? 'اقتراح الذكاء الاصطناعي' : 'AI Suggestion'}
+                  <Zap className="w-3.5 h-3.5" /> {isAr ? 'نقطة بداية مقترحة' : isDe ? 'Vorgeschlagener Einstieg' : 'Suggested starting point'}
                 </p>
                 <p className="text-sm font-medium text-slate-200">
-                  {isAr ? `نشاط جديد في ${mostRecentRepo.name}` : `New activity in ${mostRecentRepo.name}`}
+                  {isAr ? `افتح آخر مستودع محدّث: ${mostRecentRepo.name}` : isDe ? `Zuletzt aktualisiertes Repository öffnen: ${mostRecentRepo.name}` : `Open the most recently updated repository: ${mostRecentRepo.name}`}
                 </p>
               </div>
               <button 
                 onClick={() => handleRepoClick(mostRecentRepo)}
                 className="glow-button px-5 py-2.5 rounded-lg font-bold text-sm text-white flex items-center gap-2 whitespace-nowrap shadow-lg shadow-indigo-600/30 w-full sm:w-auto justify-center"
               >
-                {isAr ? 'توليد منشور ⚡' : 'Generate Post ⚡'}
+                {isAr ? 'فحص الأدلة ⚡' : isDe ? 'Nachweise prüfen ⚡' : 'Review evidence ⚡'}
               </button>
             </div>
           )}
@@ -225,12 +235,16 @@ export const RepositoriesDashboard = ({
                 <div className="flex items-center bg-slate-950 rounded-lg border border-white/10 shrink-0 p-0.5">
                   <button
                     onClick={() => setViewMode('grid')}
+                    aria-label={isAr ? 'عرض شبكي' : isDe ? 'Rasteransicht' : 'Grid view'}
+                    aria-pressed={viewMode === 'grid'}
                     className={`p-1.5 transition-colors cursor-pointer rounded-md ${viewMode === 'grid' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
+                    aria-label={isAr ? 'عرض قائمة' : isDe ? 'Listenansicht' : 'List view'}
+                    aria-pressed={viewMode === 'list'}
                     className={`p-1.5 transition-colors cursor-pointer rounded-md ${viewMode === 'list' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     <List className="w-4 h-4" />
@@ -255,6 +269,8 @@ export const RepositoriesDashboard = ({
                   <button
                     type="button"
                     onClick={() => setDemoMode && setDemoMode(!demoMode)}
+                    aria-label={isAr ? 'تبديل الوضع التجريبي' : isDe ? 'Demomodus umschalten' : 'Toggle demo mode'}
+                    aria-pressed={Boolean(demoMode)}
                     className={`relative inline-flex h-4 w-7 cursor-pointer rounded-full transition-colors ${demoMode ? 'bg-indigo-500' : 'bg-slate-700'}`}
                   >
                     <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform mt-0.5 ms-0.5 ${demoMode ? (isAr ? '-translate-x-3' : 'translate-x-3') : 'translate-x-0'}`} />
@@ -274,6 +290,15 @@ export const RepositoriesDashboard = ({
                 </div>
                 <p className="text-slate-400 text-sm font-medium animate-pulse">{isAr ? 'جاري مزامنة المستودعات...' : 'Syncing repositories...'}</p>
               </div>
+            ) : reposLoadError ? (
+              <div role="alert" className="text-center py-20 glass-panel rounded-2xl border border-amber-500/20 bg-amber-500/5">
+                <RefreshCw className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+                <p className="text-slate-200 font-bold mb-2">{isAr ? 'تعذر تحميل المستودعات' : isDe ? 'Repositories konnten nicht geladen werden' : 'Repositories could not be loaded'}</p>
+                <p className="text-slate-400 text-sm mb-5">{isAr ? 'تحقق من الاتصال أو أعد المحاولة. لن يتم طلب بيانات GitHub من المتصفح مباشرة.' : isDe ? 'Prüfe die Verbindung und versuche es erneut. GitHub wird nicht direkt aus dem Browser angefragt.' : 'Check the connection and try again. GitHub is never queried directly from the browser.'}</p>
+                <button onClick={() => refreshRepos?.(true)} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">
+                  {isAr ? 'إعادة المحاولة' : isDe ? 'Erneut versuchen' : 'Retry'}
+                </button>
+              </div>
             ) : sortedRepos.length === 0 ? (
               <div className="text-center py-20 glass-panel rounded-2xl border border-white/5">
                 <FolderGit2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -290,11 +315,15 @@ export const RepositoriesDashboard = ({
                       <div 
                         key={repo.id}
                         onClick={() => handleRepoClick(repo)}
+                        onKeyDown={(event) => handleRepoKeyDown(event, repo)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={isAr ? `فتح المستودع ${repo.name}` : isDe ? `Repository ${repo.name} öffnen` : `Open repository ${repo.name}`}
                         className={`group relative glass-panel bg-slate-900/50 hover:bg-slate-800/80 border border-white/10 hover:border-indigo-500/50 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:shadow-indigo-500/10 flex flex-col ${viewMode === 'list' ? 'sm:flex-row' : ''}`}
                       >
                         {/* Beautiful Background Sparkline */}
                         <div className="absolute bottom-0 left-0 right-0 h-24 opacity-[0.15] group-hover:opacity-30 transition-opacity duration-500 pointer-events-none z-0">
-                           <RepoSparkline username={repo.owner?.login || settings.githubUsername} repo={repo.name} token={settings.githubToken} className="w-full h-full" />
+                           <RepoSparkline lang={lang} className="w-full h-full" />
                         </div>
                         
                         <div className={`p-5 flex-1 flex flex-col relative z-10 ${viewMode === 'list' ? 'sm:flex-row sm:items-center sm:gap-6' : 'gap-3'}`}>

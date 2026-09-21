@@ -4,6 +4,9 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    define: {
+      'import.meta.env.VITE_E2E_BROWSER_TEST': JSON.stringify(process.env.VITE_E2E_BROWSER_TEST === 'true'),
+    },
     plugins: [react(), tailwindcss()],
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
@@ -11,6 +14,19 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            firebaseApp: ['firebase/app'],
+            firebaseAuth: ['firebase/auth'],
+            firebaseFirestore: ['firebase/firestore'],
+            motion: ['framer-motion', 'motion'],
+            icons: ['lucide-react'],
+          },
+        },
+      },
     },
   };
 });

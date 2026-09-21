@@ -19,7 +19,19 @@ vi.mock('../../server/services/deepIntelligence/deepPostGenerator', () => ({
 }));
 
 vi.mock('../../server/services/entitlements', () => ({
-  getUserTier: vi.fn().mockResolvedValue('free')
+  getUserTier: vi.fn().mockResolvedValue('free'),
+  getAutomationProjectLimit: vi.fn().mockReturnValue(2)
+}));
+
+vi.mock('../../server/services/usageLedger', () => ({
+  consumeAiCapability: vi.fn().mockResolvedValue(true)
+}));
+
+// These automation fixtures represent public repositories. Keep credential
+// storage out of this route unit test; private-access failure behavior is
+// covered by githubCredentials/integrations tests.
+vi.mock('../../server/services/githubCredentials', () => ({
+  getGithubCredentialForUser: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock Firestore Admin
@@ -186,6 +198,26 @@ describe('Scheduled Automation Subsystem Tests', () => {
 
     const res = await request(app)
       .post('/api/cron/process-weekly')
+      .set('Authorization', 'Bearer test-secret');
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Cron service is not configured');
+  });
+
+  it('retention cleanup is protected by the cron secret', async () => {
+    const res = await request(app)
+      .post('/api/cron/retention')
+      .set('Authorization', 'Bearer wrong-secret');
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('Unauthorized cron request');
+  });
+
+  it('retention cleanup rejects requests when the secret is not configured', async () => {
+    delete process.env.CRON_SECRET;
+
+    const res = await request(app)
+      .post('/api/cron/retention')
       .set('Authorization', 'Bearer test-secret');
 
     expect(res.status).toBe(503);
@@ -397,7 +429,7 @@ describe('Scheduled Automation Subsystem Tests', () => {
       }
     });
 
-    setupUserProject();
+    setupUserProject({ lastProcessedCommit: 'old_sha' });
 
     const res = await request(app)
       .post('/api/cron/process-weekly')
@@ -407,6 +439,11 @@ describe('Scheduled Automation Subsystem Tests', () => {
     expect(res.body.processed).toBe(0);
     expect(mockGenerateDeepPost).not.toHaveBeenCalled();
     expect(mockDraftsAdd).not.toHaveBeenCalled();
+    const observedUpdate = mockProjectUpdate.mock.calls.find((call: any[]) => call[0]?.lastObservedActivity);
+    expect(observedUpdate?.[0]).toEqual(expect.objectContaining({
+      lastObservedActivity: expect.objectContaining({ commitSha: 'sha_trivial' }),
+    }));
+    expect(observedUpdate?.[0]?.lastContentGeneratedFrom).toBeUndefined();
   });
 
   it('10. successful generation => checkpoint updated and lease released', async () => {
@@ -416,7 +453,7 @@ describe('Scheduled Automation Subsystem Tests', () => {
       reasons: ['New commit']
     });
 
-    setupUserProject();
+    setupUserProject({ lastProcessedCommit: 'old_sha' });
 
     const res = await request(app)
       .post('/api/cron/process-weekly')
@@ -425,9 +462,19 @@ describe('Scheduled Automation Subsystem Tests', () => {
     expect(res.status).toBe(200);
     expect(res.body.processed).toBe(1);
     expect(mockDraftsAdd).toHaveBeenCalledTimes(1);
+    expect(mockPerformDeepScan).toHaveBeenCalledWith(
+      'https://github.com/testowner/testrepo',
+      undefined,
+      expect.anything(),
+      'free',
+      expect.objectContaining({ analyzedCommitSha: 'old_sha', defaultBranch: 'main' }),
+      expect.anything(),
+    );
     expect(mockProjectUpdate).toHaveBeenCalledWith(expect.objectContaining({
       lastProcessedCommit: 'sha_new_commit',
       lastProcessed: expect.objectContaining({ commitSha: 'sha_new_commit' }),
+      lastObservedActivity: expect.objectContaining({ commitSha: 'sha_new_commit' }),
+      lastContentGeneratedFrom: expect.objectContaining({ commitSha: 'sha_new_commit' }),
       processingLease: null
     }));
   });

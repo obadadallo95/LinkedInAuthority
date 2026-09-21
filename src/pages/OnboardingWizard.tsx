@@ -12,33 +12,35 @@ const GithubIcon = ({ className, size = 24 }: { className?: string, size?: numbe
 import confetti from 'canvas-confetti';
 import { t } from '../locales';
 import { useSettings } from '../contexts/SettingsContext';
-import { auth, githubProvider, db } from '../infrastructure/firebase/config';
+import { auth, githubProvider } from '../infrastructure/firebase/config';
+import { loadFirestoreClient } from '../infrastructure/firebase/firestoreClient';
 import { linkWithPopup, GithubAuthProvider } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { isBrowserE2E } from '../utils/e2e';
 
 export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
   const { settings, isOnboardingComplete } = useSettings();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const isRtl = lang === 'ar';
+  const isDe = lang === 'de';
   const T = t[lang] || t['ar'];
   
   // Calculate connected states
   const ghConnected = !!(settings.githubUsername || settings.githubProfile);
 
   useEffect(() => {
-    if (step === 1) {
-      if (ghConnected) setStep(3);
-      else setStep(2); // If welcome screen is dismissed (but here we show welcome on 1)
-    }
-    if (step === 3) {
-      triggerConfetti();
-    }
+    if (ghConnected && step !== 3) setStep(3);
   }, [ghConnected, step]);
+
+  useEffect(() => {
+    if (step === 3) triggerConfetti();
+  }, [step]);
 
   const skipOnboarding = async () => {
     if (!auth.currentUser) return;
+    const { db, doc, setDoc } = await loadFirestoreClient();
     const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
     await setDoc(settingsRef, { onboardingSkipped: true }, { merge: true });
     window.location.reload();
@@ -72,6 +74,7 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
 
   const connectGithub = async () => {
     if (!auth.currentUser) return;
+    setActionError(null);
     setLoading(true);
     try {
       const result = await linkWithPopup(auth.currentUser, githubProvider);
@@ -79,15 +82,18 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
       const token = credential?.accessToken;
       
       if (token && result.user) {
-        const userRes = await fetch('https://api.github.com/user', {
-          headers: { Authorization: `token ${token}` }
+        const idToken = await result.user.getIdToken();
+        const credentialResponse = await fetch('/api/integrations/github/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify({ token }),
         });
-        const userData = await userRes.json();
-        
+        if (!credentialResponse.ok) throw new Error('GitHub connection failed');
+        const userData = (await credentialResponse.json()).profile;
+        const { db, doc, setDoc } = await loadFirestoreClient();
         const settingsRef = doc(db, "users", result.user.uid, "settings", "current");
         await setDoc(settingsRef, {
             githubUsername: userData.login,
-            githubToken: token,
             githubProfile: {
                 login: userData.login,
                 avatar_url: userData.avatar_url,
@@ -99,9 +105,38 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.message);
+      setActionError(
+        err.code === 'auth/credential-already-in-use'
+          ? (isRtl ? 'حساب GitHub مرتبط بمستخدم آخر.' : isDe ? 'Dieses GitHub-Konto ist bereits mit einem anderen Nutzer verbunden.' : 'This GitHub account is already connected to another user.')
+          : (isRtl ? 'تعذر إكمال ربط GitHub. تحقق من الاتصال وحاول مرة أخرى.' : isDe ? 'Die GitHub-Verbindung konnte nicht abgeschlossen werden. Prüfe die Verbindung und versuche es erneut.' : 'GitHub connection could not be completed. Check the connection and try again.')
+      );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const continueWithPublicRepositories = async () => {
+    setActionError(null);
+    try {
+      const localE2eMode = typeof window !== 'undefined' && window.localStorage.getItem('linkedin-e2e-mode') === 'true';
+      if (isBrowserE2E || localE2eMode) {
+        localStorage.setItem('linkedin-e2e-settings', JSON.stringify({
+          githubUsername: '',
+          githubProfile: null,
+          githubPermissions: 'public',
+          onboardingSkipped: true,
+        }));
+        setStep(3);
+      } else {
+        if (!auth.currentUser) return;
+        const { db, doc, setDoc } = await loadFirestoreClient();
+        const settingsRef = doc(db, "users", auth.currentUser.uid, "settings", "current");
+        await setDoc(settingsRef, { githubPermissions: 'public', onboardingSkipped: true }, { merge: true });
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Could not continue with public repositories:', error);
+      setActionError(isRtl ? 'تعذر حفظ الاختيار حالياً. حاول مرة أخرى.' : isDe ? 'Die Auswahl konnte nicht gespeichert werden. Bitte erneut versuchen.' : 'Could not save this choice right now. Try again.');
     }
   };
 
@@ -174,6 +209,21 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
                 >
                   {loading ? (isRtl ? 'جاري الربط...' : 'Connecting...') : (isRtl ? 'ربط الحساب' : 'Connect Account')}
                 </button>
+                {actionError && (
+                  <div className="w-full rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-sm text-rose-200" role="alert">
+                    {actionError}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={continueWithPublicRepositories}
+                  className="w-full py-3 bg-transparent text-slate-300 font-bold rounded-xl hover:bg-white/5 border border-white/10 transition-colors"
+                >
+                  {isRtl ? 'المتابعة بالمستودعات العامة' : lang === 'de' ? 'Mit öffentlichen Repositories fortfahren' : 'Continue with public repositories'}
+                </button>
+                <p className="text-[11px] text-slate-500 max-w-sm">
+                  {isRtl ? 'يمكنك ربط GitHub الخاص لاحقاً من الإعدادات.' : lang === 'de' ? 'Private GitHub-Zugriffe können später in den Einstellungen aktiviert werden.' : 'You can enable private GitHub access later from Settings.'}
+                </p>
               </motion.div>
             )}
 

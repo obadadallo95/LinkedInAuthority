@@ -23,7 +23,7 @@ export const LoginScreen = ({
   const subtitle = isAr 
     ? "صناعة حضور رقمي احترافي مؤتمت بالذكاء الاصطناعي من مستودعات كود GitHub." 
     : isDe 
-    ? "KI-gestützte LinkedIn-Inhaltsautomatisierung aus Ihren GitHub-Codebases." 
+    ? "KI-gestützte LinkedIn-Entwürfe aus begrenzten GitHub-Nachweisen – zur Prüfung und zum manuellen Kopieren."
     : "AI Professional Presence Automation from GitHub Codebases.";
 
   const description = isAr
@@ -85,7 +85,7 @@ export const LoginScreen = ({
             {title}
           </h1>
           <p className="text-indigo-400 text-xs md:text-sm font-bold max-w-sm mx-auto leading-relaxed uppercase tracking-wider mb-2">
-            {isAr ? "نظام الأتمتة والتحليل الذكي" : isDe ? "AI-Automatisierungsplattform" : "AI CONTENT AUTOMATION PLATFORM"}
+            {isAr ? "مساحة المسودات التقنية الموثقة" : isDe ? "Arbeitsbereich für evidenzbasierte Entwürfe" : "EVIDENCE-BACKED TECHNICAL DRAFTS"}
           </p>
           <p className="text-slate-300 text-sm md:text-base max-w-md mx-auto leading-relaxed font-semibold">
             {subtitle}

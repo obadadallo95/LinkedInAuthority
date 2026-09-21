@@ -53,8 +53,6 @@ export async function fetchGithubContext(repoUrl: string, token?: string): Promi
   };
   if (token) {
     headers["Authorization"] = `token ${token}`;
-  } else if (process.env.GITHUB_TOKEN) {
-    headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
   }
 
   // Parallel fetch: Metadata, Languages, Root Contents, README

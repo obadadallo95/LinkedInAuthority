@@ -46,7 +46,7 @@ export const DeepScanLoader: React.FC<DeepScanLoaderProps> = ({ repoName, isAr }
             <h3 className="text-white font-semibold flex items-center gap-2">
               {isAr ? 'الفحص العميق' : 'Deep Scan'}
               <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                PRO
+                {isAr ? 'مؤكد بالأدلة' : 'Evidence-backed'}
               </span>
             </h3>
             <p className="text-slate-400 text-sm font-mono mt-0.5">{repoName}</p>

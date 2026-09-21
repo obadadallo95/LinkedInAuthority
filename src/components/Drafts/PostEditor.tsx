@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../application/AuthContext';
 import { 
-  Copy, RefreshCw, CheckCircle2, FileText, Share2, ClipboardCheck, Sparkles, 
-  Bold, Flame, List, CornerDownLeft, MessageSquare, Send, Terminal, HelpCircle, Newspaper, 
-  TrendingUp, Cpu, GraduationCap, BookOpen, Skull, BadgeHelp
+  Copy, RefreshCw, CheckCircle2, FileText, ClipboardCheck, Sparkles,
+  Bold, Flame, List, CornerDownLeft, MessageSquare, Send, Terminal, HelpCircle,
+  Cpu, GraduationCap, BookOpen, Skull
 } from 'lucide-react';
 import { t } from '../../constants';
 
@@ -28,6 +28,41 @@ const calculateQualityScore = (text: string) => {
 
 export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, showToast }: any) => {
   const isAr = lang === 'ar';
+  const isDe = lang === 'de';
+  const ui = {
+    editor: isAr ? '✏️ محرر المنشور الذكي' : isDe ? '✏️ Intelligenter Entwurfseditor' : '✏️ AI Workspace Editor',
+    autosaved: isAr ? 'حفظ تلقائي ✓' : isDe ? 'Automatisch gespeichert ✓' : 'Auto-saved ✓',
+    sync: isAr ? 'تحديث تلقائي مستمر' : isDe ? 'Cloud-Synchronisierung aktiv' : 'Cloud sync active',
+    draft: isAr ? 'مسودة' : isDe ? 'Entwurf' : 'Draft',
+    restore: isAr ? 'استعادة' : isDe ? 'Wiederherstellen' : 'Restore',
+    linkNote: isAr ? 'ملاحظة روابط اختيارية' : isDe ? 'Optionaler Link-Hinweis' : 'Optional Link Note',
+    noLinks: isAr ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : isDe ? 'Im Repository wurden keine Links gefunden. Du kannst hier eigene Links ergänzen.' : 'No links discovered in the repository. You can add your own links here.',
+    copilot: isAr ? 'عقل الأداة الفائق (تعديلات الذكاء الاصطناعي)' : isDe ? 'KI-Co-Pilot für den Entwurf' : 'AI Brain Co-Pilot',
+    refining: isAr ? 'جاري الصياغة...' : isDe ? 'Entwurf wird überarbeitet …' : 'Re-crafting post...',
+    clickPreset: isAr ? 'اضغط لتطبيق التعديل الفوري' : isDe ? 'Preset auswählen, um den Text anzupassen' : 'Click preset to morph text',
+    voice: isAr ? '👤 نبرة صياغة الكاتب' : isDe ? '👤 Schreibstimme' : '👤 Writing voice',
+    safe: isAr ? '⚡ تحسينات تحافظ على الأدلة' : isDe ? '⚡ Evidenzsichere Überarbeitung' : '⚡ Evidence-safe refinement',
+    formatters: isAr ? '📝 أدوات التنسيق الأساسية السريعة' : isDe ? '📝 Schnelle Formatierung' : '📝 Standard Quick formatters',
+    boldTech: isAr ? 'تغليظ الكلمات التقنية' : isDe ? 'Technische Begriffe hervorheben' : 'Bolden Tech Words',
+    hook: isAr ? 'صياغة عنوان خاطف ذكي' : isDe ? 'Prägnanter Einstieg' : 'Punchy Opening Hook',
+    hashtags: isAr ? 'توليد الهاشتاجات الذكية (مُوصى به)' : isDe ? 'Intelligente Hashtags (empfohlen)' : 'Smart Hashtag Generator (Recommended)',
+    customPrompt: isAr ? 'توجيه إضافي مخصص لعقل الأداة: مثلاً اجعله أبسط...' : isDe ? 'Eigene Vorgabe: z. B. einfacher erklären oder Aufzählungen ergänzen …' : 'Custom guidelines: e.g. explain recursively, add bullet points...',
+    refine: isAr ? 'إرسال' : isDe ? 'Überarbeiten' : 'Refine',
+    restored: isAr ? 'تمت الاستعادة بنجاح!' : isDe ? 'Originaltext wiederhergestellt!' : 'Original text restored!',
+    copiedPost: isAr ? 'تم نسخ منشورك بنجاح!' : isDe ? 'Entwurf in die Zwischenablage kopiert!' : 'Post copied to clipboard!',
+    copyFailed: isAr ? 'تعذر النسخ إلى الحافظة. انسخ النص يدوياً من المحرر.' : isDe ? 'Der Entwurf konnte nicht kopiert werden. Kopiere ihn bitte manuell aus dem Editor.' : 'Copy failed. Please copy the text manually from the editor.',
+    hashtagsFailed: isAr ? 'تعذر توليد الهاشتاجات حالياً. حاول مرة أخرى.' : isDe ? 'Hashtags konnten nicht erzeugt werden. Bitte erneut versuchen.' : 'Hashtags could not be generated. Try again.',
+    optimizeFailed: isAr ? 'تعذر تحسين المسودة حالياً. لم يتم تغيير النص.' : isDe ? 'Der Entwurf konnte nicht überarbeitet werden. Der Text wurde nicht geändert.' : 'The draft could not be refined. Your text was not changed.',
+    confirmRestore: isAr ? 'هل أنت متأكد من استعادة النص الأصلي ومسح تعديلاتك؟' : isDe ? 'Möchtest du wirklich den Originaltext wiederherstellen und deine Änderungen verwerfen?' : 'Are you sure you want to restore the original text and discard your changes?',
+    bold: isAr ? 'عريض' : isDe ? 'Fett (Unicode)' : 'Bold (Unicode)',
+    bullets: isAr ? 'قائمة نقطية' : isDe ? 'Aufzählung' : 'Bullet List',
+    lineBreak: isAr ? 'فاصل أسطر' : isDe ? 'Zeilenumbruch' : 'Line Break',
+    technical: isAr ? 'تقني واضح' : isDe ? 'Technisch klar' : 'Technical',
+    minimalist: isAr ? 'مهندس صارم' : isDe ? 'Minimalistisch' : 'Minimalist',
+    scholar: isAr ? 'أكاديمي باحث' : isDe ? 'Wissenschaftlich' : 'Scholar',
+    mentor: isAr ? 'موجه قصصي' : isDe ? 'Mentor' : 'Mentor',
+    cynic: isAr ? 'واقعي ساخر' : isDe ? 'Pragmatisch-sarkastisch' : 'Cynic',
+  };
   
   // Auto-saved show/hide indicator state
   const [showAutoSaveTick, setShowAutoSaveTick] = useState(false);
@@ -104,9 +139,11 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
   // New interactive optimization state
   const [optimizing, setOptimizing] = useState<string | null>(null);
   const [customPromptInput, setCustomPromptInput] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleSmartHashtags = async () => {
     if (!localText) return;
+    setActionError(null);
     setOptimizing('hashtags');
     try {
       const idToken = await user?.getIdToken();
@@ -124,13 +161,13 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           const updatedText = localText + '\n\n' + data.hashtags.join(' ');
           setLocalText(updatedText);
           handleUpdatePostText(updatedText);
-          showToast(isAr ? "تم إضافة الهاشتاجات الذكية بنجاح!" : "Smart hashtags added!");
+        showToast(isAr ? "تم إضافة الهاشتاجات الذكية بنجاح!" : isDe ? "Intelligente Hashtags hinzugefügt!" : "Smart hashtags added!");
         }
       } else {
-        showToast("Failed to generate hashtags");
+        setActionError(ui.hashtagsFailed);
       }
-    } catch (e: any) {
-      showToast("Hashtag generation failed.");
+    } catch {
+      setActionError(ui.hashtagsFailed);
     } finally {
       setOptimizing(null);
     }
@@ -138,6 +175,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
 
   const handleOptimize = async (actionType: string) => {
     if (!localText) return;
+    setActionError(null);
     setOptimizing(actionType);
     try {
       const idToken = await user?.getIdToken();
@@ -158,14 +196,13 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
         const data = await res.json();
         setLocalText(data.optimizedText);
         handleUpdatePostText(data.optimizedText);
-        showToast(isAr ? "تم إرسال المنشور لعقل الأداة وتعديله بنجاح! ✨" : "Brain optimization applied successfully! ✨");
+        showToast(isAr ? "تم إرسال المنشور لعقل الأداة وتعديله بنجاح! ✨" : isDe ? "KI-Überarbeitung erfolgreich angewendet! ✨" : "Brain optimization applied successfully! ✨");
         if (actionType === 'custom') setCustomPromptInput("");
       } else {
-        const err = await res.json();
-        showToast(err.error || "Failed to optimize post");
+        setActionError(ui.optimizeFailed);
       }
-    } catch (e: any) {
-      showToast("Optimization request failed.");
+    } catch {
+      setActionError(ui.optimizeFailed);
     } finally {
       setOptimizing(null);
     }
@@ -185,41 +222,38 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
   const handleCopy = async () => {
     let textToCopy = localText || "";
     if (currentPost.suggestedComment) {
-      textToCopy += `\n\n--- Suggested Comment ---\n${currentPost.suggestedComment}`;
+      textToCopy += `\n\n--- Optional Link Note ---\n${currentPost.suggestedComment}`;
     }
-    await navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-    showToast(isAr ? "تم نسخ منشورك بنجاح!" : "Post copied to clipboard!");
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setActionError(null);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      showToast(ui.copiedPost);
+    } catch {
+      setActionError(ui.copyFailed);
+    }
   };
 
   const getStatusBadge = () => {
-    if (currentPost.status === 'published') {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-          <span>{isAr ? 'نُشر' : 'Published'}</span>
-        </span>
-      );
-    }
-    if (currentPost.status === 'scheduled') {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-          <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
-          <span>{isAr ? 'مجدول' : 'Scheduled'}</span>
-        </span>
-      );
-    }
     return (
       <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-amber-500/10 text-amber-550 border border-amber-500/20">
         <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-        <span>{isAr ? 'مسودة' : 'Draft'}</span>
+        <span>{ui.draft}</span>
       </span>
     );
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto pr-1">
+      {actionError && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200" role="alert" aria-live="assertive">
+          <span className="flex-1">{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="text-xs font-bold underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-rose-300">
+            {isAr ? 'إخفاء' : isDe ? 'Ausblenden' : 'Dismiss'}
+          </button>
+        </div>
+      )}
       
       {/* Editor Header Card */}
       <div className="flex items-center justify-between mb-4 bg-slate-800 border border-white/5 p-3.5 rounded-2xl">
@@ -229,16 +263,16 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           </div>
           <div className="text-left">
             <h3 className="text-xs font-black text-slate-200 tracking-wider uppercase block">
-              {isAr ? '✏️ محرر المنشور الذكي' : '✏️ AI Workspace Editor'}
+              {ui.editor}
             </h3>
             {showAutoSaveTick ? (
               <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold animate-pulse">
                 <CheckCircle2 className="w-3 h-3" />
-                <span>{isAr ? 'حفظ تلقائي ✓' : 'Auto-saved ✓'}</span>
+                <span>{ui.autosaved}</span>
               </span>
             ) : (
               <span className="text-[10px] text-slate-500 font-medium">
-                {isAr ? 'تحديث تلقائي مستمر' : 'Cloud sync active'}
+                {ui.sync}
               </span>
             )}
           </div>
@@ -250,17 +284,17 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             <button 
               type="button"
               onClick={() => {
-                if (window.confirm(isAr ? "هل أنت متأكد من استعادة النص الأصلي ومسح تعديلاتك؟" : "Are you sure you want to restore the original text and discard your changes?")) {
+                if (window.confirm(ui.confirmRestore)) {
                   setLocalText(currentPost.originalText);
                   handleUpdatePostText(currentPost.originalText);
-                  showToast(isAr ? "تمت الاستعادة بنجاح!" : "Original text restored!");
+                  showToast(ui.restored);
                 }
               }}
               className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10.5px] font-bold flex items-center gap-1.5 transition-all"
-              title={isAr ? 'استعادة النص الأصلي' : 'Restore Original AI Text'}
+              title={isAr ? 'استعادة النص الأصلي' : isDe ? 'Originalen KI-Text wiederherstellen' : 'Restore Original AI Text'}
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>{isAr ? 'استعادة' : 'Restore'}</span>
+                <span>{ui.restore}</span>
             </button>
           )}
           {getStatusBadge()}
@@ -283,21 +317,21 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           <button
             onClick={() => handleFormat('bold')}
             className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer border border-transparent hover:border-white/10"
-            title={isAr ? 'عريض' : 'Bold (Unicode)'}
+            title={ui.bold}
           >
             <Bold className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleFormat('bullet')}
             className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer border border-transparent hover:border-white/10"
-            title={isAr ? 'قائمة نقطية' : 'Bullet List'}
+            title={ui.bullets}
           >
             <List className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleFormat('linebreak')}
             className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer border border-transparent hover:border-white/10"
-            title={isAr ? 'فاصل أسطر' : 'Line Break'}
+            title={ui.lineBreak}
           >
             <CornerDownLeft className="w-4 h-4" />
           </button>
@@ -317,26 +351,26 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             <button
               onClick={() => {
                 navigator.clipboard.writeText(currentPost.suggestedComment!);
-                showToast(isAr ? "تم نسخ التعليق بنجاح!" : "Comment copied!");
+                showToast(isAr ? "تم نسخ ملاحظة الروابط بنجاح!" : isDe ? "Link-Hinweis kopiert!" : "Link note copied!");
               }}
               className="absolute top-2 right-2 p-1.5 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-              title={isAr ? "نسخ التعليق" : "Copy comment"}
+              title={isAr ? "نسخ ملاحظة الروابط" : isDe ? "Link-Hinweis kopieren" : "Copy link note"}
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
           )}
           <h4 className={`text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-1 ${isAr ? 'text-right' : 'text-left'}`}>
-            {isAr ? 'التعليق المقترح (يحتوي على الروابط)' : 'Suggested Comment (Links)'}
+            {ui.linkNote}
           </h4>
           <p className={`text-xs text-indigo-200/80 whitespace-pre-wrap ${isAr ? 'text-right' : 'text-left'}`} dir={isAr ? "rtl" : "ltr"}>
-            {currentPost?.suggestedComment || (isAr ? 'لم يتم اكتشاف روابط في المستودع. يمكنك إضافة روابطك الخاصة هنا.' : 'No links discovered in the repository. You can add your own links here.')}
+            {currentPost?.suggestedComment || ui.noLinks}
           </p>
         </div>
 
         {/* Quality indicator and progress bar in the editor footer */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
           <div className="flex items-center gap-2.5 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-white/5 text-[10.5px]">
-            <span className="text-slate-500 font-bold">Post Score:</span>
+            <span className="text-slate-500 font-bold">{isAr ? 'تقييم المسودة:' : isDe ? 'Entwurfsbewertung:' : 'Draft score:'}</span>
             <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-300
@@ -353,9 +387,9 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
           </div>
 
           <div className="flex gap-2 bg-slate-950/80 px-2.5 py-1 rounded-lg border border-white/5 font-mono text-[10px] text-slate-400">
-            <span>{currentPost.text.length} chars</span>
+            <span>{currentPost.text.length} {isAr ? 'حرف' : isDe ? 'Zeichen' : 'chars'}</span>
             <span>•</span>
-            <span>{currentPost.text.split(/\s+/).filter(Boolean).length} words</span>
+            <span>{currentPost.text.split(/\s+/).filter(Boolean).length} {isAr ? 'كلمة' : isDe ? 'Wörter' : 'words'}</span>
           </div>
         </div>
 
@@ -368,16 +402,16 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
         <div className="flex items-center justify-between pb-1 border-b border-white/5">
           <span className="text-[11px] font-black text-slate-300 tracking-wider uppercase flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{isAr ? 'عقل الأداة الفائق (تعديلات الذكاء الاصطناعي)' : 'AI Brain Co-Pilot'}</span>
+            <span>{ui.copilot}</span>
           </span>
           {optimizing ? (
             <span className="text-[10px] text-indigo-400 font-extrabold animate-pulse flex items-center gap-1">
               <RefreshCw className="w-3 h-3 animate-spin" />
-              <span>{isAr ? 'جاري الصياغة...' : 'Re-crafting post...'}</span>
+              <span>{ui.refining}</span>
             </span>
           ) : (
             <span className="text-[10.5px] text-slate-500 font-semibold select-none">
-              {isAr ? 'اضغط لتطبيق التعديل الفوري' : 'Click preset to morph text'}
+              {ui.clickPreset}
             </span>
           )}
         </div>
@@ -385,7 +419,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
         {/* SECTION 1: Personal Style Archetypes Generator */}
         <div className="space-y-2">
           <span className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase block text-left">
-            {isAr ? '👤 هوية ونبرة صياغة الكاتب (Style Personas)' : '👤 LinkedIn Writing Personas'}
+            {ui.voice}
           </span>
           
           <div className="grid grid-cols-5 gap-1.5">
@@ -393,11 +427,11 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
               onClick={() => handleOptimize('style-influencer')}
               disabled={!!optimizing || !localText}
               className="flex flex-col items-center gap-1 py-2 px-1 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-center border border-white/5 transition-all cursor-pointer hover:border-indigo-500/35"
-              title={isAr ? "تحويل لنبرة المؤثرين التقنيين مفعم بالطاقة والأرقام والخطافات الفيروسية" : "Silicon Valley Viral Tech Influencer: rich in hooks & metrics"}
+              title={isAr ? "صياغة تقنية واضحة وحيوية مع الحفاظ على الحقائق الموثقة" : "Clear, energetic technical writing grounded in verified facts"}
             >
               <Cpu className="w-3.5 h-3.5 text-indigo-400" />
               <span className="text-[9px] font-bold text-slate-200 truncate max-w-full">
-                {isAr ? 'مؤثر تقني' : 'Influencer'}
+                {ui.technical}
               </span>
             </button>
 
@@ -409,7 +443,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <Terminal className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-[9px] font-bold text-slate-200 truncate max-w-full">
-                {isAr ? 'مهندس صارم' : 'Minimalist'}
+                {ui.minimalist}
               </span>
             </button>
 
@@ -421,7 +455,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
               <span className="text-[9px] font-bold text-slate-200 truncate max-w-full">
-                {isAr ? 'أكاديمي باحث' : 'Scholar'}
+                {ui.scholar}
               </span>
             </button>
 
@@ -433,7 +467,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-500" />
               <span className="text-[9px] font-bold text-slate-200 truncate max-w-full">
-                {isAr ? 'موجه قصصي' : 'Mentor'}
+                {ui.mentor}
               </span>
             </button>
 
@@ -445,79 +479,26 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <Skull className="w-3.5 h-3.5 text-rose-450" />
               <span className="text-[9px] font-bold text-slate-200 truncate max-w-full">
-                {isAr ? 'واقعي ساخر' : 'Cynic'}
+                {ui.cynic}
               </span>
             </button>
           </div>
         </div>
 
-        {/* SECTION 2: Advanced Technical Content Enhancements */}
+        {/* SECTION 2: Evidence-safe draft refinement */}
         <div className="space-y-2">
           <span className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase block text-left">
-            {isAr ? '⚡ أدوات ومضاعفات النشر التقنية الفائقة' : '⚡ Advanced Interactive Tech Boosters'}
+            {ui.safe}
           </span>
-
-          <div className="grid grid-cols-2 gap-2">
-            
-            <button
-              onClick={() => handleOptimize('add-ascii-architecture')}
-              disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-start py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
-              title={isAr ? "توليد مخطط هيكلي بالرموز التعبيرية والآسكي لتدفق المعمارية ووضعه بالبوست" : "Generate and inject custom ASCII System Design diagram into the post text"}
-            >
-              <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{isAr ? '📊 مخطط الآسكي المعماري' : 'ASCII System Blueprint'}</span>
-            </button>
-
-            <button
-              onClick={() => handleOptimize('add-tech-quiz')}
-              disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-start py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
-              title={isAr ? "تضمين لغز برمجي / سؤال اختيارات تفاعلي في نهاية المنشور لزيادة التعليقات" : "Generate relevant 3-choice tech riddle/quiz at the end of post to boost comments"}
-            >
-              <BadgeHelp className="w-3.5 h-3.5 text-amber-500" />
-              <span>{isAr ? '💡 تحدي اختبار برمجي' : 'Interactive Tech Quiz'}</span>
-            </button>
-
-            <button
-              onClick={() => handleOptimize('adapt-x-thread')}
-              disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-start py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
-              title={isAr ? "تحويل المنشور لمجموعة ثريدات تويتر مرقمة بذكاء ومناسبة لحدود الحروف" : "Adapt & split the text into a numbered Twitter/X thread format"}
-            >
-              <Share2 className="w-3.5 h-3.5 text-sky-400" />
-              <span>{isAr ? '🐦 تحويل لثريد تويتر (X)' : 'Convert to X Thread'}</span>
-            </button>
-
-            <button
-              onClick={() => handleOptimize('adapt-medium')}
-              disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-start py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
-              title={isAr ? "تحويل المنشور إلى مسودة مقال مفصل لمنصة ميديوم مع عناوين مقروءة" : "Generate deeply structured Medium/Dev.to article blueprint with clear headers"}
-            >
-              <Newspaper className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isAr ? '✍️ تحويل لمقال Medium' : 'Adapt to Medium Intro'}</span>
-            </button>
-
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-1.5">
-            <button
-              onClick={() => handleOptimize('optimize-seo-pillars')}
-              disabled={!!optimizing || !localText}
-              className="flex items-center gap-2 justify-center py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35 col-span-2 text-indigo-300 hover:text-indigo-200"
-              title={isAr ? "إثراء النص بالكلمات الدلالية ومترابطات محركات البحث والظهور لرفع الأثر" : "Boost SEO terms and key authoritative phrases for social feed reach"}
-            >
-              <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{isAr ? '🔍 قوة سيو الكلمات الدلالية الفائقة' : 'Semantic SEO Keywords Booster'}</span>
-            </button>
-          </div>
+          <p className="text-[10px] text-slate-500 leading-relaxed">
+            {isAr ? 'تعديلات الصياغة لا تضيف أرقاماً أو إنجازات جديدة إلى المسودة.' : isDe ? 'Überarbeitungen bewahren Fakten, Zahlen, Links und Unsicherheiten des Entwurfs.' : 'Refinements preserve the draft’s facts, numbers, links, and uncertainty.'}
+          </p>
         </div>
 
         {/* SECTION 3: Standard Fast Actions Row */}
         <div className="space-y-2">
           <span className="text-[10px] text-slate-500 font-extrabold tracking-wider uppercase block text-left">
-            {isAr ? '📝 أدوات التنسيق الأساسية السريعة' : '📝 Standard Quick formatters'}
+            {ui.formatters}
           </span>
           <div className="grid grid-cols-1 gap-2">
             <div className="grid grid-cols-2 gap-2">
@@ -527,7 +508,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
                 className="flex items-center gap-2 justify-center py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
               >
                 <Bold className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{isAr ? 'تغليظ الكلمات التقنية' : 'Bolden Tech Words'}</span>
+                <span>{ui.boldTech}</span>
               </button>
   
               <button
@@ -536,7 +517,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
                 className="flex items-center gap-2 justify-center py-2 px-3 bg-slate-850 hover:bg-slate-800 disabled:opacity-40 rounded-xl text-[11px] border border-white/5 text-slate-200 transition-all font-bold cursor-pointer hover:border-indigo-500/35"
               >
                 <Flame className="w-3.5 h-3.5 text-amber-500" />
-                <span>{isAr ? 'صياغة عنوان خاطف ذكي' : 'Punchy Opening Hook'}</span>
+                <span>{ui.hook}</span>
               </button>
             </div>
             
@@ -547,7 +528,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
               <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span>{isAr ? 'توليد الهاشتاجات الذكية (مُوصى به)' : 'Smart Hashtag Generator (Recommended)'}</span>
+              <span>{ui.hashtags}</span>
             </button>
           </div>
         </div>
@@ -559,7 +540,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             value={customPromptInput}
             onChange={(e) => setCustomPromptInput(e.target.value)}
             disabled={!!optimizing}
-            placeholder={isAr ? 'توجيه إضافي مخصص لعقل الأداة: مثلاً اجعله أبسط...' : 'Custom guidelines: e.g. explain recursively, add bullet points...'}
+            placeholder={ui.customPrompt}
             className="flex-1 bg-transparent text-[11px] px-2 text-white focus:outline-none placeholder-slate-600 font-bold"
           />
           <button
@@ -568,7 +549,7 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
             className="h-7 px-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-45 rounded-lg text-[10px] text-white font-black flex items-center justify-center gap-1 cursor-pointer select-none"
           >
             <Send className="w-3 h-3" />
-            <span>{isAr ? 'إرسال' : 'Refine'}</span>
+            <span>{ui.refine}</span>
           </button>
         </div>
       </div>
@@ -576,4 +557,3 @@ export const PostEditor = ({ lang, currentPost, handleUpdatePostText, settings, 
     </div>
   );
 };
-

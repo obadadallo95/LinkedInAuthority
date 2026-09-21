@@ -78,13 +78,13 @@ ${intentRules}
 STORYTELLING & HOOK RULES:
 1. THE HOOK (SHOW, DON'T TELL): The first 1-2 lines MUST be a highly creative, vivid, and specific example of the exact problem the repository solves. Do NOT ask generic questions (like "How many times have you..."). Instead, deeply analyze the repository context and demonstrate the exact frustration. For example, if it's a keyboard layout fixer, literally show gibberish text typed by mistake. If it's a database ORM, show an ugly SQL query. Prove you deeply understand the tool's real-world use case in the very first sentence.
 
-CRITICAL LINKEDIN ALGORITHM RULES:
-1. NO URLs IN THE POST: You are STRICTLY FORBIDDEN from generating or placing any URLs/Links inside the post body.
-2. FIRST COMMENT RULE: You MUST end the post by telling the audience to find the link in the first comment (e.g., "الرابط في التعليق الأول 👇" or "Link in the first comment 👇").
+LINK AND REVIEW RULES:
+1. Keep URLs out of the main post body unless the verified evidence requires them.
+2. Do not claim that a link placement improves algorithmic reach or engagement.
 3. WHITE SPACE: Use single-sentence paragraphs. Leave an empty line between every block. Highly scannable.
 4. TONE: Human, conversational, and sharp. ZERO AI clichés ("يسرني", "متحمس", "في عالمنا").
-5. HASHTAGS: You MUST include 3 to 5 highly relevant technical hashtags at the very bottom of the post (e.g., #TechStack #ProblemSolved). Do not overdo it. Place them just before or just after the "Link in first comment" text.
-6. SUGGESTED COMMENT: You MUST ALWAYS generate a "suggestedComment". This comment should be a short, friendly message containing the repository URL and any other links found in the context (App Store, live demo, etc.), ready to be pasted as the first comment.`;
+5. HASHTAGS: You MUST include 3 to 5 highly relevant technical hashtags at the very bottom of the post (e.g., #TechStack #ProblemSolved). Do not overdo it. Do not use hashtags or link placement to promise reach or engagement.
+6. OPTIONAL LINK NOTE: Generate a concise optional follow-up note containing only exact verified repository/demo links. Do not ask for likes, comments, follows, or engagement; it is copied manually only.`;
 }
 
 export function getGenerateLanguageInstruction(lang: string): string {

@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, GithubAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 
 // The config values are available in the generated firebase-applet-config.json
 // But in a Vite app we could load it from a JSON import or hardcode since it's client safe.
@@ -18,11 +17,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app, configData.firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
 // Public repository analysis does not require GitHub's broad full-repository
 // scope. Private-repository support remains a documented beta limitation.
 
-export { app, auth, db, googleProvider, githubProvider };
+export const firestoreDatabaseId = configData.firestoreDatabaseId;
+
+export { app, auth, googleProvider, githubProvider };

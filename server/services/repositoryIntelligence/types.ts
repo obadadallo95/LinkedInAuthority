@@ -67,4 +67,5 @@ export interface GenerateResponse {
   evidence: Evidence[];
   usedEvidenceIds: string[];
   warnings: string[];
+  claimAudit?: import('../deepIntelligence/claimAudit').ClaimAudit;
 }

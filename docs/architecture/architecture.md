@@ -1,6 +1,6 @@
 # Systems Architecture & Design Patterns
 
-> **Current-status note:** This document contains some historical design detail. The current source of truth is the root README and the live route/service code. LinkedIn publishing, LinkedIn OIDC, and a zero-client-leakage token architecture are not implemented in this beta.
+> **Current-status note:** This document contains some historical design detail. The current source of truth is the root README and the live route/service code. LinkedIn publishing and LinkedIn OIDC are not implemented; new GitHub credentials use the server-side encrypted integration path, while legacy records still require migration.
 
 This document details the high-level system architecture, client-side module decomposition, and full-stack orchestration patterns governing **LinkedIn Authority [PRO]**.
 
@@ -40,12 +40,12 @@ The platform is designed as a **Full-Stack Single-Page Application (SPA)** utili
 
 ## 2. Server-Side Architecture (`server.ts`)
 
-The current beta keeps Gemini secrets server-side. GitHub integration tokens remain in the user-scoped settings/client flow as a documented limitation.
+The current beta keeps Gemini secrets server-side. New GitHub integration credentials are encrypted in an Admin-only record; legacy user-scoped token records remain a documented migration limitation.
 
 ### Key Components:
 - **Port Orchestration**: Listens strictly on port `3000` and binds to host `0.0.0.0` for universal container ingress.
 - **Lazy SDK Initialization**: The Google GenAI SDK client is lazy-loaded at the route boundary (`getGeminiClient()`) to prevent immediate module crashes during initial system cold-starts if env variables are pending configuration.
-- **Custom Service Worker Handler**: Overrides requests for `/sw.js` to automatically unregister and bypass legacy service worker caching that may conflict with active multi-tenant instances.
+- **Versioned Service Worker Handler**: Serves a versioned static-shell cache with network-first navigation, removes only older LinkedIn Authority caches, and excludes `/api` so authenticated drafts, credentials, and live product data are never served from stale cache.
 - **Vite Integration**:
   - In **Development** mode: Mounts `vite.createServer({ middlewareMode: true })` to enable hot reload and server-side static-routing injection.
   - In **Production** mode: Serves optimized static assets compiled inside `dist/` and redirects wildcard routing back to `dist/index.html` (complying with modern Express SPA standards).

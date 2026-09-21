@@ -1,6 +1,8 @@
-import { getGeminiClient, callGeminiWithRetry } from '../repositoryIntelligence/gemini';
+import { getGeminiClient, callGeminiWithRetry, handleGeminiError } from '../repositoryIntelligence/gemini';
 import { GroundedDeepGithubContext, VerifiedLink } from './githubDeepFetcher';
 import { UserTier } from '../entitlements';
+import { EvidenceItem } from './claimAudit';
+import { TelemetryContext } from '../repositoryIntelligence/modelRouting';
 
 export interface ProductProfile {
   name: string;
@@ -25,6 +27,28 @@ export interface SynthesizedContext {
   challengesSolved: string[];
   newFeatures: string[];
   summary: string;
+  evidence?: EvidenceItem[];
+}
+
+function buildEvidencePack(deepContext: GroundedDeepGithubContext): EvidenceItem[] {
+  const evidence: EvidenceItem[] = [
+    { id: 'repo:metadata', sourceType: 'metadata', reference: `github:repo:${deepContext.owner}/${deepContext.repo}`, excerpt: `${deepContext.repoIdentity.name}. ${deepContext.repoIdentity.description}` },
+    { id: 'repo:readme', sourceType: 'readme', reference: `github:readme:${deepContext.owner}/${deepContext.repo}`, excerpt: deepContext.repoIdentity.readmeText.slice(0, 5000) },
+    { id: 'repo:manifest', sourceType: 'manifest', reference: `github:manifest:${deepContext.owner}/${deepContext.repo}`, excerpt: deepContext.repoIdentity.manifestData.slice(0, 2500) },
+  ];
+  for (const [index, commit] of deepContext.commits.slice(0, 15).entries()) {
+    evidence.push({ id: `commit:${index}`, sourceType: 'commit', reference: `github:commit:${commit.sha || `${deepContext.owner}/${deepContext.repo}:${commit.date}`}`, excerpt: `${commit.message} ${commit.date}` });
+  }
+  for (const [index, pr] of deepContext.pullRequests.slice(0, 10).entries()) {
+    evidence.push({ id: `pull_request:${index}`, sourceType: 'pull_request', reference: `github:pull_request:${deepContext.owner}/${deepContext.repo}:${pr.merged_at}`, excerpt: `${pr.title} ${pr.body}` });
+  }
+  for (const [index, issue] of deepContext.issues.slice(0, 10).entries()) {
+    evidence.push({ id: `issue:${index}`, sourceType: 'issue', reference: `github:issue:${deepContext.owner}/${deepContext.repo}:${issue.updated_at}`, excerpt: `${issue.title} ${issue.body}` });
+  }
+  for (const file of deepContext.repositoryMap?.selectedFiles || []) {
+    evidence.push({ id: `file:${file.path}`, sourceType: 'file', reference: file.source, excerpt: file.content });
+  }
+  return evidence;
 }
 
 const synthesizerSchema = {
@@ -74,7 +98,11 @@ const synthesizerSchema = {
   required: ["hasMeaningfulContent", "technicalDecisions", "challengesSolved", "newFeatures", "summary"]
 };
 
-export async function synthesizeDeepContext(deepContext: GroundedDeepGithubContext, tier: UserTier = 'free'): Promise<SynthesizedContext> {
+export async function synthesizeDeepContext(
+  deepContext: GroundedDeepGithubContext,
+  tier: UserTier = 'free',
+  telemetryContext?: TelemetryContext,
+): Promise<SynthesizedContext> {
   const client = getGeminiClient(tier);
   if (!client) {
     throw new Error("Gemini API client is not configured.");
@@ -91,6 +119,7 @@ export async function synthesizeDeepContext(deepContext: GroundedDeepGithubConte
   };
 
   const canonicalRepoUrl = `https://github.com/${deepContext.owner}/${deepContext.repo}`;
+  const repositoryMap = deepContext.repositoryMap;
 
   const prompt = `You are a Senior Software Architecture and Product Intelligence Analyzer.
 Analyze the following repository identity and recent activity for repository ${deepContext.owner}/${deepContext.repo}.
@@ -117,6 +146,21 @@ ${JSON.stringify(deepContext.pullRequests.slice(0, 10), null, 2)}
 ISSUES UPDATED (${deepContext.issues?.length || 0}):
 ${JSON.stringify((deepContext.issues || []).slice(0, 10), null, 2)}
 
+REPOSITORY MAP (DETERMINISTIC, NOT MODEL-INFERRED):
+${JSON.stringify(repositoryMap ? {
+    analyzedCommitSha: repositoryMap.analyzedCommitSha,
+    defaultBranch: repositoryMap.defaultBranch,
+    importantDirectories: repositoryMap.importantDirectories,
+    manifests: repositoryMap.manifests,
+    frameworkConfigFiles: repositoryMap.frameworkConfigFiles,
+    architectureDocs: repositoryMap.architectureDocs,
+    testFiles: repositoryMap.testFiles,
+    applicationEntryPoints: repositoryMap.applicationEntryPoints,
+    importantDomainFiles: repositoryMap.importantDomainFiles,
+    recentChangedFiles: repositoryMap.recentChangedFiles,
+    selectedFiles: repositoryMap.selectedFiles.map(file => ({ path: file.path, source: file.source, content: file.content }))
+  } : { unavailable: true }, null, 2)}
+
 CRITICAL GROUNDING RULES:
 1. Ground truth regarding what this product actually is and does comes STRICTLY from the Stable Repository Identity (README and Description).
 2. ProductProfile Extraction:
@@ -132,8 +176,11 @@ CRITICAL GROUNDING RULES:
     const response = (await callGeminiWithRetry(client, prompt, systemInstruction, synthesizerSchema as any, {
       task: 'deep_synthesis',
       telemetryContext: {
+        userId: telemetryContext?.userId,
         feature: 'deep_synthesis',
-        repository: `${deepContext.owner}/${deepContext.repo}`
+        repository: `${deepContext.owner}/${deepContext.repo}`,
+        isAutomated: telemetryContext?.isAutomated,
+        isDemo: telemetryContext?.isDemo,
       }
     })) as SynthesizedContext;
 
@@ -167,9 +214,11 @@ CRITICAL GROUNDING RULES:
       };
     }
 
+    response.evidence = buildEvidencePack(deepContext);
+
     return response;
   } catch (error: any) {
-    console.error("Error synthesizing deep context:", error);
-    throw new Error("Failed to synthesize deep context: " + error.message);
+    console.error("Error synthesizing deep context:", error instanceof Error ? error.name : 'unknown error');
+    throw new Error(handleGeminiError(error));
   }
 }

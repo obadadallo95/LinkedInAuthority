@@ -92,6 +92,45 @@ describe('Intelligence Engine V1 - Token & Security', () => {
 });
 
 describe('Intelligence Engine V1 - Generation & Conflict Prevention', () => {
+  it('returns a server-side claim audit for evidence-linked generation', async () => {
+    const { callGeminiWithRetry } = await import('../server/services/repositoryIntelligence/gemini');
+    (callGeminiWithRetry as any).mockResolvedValueOnce({
+      post: 'We added React to the project and documented the change.',
+      usedEvidenceIds: ['fact:package'],
+      warnings: [],
+    });
+    const payload: AnalysisTokenPayload = {
+      version: 1,
+      repository: 'github.com/test/repo',
+      lang: 'en',
+      intent: 'auto',
+      angles: [{
+        id: 'angle-1', intent: 'feature', title: 'Feature', angleSummary: 'Feature', audience: 'developers',
+        audienceValue: 'Useful detail', evidenceIds: ['fact:package'], supportLevel: 'verified',
+        requiresHumanContext: false, recommended: true, tone: 'confident', claimRisk: 'low',
+      }],
+      atomicFacts: [{ id: 'fact:package', fact: 'Added React to package.json and documented the change.', source: 'package.json' }],
+      conflicts: [],
+      audience: 'authenticated',
+      userId: 'user123',
+      issuedAt: Date.now(),
+      expiresAt: Date.now() + 3600000,
+    };
+
+    const result = await generatePostFromAngle(
+      payload,
+      { commits: [], readme: '', hasWeakRepo: false, repoData: { name: 'test', description: 'test' }, languages: {}, manifestData: '', readmeText: '' },
+      '',
+      'angle-1',
+      undefined,
+      '',
+      'en'
+    );
+
+    expect(result.claimAudit?.claims[0].supportingEvidence).toContain('fact:package');
+    expect(result.claimAudit?.claims[0].reason).toContain('evidence item');
+  });
+
   it('should enforce that blocking conflicts prevent post generation if unmitigated', async () => {
     const blockingConflicts: ClaimConflict[] = [{
       claim: "We are the first to do this",
@@ -125,7 +164,7 @@ describe('Intelligence Engine V1 - Generation & Conflict Prevention', () => {
     );
 
     const { callGeminiWithRetry } = await import('../server/services/repositoryIntelligence/gemini');
-    const callArgs = (callGeminiWithRetry as any).mock.calls[0][1]; // The 'prompt' argument
+    const callArgs = (callGeminiWithRetry as any).mock.calls.at(-1)[1]; // The 'prompt' argument for this test
     expect(callArgs).toContain('Severity: blocking');
     expect(callArgs).toContain('We are the first to do this');
   });

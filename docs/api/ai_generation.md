@@ -20,7 +20,9 @@ This document describes the current repository-intelligence and content-generati
 
 ## Model routing
 
-The Gemini service selects models by task and supports configured fallback handling. Current task categories include repository analysis, post generation, deep synthesis, commit analysis, and hashtag generation. Model names are configuration details and may change without an API contract change.
+The Gemini service selects models by task and supports configured fallback handling. Current task categories include repository analysis, post generation, low-cost evidence-preserving draft refinement, deep synthesis, commit analysis, and hashtag generation. Heavy evidence synthesis uses stable `gemini-3.7-flash`; lightweight commit/hashtag/refinement tasks use stable `gemini-3.1-flash-lite` to minimize cost. Model names are configuration details and may change without an API contract change.
+
+The model IDs and pricing assumptions were checked against Google's official model catalog and pricing page on 2026-09-21. Re-check them before enabling paid traffic because provider pricing and availability can change.
 
 ## Observability
 
@@ -30,5 +32,5 @@ AI calls can record task, model, token counts, latency, repository context, and 
 
 - Repository-derived context and drafts may be persisted.
 - Prompt grounding reduces unsupported claims but does not independently prove every model statement.
-- GitHub token handling remains a beta limitation because the current client flow stores the integration token in user settings.
+- New GitHub credentials use the server-side encrypted integration path. Legacy user-settings token records remain a migration blocker for Public Beta.
 - LinkedIn publishing and official LinkedIn analytics are not implemented.

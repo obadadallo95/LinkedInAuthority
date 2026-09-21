@@ -5,7 +5,7 @@ import {
   recordAiUsageTelemetry,
   AiTask
 } from '../../server/services/repositoryIntelligence/modelRouting';
-import { callGeminiWithRetry } from '../../server/services/repositoryIntelligence/gemini';
+import { callGeminiWithRetry, handleGeminiError } from '../../server/services/repositoryIntelligence/gemini';
 
 vi.mock('../../server/services/firestoreAdmin', () => ({
   getAdminFirestore: vi.fn(() => ({
@@ -53,17 +53,24 @@ describe('Gemini Model Routing & Telemetry Unit Tests', () => {
       expect(config.thinkingLevel).toBe('MEDIUM');
     });
 
-    it('routes commit_analysis to gemini-3.5-flash-lite without thinking configuration', () => {
+    it('routes commit_analysis to the low-cost stable flash-lite model without thinking configuration', () => {
       const config = AI_TASK_ROUTING['commit_analysis'];
-      expect(config.primaryModel).toBe('gemini-3.5-flash-lite');
-      expect(config.fallbackModel).toBe('gemini-3.6-flash');
+      expect(config.primaryModel).toBe('gemini-3.1-flash-lite');
+      expect(config.fallbackModel).toBe('gemini-3.5-flash-lite');
       expect(config.thinkingLevel).toBeUndefined();
     });
 
-    it('routes hashtag_generation to gemini-3.5-flash-lite without thinking configuration', () => {
+    it('routes hashtag_generation to the low-cost stable flash-lite model without thinking configuration', () => {
       const config = AI_TASK_ROUTING['hashtag_generation'];
-      expect(config.primaryModel).toBe('gemini-3.5-flash-lite');
-      expect(config.fallbackModel).toBe('gemini-3.6-flash');
+      expect(config.primaryModel).toBe('gemini-3.1-flash-lite');
+      expect(config.fallbackModel).toBe('gemini-3.5-flash-lite');
+      expect(config.thinkingLevel).toBeUndefined();
+    });
+
+    it('routes draft refinement to the low-cost stable flash-lite model', () => {
+      const config = AI_TASK_ROUTING['post_optimize'];
+      expect(config.primaryModel).toBe('gemini-3.1-flash-lite');
+      expect(config.fallbackModel).toBe('gemini-3.5-flash-lite');
       expect(config.thinkingLevel).toBeUndefined();
     });
   });
@@ -85,16 +92,35 @@ describe('Gemini Model Routing & Telemetry Unit Tests', () => {
       expect(cost).toBe(0.08);
     });
 
+    it('calculates the lower current cost for gemini-3.1-flash-lite', () => {
+      const cost = calculateEstimatedCostUsd('gemini-3.1-flash-lite', 100_000, 20_000, 0);
+      expect(cost).toBe(0.055);
+    });
+
     it('falls back to gemini-3.6-flash rates for unlisted models', () => {
-      // 1,000,000 prompt tokens * $1.50/1M = $1.50
-      // 1,000,000 candidate tokens * $7.50/1M = $7.50
-      // Total = $9.00
+      // 1,000,000 prompt tokens * $0.75/1M = $0.75
+      // 1,000,000 candidate tokens * $3.75/1M = $3.75
+      // Total = $4.50
       const cost = calculateEstimatedCostUsd('unknown-model', 1_000_000, 1_000_000, 0);
-      expect(cost).toBe(9.0);
+      expect(cost).toBe(4.5);
+    });
+
+    it('moves introductory Flash pricing to the documented 2027 schedule', () => {
+      const beforeChange = calculateEstimatedCostUsd('gemini-3.7-flash', 1_000_000, 1_000_000, 0, new Date('2026-12-31T23:59:59.000Z'));
+      const afterChange = calculateEstimatedCostUsd('gemini-3.7-flash', 1_000_000, 1_000_000, 0, new Date('2027-01-01T00:00:00.000Z'));
+      expect(beforeChange).toBe(4.5);
+      expect(afterChange).toBe(9);
     });
   });
 
   describe('3. callGeminiWithRetry Execution & Fallback Behavior', () => {
+    it('sanitizes unexpected provider errors while preserving safe session guidance', () => {
+      expect(handleGeminiError(new Error('provider path /secret/api-key=abc123 failed')))
+        .toBe('An unexpected error occurred while communicating with the AI service.');
+      expect(handleGeminiError(new Error('Invalid analysis token structure')))
+        .toBe('Invalid or expired analysis token. Please analyze again.');
+    });
+
     it('invokes Gemini SDK with correct model, schema, and thinkingLevel config', async () => {
       const mockGenerateContent = vi.fn().mockResolvedValue({
         text: JSON.stringify({ success: true }),
@@ -132,6 +158,7 @@ describe('Gemini Model Routing & Telemetry Unit Tests', () => {
       const callArg = mockGenerateContent.mock.calls[0][0];
       expect(callArg.model).toBe('gemini-3.7-flash');
       expect(callArg.config.thinkingConfig).toEqual({ thinkingLevel: 'MEDIUM' });
+      expect(callArg.config.maxOutputTokens).toBe(2048);
     });
 
     it('gracefully falls back to fallbackModel on 404 / model not found error', async () => {
@@ -164,6 +191,7 @@ describe('Gemini Model Routing & Telemetry Unit Tests', () => {
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
       expect(mockGenerateContent.mock.calls[0][0].model).toBe('gemini-3.7-flash');
       expect(mockGenerateContent.mock.calls[1][0].model).toBe('gemini-3.6-flash');
+      expect(mockGenerateContent.mock.calls[1][0].config.thinkingConfig).toEqual({ thinkingLevel: 'LOW' });
     });
 
     it('does not throw when telemetry writing fails', async () => {

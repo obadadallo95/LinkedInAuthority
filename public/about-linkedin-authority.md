@@ -8,6 +8,6 @@ The platform connects to your GitHub account, analyzes repository context, and g
 ## Why use it?
 - **Save Time:** Stop struggling with what to write. Let the AI draft your post in seconds.
 - **Multi-lingual:** Generate posts natively in English, Arabic, or German.
-- **Security & privacy status:** Gemini secrets stay server-side, while GitHub integration tokens remain in the current user-scoped client flow. Repository-derived context may be persisted, and complete account erasure is not yet guaranteed.
+- **Security & privacy status:** New GitHub credentials are sent once to the server and stored encrypted in an Admin-only record. Repository-derived context may be persisted, and complete account erasure is not yet guaranteed.
 
 [Start preparing your professional drafts today.](#)

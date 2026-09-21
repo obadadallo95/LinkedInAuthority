@@ -1,5 +1,8 @@
 import { fetchWithTimeout, fetchGithubContext, cleanText } from '../github';
 import { VerifiedLink, extractVerifiedLinks } from './linkExtractor';
+import { buildRepositoryMap, RepositoryMap, selectRepositoryCandidates, withSelectedFiles } from './repositoryMap';
+
+export type { RepositoryMap } from './repositoryMap';
 
 export type { VerifiedLink, VerifiedLinkType } from './linkExtractor';
 export { extractVerifiedLinks, classifyUrl } from './linkExtractor';
@@ -14,6 +17,14 @@ export interface ActivityCheckOptions {
   monitorCommits?: boolean;
   monitorPullRequests?: boolean;
   monitorIssues?: boolean;
+}
+
+export interface PreviousRepositorySnapshot {
+  analyzedCommitSha: string;
+  defaultBranch: string;
+  pullRequestUpdatedAt?: string;
+  issueUpdatedAt?: string;
+  selectedFiles?: Array<{ path: string; content: string; source?: string }>;
 }
 
 export interface ActivityCheckpoint {
@@ -44,9 +55,10 @@ export interface GroundedDeepGithubContext {
     homepageUrl?: string;
   };
   verifiedLinks: VerifiedLink[];
-  commits: Array<{ message: string; date: string; author: string }>;
+  commits: Array<{ sha?: string; message: string; date: string; author: string }>;
   pullRequests: Array<{ title: string; body: string; merged_at: string }>;
   issues: Array<{ title: string; body: string; updated_at: string; state: string }>;
+  repositoryMap?: RepositoryMap;
 }
 
 export type DeepGithubContext = GroundedDeepGithubContext;
@@ -76,11 +88,7 @@ function getAuthHeaders(token?: string, userAgentSuffix: string = "DeepScan"): R
     "User-Agent": `LinkedIn-Content-Generator-${userAgentSuffix}`,
   };
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  } else if (process.env.GITHUB_TOKEN) {
-    headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
-  }
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   return headers;
 }
@@ -107,7 +115,7 @@ export async function fetchLatestCommit(repoUrlOrFullName: string, repoName?: st
       message: data[0].commit?.message || ''
     };
   } catch (error) {
-    console.warn(`Failed to fetch latest commit for ${owner}/${repo}:`, error);
+    console.warn(`Failed to fetch latest commit for ${owner}/${repo}:`, error instanceof Error ? error.name : 'unknown');
     return null;
   }
 }
@@ -160,7 +168,7 @@ export async function checkRepositoryActivityDelta(
             }
           }
         })
-        .catch(err => console.warn(`Commits delta check failed for ${owner}/${repo}:`, err))
+        .catch(err => console.warn(`Commits delta check failed for ${owner}/${repo}:`, err instanceof Error ? err.name : 'unknown'))
     );
   }
 
@@ -182,7 +190,7 @@ export async function checkRepositoryActivityDelta(
             }
           }
         })
-        .catch(err => console.warn(`PRs delta check failed for ${owner}/${repo}:`, err))
+        .catch(err => console.warn(`PRs delta check failed for ${owner}/${repo}:`, err instanceof Error ? err.name : 'unknown'))
     );
   }
 
@@ -208,7 +216,7 @@ export async function checkRepositoryActivityDelta(
             }
           }
         })
-        .catch(err => console.warn(`Issues delta check failed for ${owner}/${repo}:`, err))
+        .catch(err => console.warn(`Issues delta check failed for ${owner}/${repo}:`, err instanceof Error ? err.name : 'unknown'))
     );
   }
 
@@ -231,7 +239,8 @@ export async function checkRepositoryActivityDelta(
 export async function fetchDeepGithubContext(
   repoUrl: string, 
   token?: string,
-  options?: ActivityCheckOptions
+  options?: ActivityCheckOptions,
+  previousSnapshot?: PreviousRepositorySnapshot
 ): Promise<GroundedDeepGithubContext> {
   const parsed = parseOwnerRepo(repoUrl);
   if (!parsed) {
@@ -248,6 +257,95 @@ export async function fetchDeepGithubContext(
   // 1. Fetch stable repository identity first
   const ghBaseContext = await fetchGithubContext(canonicalUrl, token);
 
+  // Fetch the commit stream once and reuse it for both checkpoint identity and
+  // activity context. The Git tree endpoint returns a tree SHA, not a commit
+  // SHA, so it cannot safely be used with GitHub's compare API.
+  let latestCommitRecords: any[] = [];
+  if (monitorCommits) {
+    try {
+      const commitsResponse = await fetchWithTimeout(
+        `https://api.github.com/repos/${owner}/${repo}/commits?per_page=15`,
+        { headers },
+      );
+      if (commitsResponse.ok) {
+        const commitsPayload = await commitsResponse.json();
+        latestCommitRecords = Array.isArray(commitsPayload) ? commitsPayload : [];
+      }
+    } catch (error) {
+      console.warn(`Commit context unavailable for ${owner}/${repo}:`, error instanceof Error ? error.message : 'unknown error');
+    }
+  }
+  const currentCommitSha = typeof latestCommitRecords[0]?.sha === 'string' ? latestCommitRecords[0].sha : '';
+
+  // Build a bounded deterministic map before synthesis. This prevents sending
+  // an entire repository to the model while retaining architectural context.
+  let repositoryMap = buildRepositoryMap([], '', ghBaseContext.repoData.default_branch || 'main');
+  let deltaCommitRecords: any[] | undefined;
+  try {
+    const treeResponse = await fetchWithTimeout(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ghBaseContext.repoData.default_branch || 'main')}?recursive=1`,
+      { headers },
+    );
+    if (treeResponse.ok) {
+      const treePayload = await treeResponse.json();
+      repositoryMap = buildRepositoryMap(
+        Array.isArray(treePayload.tree) ? treePayload.tree : [],
+        currentCommitSha || '',
+        ghBaseContext.repoData.default_branch || 'main',
+      );
+      let changedFiles: string[] = [];
+      let deltaAvailable = false;
+      if (previousSnapshot?.analyzedCommitSha && previousSnapshot.analyzedCommitSha !== repositoryMap.analyzedCommitSha) {
+        try {
+          const compareResponse = await fetchWithTimeout(
+            `https://api.github.com/repos/${owner}/${repo}/compare/${encodeURIComponent(previousSnapshot.analyzedCommitSha)}...${encodeURIComponent(repositoryMap.analyzedCommitSha)}`,
+            { headers },
+          );
+          if (compareResponse.ok) {
+            deltaAvailable = true;
+            const comparePayload = await compareResponse.json();
+            changedFiles = Array.isArray(comparePayload.files)
+              ? comparePayload.files.map((file: any) => file.filename).filter((path: unknown): path is string => typeof path === 'string')
+              : [];
+            deltaCommitRecords = Array.isArray(comparePayload.commits) ? comparePayload.commits : [];
+          }
+        } catch (error) {
+          console.warn(`Repository delta unavailable for ${owner}/${repo}:`, error instanceof Error ? error.message : 'unknown error');
+        }
+      }
+      repositoryMap = { ...repositoryMap, recentChangedFiles: changedFiles.slice(0, 120) };
+      const candidates = selectRepositoryCandidates(repositoryMap, changedFiles);
+      const changedPathSet = new Set(changedFiles);
+      const previousFiles = new Map(
+        (previousSnapshot?.selectedFiles || [])
+          .filter(file => file && typeof file.path === 'string' && typeof file.content === 'string')
+          .map(file => [file.path, file]),
+      );
+      const selected = await Promise.all(candidates.map(async path => {
+        const previousFile = previousFiles.get(path);
+        if (deltaAvailable && previousFile && !changedPathSet.has(path)) {
+          return {
+            path,
+            content: previousFile.content,
+            source: previousFile.source || `github:file:${path}@${previousSnapshot?.analyzedCommitSha}`,
+          };
+        }
+        try {
+          const response = await fetchWithTimeout(
+            `https://raw.githubusercontent.com/${owner}/${repo}/${repositoryMap.analyzedCommitSha || repositoryMap.defaultBranch}/${path}`,
+            { headers: { ...headers, Accept: 'text/plain' } },
+          );
+          return response.ok ? { path, content: await response.text() } : null;
+        } catch {
+          return null;
+        }
+      }));
+      repositoryMap = withSelectedFiles(repositoryMap, selected.filter(Boolean) as Array<{ path: string; content: string }>);
+    }
+  } catch (error) {
+    console.warn(`Repository map unavailable for ${owner}/${repo}:`, error instanceof Error ? error.message : 'unknown error');
+  }
+
   // 2. Fetch enabled activity streams in parallel
   const asyncTasks: [
     Promise<Response | null>,
@@ -255,7 +353,7 @@ export async function fetchDeepGithubContext(
     Promise<Response | null>
   ] = [
     monitorCommits
-      ? fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=15`, { headers })
+      ? Promise.resolve(null)
       : Promise.resolve(null),
     monitorPRs
       ? fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}/pulls?state=closed&per_page=10`, { headers })
@@ -268,9 +366,15 @@ export async function fetchDeepGithubContext(
   const [commitsRes, prsRes, issuesRes] = await Promise.allSettled(asyncTasks);
 
   let commits: Array<{ message: string; date: string; author: string }> = [];
-  if (commitsRes.status === 'fulfilled' && commitsRes.value?.ok) {
-    const data = await commitsRes.value.json();
-    commits = (Array.isArray(data) ? data : []).map((c: any) => ({
+  if (monitorCommits) {
+    const latestCommits = latestCommitRecords;
+    const boundedCommits = previousSnapshot?.analyzedCommitSha
+      ? deltaCommitRecords
+        ? deltaCommitRecords
+        : []
+      : latestCommits;
+    commits = boundedCommits.map((c: any) => ({
+      sha: c.sha || undefined,
       message: c.commit?.message || '',
       date: c.commit?.author?.date || '',
       author: c.commit?.author?.name || ''
@@ -282,6 +386,8 @@ export async function fetchDeepGithubContext(
     const data = await prsRes.value.json();
     pullRequests = (Array.isArray(data) ? data : [])
       .filter((pr: any) => pr.merged_at != null)
+      .filter((pr: any) => !previousSnapshot?.pullRequestUpdatedAt
+        || new Date(pr.updated_at || pr.merged_at).getTime() > new Date(previousSnapshot.pullRequestUpdatedAt).getTime())
       .map((pr: any) => ({
         title: pr.title || '',
         body: pr.body ? cleanText(pr.body, 300) : '',
@@ -294,6 +400,8 @@ export async function fetchDeepGithubContext(
     const data = await issuesRes.value.json();
     issues = (Array.isArray(data) ? data : [])
       .filter((i: any) => !i.pull_request)
+      .filter((i: any) => !previousSnapshot?.issueUpdatedAt
+        || new Date(i.updated_at || i.created_at).getTime() > new Date(previousSnapshot.issueUpdatedAt).getTime())
       .map((i: any) => ({
         title: i.title || '',
         body: i.body ? cleanText(i.body, 300) : '',
@@ -327,6 +435,7 @@ export async function fetchDeepGithubContext(
     verifiedLinks,
     commits,
     pullRequests,
-    issues
+    issues,
+    repositoryMap
   };
 }
