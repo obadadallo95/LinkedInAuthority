@@ -77,8 +77,10 @@ export const SettingsPanel = ({
     
     try {
       let result;
+      let githubCredential;
       try {
         result = await linkWithPopup(auth.currentUser, githubProvider);
+        githubCredential = GithubAuthProvider.credentialFromResult(result);
       } catch (error: any) {
         // If GitHub is already attached to an older Firebase identity, use
         // that identity instead of leaving the user stuck on the current
@@ -87,9 +89,9 @@ export const SettingsPanel = ({
         const existingCredential = GithubAuthProvider.credentialFromError(error);
         if (!existingCredential) throw error;
         result = await signInWithCredential(auth, existingCredential);
+        githubCredential = existingCredential;
       }
-      const credential = GithubAuthProvider.credentialFromResult(result);
-      const token = credential?.accessToken;
+      const token = githubCredential?.accessToken;
       
       if (token && result.user) {
         const idToken = await result.user.getIdToken();
