@@ -100,7 +100,11 @@ export async function getGithubCredentialForUser(userId: string): Promise<string
     if (!settings.exists || settings.data()?.githubPermissions !== 'all') return undefined;
   } catch (error) {
     console.error('GitHub access-scope lookup unavailable:', error instanceof Error ? error.message : 'unknown error');
-    throw new GithubCredentialUnavailableError();
+    // A scope-read failure must not block public repositories. Returning no
+    // credential is the safe fallback: public GitHub endpoints remain usable,
+    // while private access can only happen after an explicit, verified `all`
+    // scope is read successfully.
+    return undefined;
   }
 
   try {
