@@ -4,7 +4,7 @@ import { t } from '../constants';
 import { HelpGuides } from './HelpGuides';
 import { auth, githubProvider } from '../infrastructure/firebase/config';
 import { loadFirestoreClient } from '../infrastructure/firebase/firestoreClient';
-import { linkWithPopup, reauthenticateWithPopup, signInWithCredential, GithubAuthProvider } from 'firebase/auth';
+import { linkWithPopup, reauthenticateWithPopup, signInWithPopup, GithubAuthProvider } from 'firebase/auth';
 import { addConnectionLog, getConnectionLogs, subscribeToLogs, LogEntry } from '../services/githubService';
 
 export const SettingsPanel = ({ 
@@ -91,10 +91,8 @@ export const SettingsPanel = ({
           // that identity instead of leaving the user stuck on a stale
           // account with a misleading connected profile.
           if (error?.code !== 'auth/credential-already-in-use') throw error;
-          const existingCredential = GithubAuthProvider.credentialFromError(error);
-          if (!existingCredential) throw error;
-          result = await signInWithCredential(auth, existingCredential);
-          githubCredential = existingCredential;
+          result = await signInWithPopup(auth, githubProvider);
+          githubCredential = GithubAuthProvider.credentialFromResult(result);
         }
       }
       const token = githubCredential?.accessToken;
