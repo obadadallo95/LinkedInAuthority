@@ -1,4 +1,6 @@
-const CACHE_NAME = 'linkedin-authority-shell-v2';
+// Bump this whenever the deployed shell/assets change so an older cached
+// index cannot reference chunks from a previous release.
+const CACHE_NAME = 'linkedin-authority-shell-v3';
 const PRECACHE_URLS = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
