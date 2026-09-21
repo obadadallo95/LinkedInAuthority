@@ -14,7 +14,7 @@ import { t } from '../locales';
 import { useSettings } from '../contexts/SettingsContext';
 import { auth, githubProvider } from '../infrastructure/firebase/config';
 import { loadFirestoreClient } from '../infrastructure/firebase/firestoreClient';
-import { linkWithPopup, GithubAuthProvider } from 'firebase/auth';
+import { linkWithPopup, signInWithCredential, GithubAuthProvider } from 'firebase/auth';
 import { isBrowserE2E } from '../utils/e2e';
 
 export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
@@ -77,7 +77,17 @@ export const OnboardingWizard = ({ lang }: { lang: 'en'|'ar'|'de' }) => {
     setActionError(null);
     setLoading(true);
     try {
-      const result = await linkWithPopup(auth.currentUser, githubProvider);
+      let result;
+      try {
+        result = await linkWithPopup(auth.currentUser, githubProvider);
+      } catch (error: any) {
+        if (error?.code !== 'auth/credential-already-in-use') throw error;
+        const credential = GithubAuthProvider.credentialFromError(error);
+        if (!credential) throw error;
+        // Recover the existing GitHub Firebase identity instead of leaving the
+        // user stuck in onboarding when the provider is already linked.
+        result = await signInWithCredential(auth, credential);
+      }
       const credential = GithubAuthProvider.credentialFromResult(result);
       const token = credential?.accessToken;
       
