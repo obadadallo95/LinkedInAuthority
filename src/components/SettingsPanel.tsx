@@ -4,7 +4,7 @@ import { t } from '../constants';
 import { HelpGuides } from './HelpGuides';
 import { auth, githubProvider } from '../infrastructure/firebase/config';
 import { loadFirestoreClient } from '../infrastructure/firebase/firestoreClient';
-import { linkWithPopup, signInWithCredential, GithubAuthProvider } from 'firebase/auth';
+import { linkWithPopup, reauthenticateWithPopup, signInWithCredential, GithubAuthProvider } from 'firebase/auth';
 import { addConnectionLog, getConnectionLogs, subscribeToLogs, LogEntry } from '../services/githubService';
 
 export const SettingsPanel = ({ 
@@ -78,18 +78,24 @@ export const SettingsPanel = ({
     try {
       let result;
       let githubCredential;
-      try {
-        result = await linkWithPopup(auth.currentUser, githubProvider);
+      const githubAlreadyLinked = auth.currentUser.providerData.some(({ providerId }) => providerId === 'github.com');
+      if (githubAlreadyLinked) {
+        result = await reauthenticateWithPopup(auth.currentUser, githubProvider);
         githubCredential = GithubAuthProvider.credentialFromResult(result);
-      } catch (error: any) {
-        // If GitHub is already attached to an older Firebase identity, use
-        // that identity instead of leaving the user stuck on the current
-        // account with a misleading "connected" profile.
-        if (error?.code !== 'auth/credential-already-in-use') throw error;
-        const existingCredential = GithubAuthProvider.credentialFromError(error);
-        if (!existingCredential) throw error;
-        result = await signInWithCredential(auth, existingCredential);
-        githubCredential = existingCredential;
+      } else {
+        try {
+          result = await linkWithPopup(auth.currentUser, githubProvider);
+          githubCredential = GithubAuthProvider.credentialFromResult(result);
+        } catch (error: any) {
+          // If GitHub is already attached to another Firebase identity, use
+          // that identity instead of leaving the user stuck on a stale
+          // account with a misleading connected profile.
+          if (error?.code !== 'auth/credential-already-in-use') throw error;
+          const existingCredential = GithubAuthProvider.credentialFromError(error);
+          if (!existingCredential) throw error;
+          result = await signInWithCredential(auth, existingCredential);
+          githubCredential = existingCredential;
+        }
       }
       const token = githubCredential?.accessToken;
       
